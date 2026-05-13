@@ -288,7 +288,7 @@ export const actions: Actions = {
                 current_value: start_value,
                 deadline,
                 distance_m,
-            } as any); // cast needed until types are regenerated post-migration
+            });
 
         if (error) return fail(500, { createError: error.message });
         return { createSuccess: true };
@@ -320,7 +320,7 @@ export const actions: Actions = {
 
         const { error } = await supabase
             .from('training_goals')
-            .update({ completed_at: new Date().toISOString() } as any)
+            .update({ completed_at: new Date().toISOString() })
             .eq('id', goalId)
             .eq('user_id', session.user.id);
 

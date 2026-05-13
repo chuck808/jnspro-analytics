@@ -117,7 +117,13 @@ export function compareSystems(input: EngineValidationInput): ValidationReport {
     : null;
   const enginePeakSpeed = engine.summary?.peakSpeedKmh ?? maxValue(speedSeries);
 
-  const existingPeakG = (existing?.sessionStability as any)?.peakG ?? (existing?.phaseMetrics as any)?.peakG ?? null;
+  const stabilityPeakG = (existing?.sessionStability && typeof existing.sessionStability === 'object' && 'peakG' in existing.sessionStability)
+    ? (existing.sessionStability as { peakG: number }).peakG
+    : null;
+  const phasePeakG = (existing?.phaseMetrics && typeof existing.phaseMetrics === 'object' && 'peakG' in existing.phaseMetrics)
+    ? (existing.phaseMetrics as { peakG: number }).peakG
+    : null;
+  const existingPeakG = stabilityPeakG ?? phasePeakG ?? null;
   const enginePeakG = engine.summary?.peakG ?? maxValue(accelerationSeries);
 
   const existingDistance = existing?.curve?.distances?.length

@@ -215,7 +215,7 @@ export function buildCoachSessionReport(
 
     // ── Key findings — from analysis view insights ────────────────────────────
     const insightLines: string[] = [];
-    const narrativeInsights = (narrative as any)?.insights ?? [];
+    const narrativeInsights = narrative?.insights ?? [];
 
     if (narrativeInsights.length > 0) {
         for (const insight of narrativeInsights) {
@@ -356,10 +356,10 @@ export function buildCoachSessionReport(
             : null,
 
         // Warning insights — these are coaching observations
-        ...((narrative as any)?.insights ?? [])
-            .filter((i: any) => i.tone === 'warning')
+        ...(narrative?.insights ?? [])
+            .filter((i) => i.tone === 'warning')
             .slice(0, 2)
-            .map((i: any) => i.body)  // use body not title — body has the full sentence
+            .map((i) => i.body)  // use body not title — body has the full sentence
             .filter((body: string) => body && body.length > 20 && !body.startsWith('Prioritise')),  // Filter out fragments and action instructions
 
         // Drop-off context — but only if drop-off was detected
@@ -449,7 +449,6 @@ export function buildCoachSessionReport(
 
     const summaryBody = compactLines([
         summaryImpact ?? execLines[1] ?? null,
-        narrative?.message?.action ?? null,
     ]);
 
     return {
