@@ -112,7 +112,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					time_to_wheelie_ms:    run.time_to_wheelie_ms ?? null,
 					wheelie_duration_ms:   run.wheelie_duration_ms ?? null,
 					front_wheel_lifted:    run.front_wheel_lifted ?? false,
-				} as any);
+				});
 
             if (gateError) {
                 console.error(`Gate run ${run.run_number} full error:`, JSON.stringify(gateError, null, 2));

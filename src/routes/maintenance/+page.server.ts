@@ -4,7 +4,6 @@ export const load: PageServerLoad = async ({ locals }) => {
     const supabase = locals.supabase;
 
     // Get current active maintenance
-    // @ts-ignore - maintenance_schedules table types will be available after running migration
     const { data: maintenance } = await supabase
         .from('maintenance_schedules')
         .select('*')
@@ -16,6 +15,6 @@ export const load: PageServerLoad = async ({ locals }) => {
         .single();
 
     return {
-        maintenance: maintenance as any
+        maintenance
     };
 };

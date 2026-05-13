@@ -9,13 +9,12 @@ export const load: PageServerLoad = async ({ locals, depends, parent }) => {
         throw error(403, 'Access denied. Admin privileges required.');
     }
 
-    // @ts-ignore - maintenance_schedules table types will be available after running migration
     const { data: schedules } = await locals.supabase
         .from('maintenance_schedules')
         .select('*')
         .order('start_time', { ascending: false });
 
     return {
-        schedules: schedules as any[] || []
+        schedules: schedules || []
     };
 };

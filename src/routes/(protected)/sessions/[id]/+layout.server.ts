@@ -372,8 +372,8 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         }));
 
     // ── SESSION NOTES ──
-    // Load notes for this session (use 'as any' until types regenerated)
-    const { data: sessionNotes } = await (supabase as any)
+    // Load notes for this session
+    const { data: sessionNotes } = await supabase
         .from('session_notes')
         .select(`
             id,

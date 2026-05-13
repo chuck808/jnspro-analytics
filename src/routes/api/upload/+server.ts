@@ -35,8 +35,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     // Calculate file checksum for duplicate detection
     const fileChecksum = await calculateFileChecksum(rawData);
 
-    // Check for duplicate upload (use 'as any' until database types are regenerated)
-    const { data: existingSession, error: duplicateCheckError } = await (locals.supabase as any)
+    // Check for duplicate upload
+    const { data: existingSession, error: duplicateCheckError } = await locals.supabase
         .from('sessions')
         .select('id, timestamp, session_type, runs(id)')
         .eq('user_id', userId)
@@ -113,7 +113,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 notes:            '',
                 archived:         false,
                 file_checksum:    fileChecksum,
-            } as any) // Use 'as any' until database types are regenerated
+            })
             .select('id')
             .single();
 
@@ -173,7 +173,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				time_to_wheelie_ms:    run.time_to_wheelie_ms ?? null,
 				wheelie_duration_ms:   run.wheelie_duration_ms ?? null,
 				front_wheel_lifted:    run.front_wheel_lifted ?? false,
-			} as any);
+			});
 
             if (gateError) {
                 console.error(`Gate run ${run.run_number} insert error:`, gateError);

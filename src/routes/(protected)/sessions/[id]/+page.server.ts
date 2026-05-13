@@ -64,14 +64,14 @@ export const actions: Actions = {
             return fail(400, { error: 'Missing sessionId' });
         }
         
-        // Update session context (TypeScript errors will resolve after migration + type regeneration)
+        // Update session context
         const { error } = await supabase
             .from('sessions')
             .update({
                 weather_conditions: weather || null,
                 track_surface: surface || null,
                 session_focus: focus || null,
-            } as any) // Use 'as any' until database types are regenerated
+            })
             .eq('id', sessionId)
             .eq('user_id', session.user.id); // Security: Verify ownership
         
@@ -111,8 +111,8 @@ export const actions: Actions = {
             return fail(403, { error: 'Unauthorized' });
         }
 
-        // Insert note (use 'as any' until database types are regenerated after migration)
-        const { error } = await (supabase as any)
+        // Insert note
+        const { error } = await supabase
             .from('session_notes')
             .insert({
                 session_id: sessionId,
@@ -141,8 +141,8 @@ export const actions: Actions = {
             return fail(400, { error: 'Missing required fields' });
         }
 
-        // Update note (RLS will ensure ownership) - use 'as any' until types regenerated
-        const { error } = await (supabase as any)
+        // Update note (RLS will ensure ownership)
+        const { error } = await supabase
             .from('session_notes')
             .update({ content })
             .eq('id', noteId)
@@ -166,8 +166,8 @@ export const actions: Actions = {
             return fail(400, { error: 'Missing note ID' });
         }
 
-        // Delete note (RLS will ensure ownership) - use 'as any' until types regenerated
-        const { error } = await (supabase as any)
+        // Delete note (RLS will ensure ownership)
+        const { error } = await supabase
             .from('session_notes')
             .delete()
             .eq('id', noteId)

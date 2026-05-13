@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	
 	// Fetch all feedback with user information
 	const { data: feedback, error: feedbackError } = await supabaseAdmin
-		.from('feedback' as any)
+		.from('feedback')
 		.select('*')
 		.order('created_at', { ascending: false });
 
@@ -61,6 +61,6 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	}
 
 	return {
-		feedback: (feedback || []) as any[]
+		feedback: feedback || []
 	};
 };

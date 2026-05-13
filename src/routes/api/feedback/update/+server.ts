@@ -33,8 +33,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const supabaseAdmin = createSupabaseAdminClient();
 		
 		const { error } = await supabaseAdmin
-			.from('feedback' as any)
-            
+			.from('feedback')
 			.update({
 				status,
 				admin_notes,

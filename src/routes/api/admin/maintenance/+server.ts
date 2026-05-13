@@ -20,7 +20,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const body = await request.json();
     const { title, description, start_time, end_time } = body;
 
-    // @ts-ignore - maintenance_schedules table types will be available after running migration
     const { data, error: dbError } = await locals.supabase
         .from('maintenance_schedules')
         .insert({
@@ -59,7 +58,6 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
     const body = await request.json();
     const { id, is_active } = body;
 
-    // @ts-ignore - maintenance_schedules table types will be available after running migration
     const { data, error: dbError } = await locals.supabase
         .from('maintenance_schedules')
         .update({ is_active })
@@ -93,7 +91,6 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
     const body = await request.json();
     const { id } = body;
 
-    // @ts-ignore - maintenance_schedules table types will be available after running migration
     const { error: dbError } = await locals.supabase
         .from('maintenance_schedules')
         .delete()
