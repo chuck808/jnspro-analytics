@@ -1,2 +1,7 @@
-// Re-export from the backup dashboard page server
-export { load } from '../dashboard-backup/+page.server';
+import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async () => {
+    // Redirect to analytics page (main performance dashboard)
+    throw redirect(302, '/analytics');
+};
