@@ -46,8 +46,8 @@
 
 	function handleExportGoalsCSV() {
 		const goalsData = data.goals.map((goal: any) => ({
-			user_email: (goal.profiles as any)?.email || 'Unknown',
-			user_name: (goal.profiles as any)?.name || 'Unknown',
+			user_email: goal.profiles?.email || 'Unknown',
+			user_name: goal.profiles?.name || 'Unknown',
 			metric: goal.metric,
 			current_value: goal.current_value,
 			target_value: goal.target_value,

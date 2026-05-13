@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import type { GoalWithProfile } from '$lib/types/queries';
 
 export const load: PageServerLoad = async () => {
 	const admin = createSupabaseAdminClient();
@@ -55,7 +56,7 @@ export const load: PageServerLoad = async () => {
 	const thirtyDaysAgo = new Date();
 	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-	activeGoals.forEach((goal) => {
+	activeGoals.forEach((goal: any) => {
 		const userSessions = sessionsByUser[goal.user_id] || [];
 		const recentSessions = userSessions.filter(
 			(s) => new Date(s.timestamp) >= thirtyDaysAgo
@@ -71,8 +72,8 @@ export const load: PageServerLoad = async () => {
 			healthWarnings.warning++;
 			usersAtRisk.push({
 				user_id: goal.user_id,
-				user_email: (goal.profiles as any)?.email || 'Unknown',
-				user_name: (goal.profiles as any)?.name || 'Unknown',
+				user_email: goal.profiles?.email || 'Unknown',
+				user_name: goal.profiles?.name || 'Unknown',
 				risk_type: 'overtraining',
 				sessions_count: sessionsLast7Days.length,
 				goal_metric: goal.metric
@@ -89,8 +90,8 @@ export const load: PageServerLoad = async () => {
 
 		recentGoalActivity.push({
 			goal_id: goal.id,
-			user_email: (goal.profiles as any)?.email || 'Unknown',
-			user_name: (goal.profiles as any)?.name || 'Unknown',
+			user_email: goal.profiles?.email || 'Unknown',
+			user_name: goal.profiles?.name || 'Unknown',
 			metric: goal.metric,
 			progress: Math.round(progress),
 			deadline: goal.deadline,

@@ -92,6 +92,33 @@ export interface ReportBuildOptions {
   includeRecommendations?: boolean;
 }
 
+export interface NarrativeInsight {
+  tone: 'positive' | 'warning' | 'neutral';
+  title: string;
+  body: string;
+}
+
+export interface SessionNarrative {
+  message: {
+    headline: string;
+    impact?: string;
+    whyThisMatters?: string;
+    watchFor?: string;
+  };
+  insights?: NarrativeInsight[];
+  trust?: {
+    confidence?: number;
+  };
+}
+
+export interface ProgressRecommendation {
+  priority?: 'high' | 'medium' | 'low';
+  title: string;
+  body?: string;
+  message?: string;
+  watchFor?: string;
+}
+
 export interface CoachSessionReportInput {
   riderName?: string;
   sessionId: string;
@@ -99,7 +126,7 @@ export interface CoachSessionReportInput {
   sessionDate?: string;
   runCount: number;
   sessionReport?: any;
-  sessionNarrative?: any;
+  sessionNarrative?: SessionNarrative;
   techniqueSummary?: any;
   dataQuality?: any;
   recommendations?: ReportRecommendation[];

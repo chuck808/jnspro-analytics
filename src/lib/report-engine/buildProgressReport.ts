@@ -5,6 +5,7 @@ import type {
     ReportChart,
     ReportMetric,
     ReportDetailLevel,
+    ProgressRecommendation,
 } from './types';
 
 import {
@@ -562,12 +563,13 @@ function buildProgressRecommendations(
             .slice(0, 5)
             .map((rec, i) => {
                 if (typeof rec === 'object' && rec !== null && 'title' in rec) {
+                    const typedRec = rec as ProgressRecommendation;
                     return createRecommendation({
                         id:       `progress-rec-${i + 1}`,
-                        priority: (rec as any).priority ?? (i === 0 ? 'high' : 'medium'),
-                        title:    (rec as any).title,
-                        body:     (rec as any).body ?? (rec as any).message ?? String(rec),
-                        watchFor: (rec as any).watchFor,
+                        priority: typedRec.priority ?? (i === 0 ? 'high' : 'medium'),
+                        title:    typedRec.title,
+                        body:     typedRec.body ?? typedRec.message ?? String(rec),
+                        watchFor: typedRec.watchFor,
                     });
                 }
                 return createRecommendation({

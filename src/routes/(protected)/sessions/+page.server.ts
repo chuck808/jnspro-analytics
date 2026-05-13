@@ -1,5 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
+import type { SessionListItem } from '$lib/types/queries';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }) => {
     const { profile } = await parent();
@@ -63,10 +64,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
     }
 
     // Compute summary stats per session  
-    let sessionsWithStats = (sessions ?? []).map(session => {
+    let sessionsWithStats = (sessions ?? []).map((session: any) => {
         const runs = session.runs ?? [];
         const gateRuns = runs
-            .map(r => r.gate_runs)
+            .map((r: any) => r.gate_runs)
             .flat()
             .filter(Boolean);
 
@@ -86,7 +87,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
             session_type:  session.session_type,
             timestamp:     session.timestamp,
             notes:         session.notes,
-            bike_name:     (session.bikes as any)?.name ?? null,
+            bike_name:     session.bikes?.name ?? null,
             run_count:     runCount,
             best_reaction_ms:   bestReaction,
             best_peak_speed_ms: bestPeakSpeed && bestPeakSpeed > 0 ? bestPeakSpeed : null,

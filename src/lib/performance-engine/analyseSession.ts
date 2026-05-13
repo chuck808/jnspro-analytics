@@ -119,7 +119,7 @@ export function analyseRun(run: RunLike, rider: RiderContext, totalMassKg?: numb
   }
 
   // Get firmware-measured peak speed to scale the predicted curve
-  const actualPeakSpeedKmh = (gate as any)?.peak_speed_ms ? (gate as any).peak_speed_ms * 3.6 : null;
+  const actualPeakSpeedKmh = gate?.peak_speed_ms ? gate.peak_speed_ms * 3.6 : null;
   const curve = computeSpeedCurve(chartData, elapsedMs, gate?.bias_correction_ms2 ?? 0, actualPeakSpeedKmh);
   const technique = scoreTechnique(reactionMs, chartData, curve, rider.riderLevel);
   const jerk = computeJerk(chartData, elapsedMs);

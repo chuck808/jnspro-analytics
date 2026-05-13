@@ -20,8 +20,8 @@ export const load: PageServerLoad = async ({ url, locals: { supabase }, parent }
         .eq('user_id', profile.id)
         .maybeSingle();
 
-    const userOptedIn = (prefs as any)?.show_on_leaderboard ?? false;
-    const userDisplayName = (prefs as any)?.leaderboard_display_name ?? null;
+    const userOptedIn = prefs?.show_on_leaderboard ?? false;
+    const userDisplayName = prefs?.leaderboard_display_name ?? null;
 
     // Get filter params from URL
     const metric = (url.searchParams.get('metric') || 'reactionTime') as LeaderboardOptions['metric'];

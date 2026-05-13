@@ -10,6 +10,7 @@ export interface RiderContext {
 export interface GateRunLike {
   reaction_time_ms?: number | null;
   max_g?: number | null;
+  peak_speed_ms?: number | null;
   time_to_peak_speed_ms?: number | null;
   analytics_valid?: boolean | null;
   bias_correction_ms2?: number | null;
