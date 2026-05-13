@@ -1,0 +1,195 @@
+/**
+ * report-print.css
+ *
+ * Drop this into app.css or import it on the report preview page.
+ * Controls how the report looks when printed or saved as PDF.
+ *
+ * Usage: add class="print-report" to the element wrapping the
+ * printed content, and class="no-print" to anything that should
+ * be hidden when printing (buttons, nav, etc).
+ */
+
+@media print {
+
+    /* Hide everything that isn't the report */
+    body > *:not(.print-report) {
+        display: none !important;
+    }
+
+    .no-print,
+    nav,
+    aside,
+    header:not(.report-header),
+    footer:not(.report-footer) {
+        display: none !important;
+    }
+
+    /* Page setup */
+    @page {
+        size: A4;
+        margin: 20mm 18mm 20mm 18mm;
+    }
+
+    /* Reset for print */
+    .print-report {
+        display: block !important;
+        width: 100%;
+        max-width: none;
+        padding: 0;
+        margin: 0;
+        background: white;
+        color: black;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 11pt;
+        line-height: 1.5;
+    }
+
+    /* Report header */
+    .report-print-header {
+        border-bottom: 2pt solid black;
+        padding-bottom: 8pt;
+        margin-bottom: 16pt;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .report-print-header h1 {
+        font-size: 16pt;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .report-print-header .report-meta {
+        font-size: 9pt;
+        color: #555;
+        text-align: right;
+    }
+
+    /* Section headings */
+    .report-section-title {
+        font-size: 10pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #333;
+        border-bottom: 0.5pt solid #ccc;
+        padding-bottom: 4pt;
+        margin-bottom: 8pt;
+        margin-top: 16pt;
+    }
+
+    /* Body text */
+    .report-body p {
+        margin-bottom: 6pt;
+        color: black;
+    }
+
+    /* Metric grid for print */
+    .report-metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8pt;
+        margin: 10pt 0;
+    }
+
+    .report-metric-item {
+        border: 0.5pt solid #ccc;
+        padding: 6pt 8pt;
+        border-radius: 3pt;
+    }
+
+    .report-metric-label {
+        font-size: 8pt;
+        color: #666;
+        margin-bottom: 2pt;
+    }
+
+    .report-metric-value {
+        font-size: 13pt;
+        font-weight: bold;
+        color: black;
+    }
+
+    .report-metric-rating {
+        font-size: 8pt;
+        color: #333;
+    }
+
+    /* Recommendations for print */
+    .report-recommendation {
+        border-left: 2pt solid #333;
+        padding-left: 8pt;
+        margin-bottom: 8pt;
+    }
+
+    .report-recommendation-title {
+        font-weight: bold;
+        font-size: 10pt;
+    }
+
+    .report-recommendation-body {
+        font-size: 10pt;
+        color: #333;
+    }
+
+    .report-recommendation-watchfor {
+        font-size: 9pt;
+        color: #555;
+        margin-top: 3pt;
+    }
+
+    /* Data quality note — subdued in print */
+    .report-data-quality {
+        font-size: 9pt;
+        color: #666;
+        border: 0.5pt solid #ccc;
+        padding: 6pt 8pt;
+        margin-top: 12pt;
+    }
+
+    /* Footer */
+    .report-print-footer {
+        border-top: 0.5pt solid #ccc;
+        margin-top: 20pt;
+        padding-top: 6pt;
+        font-size: 8pt;
+        color: #888;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* Page breaks */
+    .report-section {
+        page-break-inside: avoid;
+    }
+
+    .report-recommendations {
+        page-break-before: auto;
+    }
+
+    /* Don't break recommendations in half */
+    .report-recommendation {
+        page-break-inside: avoid;
+    }
+
+    /* Chart placeholders become empty boxes in print */
+    .chart-placeholder {
+        border: 0.5pt solid #ccc;
+        height: 80pt;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #aaa;
+        font-size: 9pt;
+        margin: 8pt 0;
+    }
+
+    /* Hide UI chrome */
+    button,
+    [role="button"],
+    .badge,
+    .tooltip {
+        display: none !important;
+    }
+}
