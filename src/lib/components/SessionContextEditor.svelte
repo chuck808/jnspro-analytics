@@ -3,12 +3,15 @@
         WEATHER_OPTIONS, 
         SURFACE_OPTIONS, 
         FOCUS_OPTIONS,
+        RIDE_FEEL_OPTIONS,
         type WeatherCondition,
         type TrackSurface,
         type SessionFocus,
+        type RideFeel,
         getWeatherMeta,
         getSurfaceMeta,
-        getFocusMeta
+        getFocusMeta,
+        getRideFeelMeta
     } from '$lib/types/sessionContext';
 
     interface Props {
@@ -16,18 +19,21 @@
         initialWeather?: WeatherCondition | null;
         initialSurface?: TrackSurface | null;
         initialFocus?: SessionFocus | null;
+        initialFeel?: RideFeel | null;
     }
 
     let { 
         sessionId,
         initialWeather = null,
         initialSurface = null,
-        initialFocus = null
+        initialFocus = null,
+        initialFeel = null
     }: Props = $props();
 
     let weather = $state<WeatherCondition | null>(null);
     let surface = $state<TrackSurface | null>(null);
     let focus = $state<SessionFocus | null>(null);
+    let feel = $state<RideFeel | null>(null);
     
     let isEditing = $state(false);
     let isSaving = $state(false);
@@ -38,6 +44,7 @@
             weather = initialWeather;
             surface = initialSurface;
             focus = initialFocus;
+            feel = initialFeel;
         }
     });
 
@@ -49,6 +56,7 @@
         if (weather) formData.set('weather', weather);
         if (surface) formData.set('surface', surface);
         if (focus) formData.set('focus', focus);
+        if (feel) formData.set('feel', feel);
 
         try {
             const response = await fetch('?/updateSessionContext', {
@@ -70,26 +78,28 @@
         weather = initialWeather;
         surface = initialSurface;
         focus = initialFocus;
+        feel = initialFeel;
         isEditing = false;
     }
 
     let weatherMeta = $derived(getWeatherMeta(weather));
     let surfaceMeta = $derived(getSurfaceMeta(surface));
     let focusMeta = $derived(getFocusMeta(focus));
+    let feelMeta = $derived(getRideFeelMeta(feel));
 </script>
 
 <div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h3 class="text-sm font-semibold text-[#f0ece4]">Session Context</h3>
-            <p class="text-xs text-[#6b5f4d]">Environmental conditions and session focus</p>
+            <p class="text-xs text-[#6b5f4d]">Conditions, focus and how it felt</p>
         </div>
         {#if !isEditing}
             <button
                 onclick={() => isEditing = true}
                 class="text-xs text-[#f5a623] hover:text-[#f0ece4] transition-colors
                        focus:outline-none focus:ring-2 focus:ring-[#f5a623] rounded px-2 py-1">
-                {weather || surface || focus ? 'Edit' : '+ Add context'}
+                {weather || surface || focus || feel ? 'Edit' : '+ Add context'}
             </button>
         {/if}
     </div>
@@ -158,6 +168,30 @@
                 </div>
             </div>
 
+            <!-- How did it feel? -->
+            <div>
+                <div class="block text-xs font-medium text-[#9a8f7a] mb-2">How did it feel?</div>
+                <div class="grid grid-cols-5 gap-2">
+                    {#each RIDE_FEEL_OPTIONS as option}
+                        <button
+                            onclick={() => feel = feel === option.value ? null : option.value}
+                            class="flex flex-col items-center gap-1 p-3 rounded-lg border transition-all
+                                   {feel === option.value 
+                                       ? 'border-[2px]' 
+                                       : 'bg-[#0a0809] border-[#221c18] hover:border-opacity-40'}
+                                   focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
+                            style="
+                                {feel === option.value 
+                                    ? `background: ${option.color}15; border-color: ${option.color}80; color: ${option.color}` 
+                                    : 'color: #9a8f7a'}
+                            ">
+                            <span class="text-2xl">{option.icon}</span>
+                            <span class="text-xs font-medium text-center">{option.label}</span>
+                        </button>
+                    {/each}
+                </div>
+            </div>
+
             <!-- Action buttons -->
             <div class="flex items-center gap-2 pt-2">
                 <button
@@ -180,8 +214,8 @@
         </div>
     {:else}
         <!-- Display mode -->
-        {#if weather || surface || focus}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {#if weather || surface || focus || feel}
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 {#if weatherMeta}
                     <div class="flex items-center gap-2 p-3 bg-[#0a0809] rounded-lg border border-[#221c18]">
                         <span class="text-2xl">{weatherMeta.icon}</span>
@@ -206,6 +240,15 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-xs text-[#6b5f4d]">Focus</p>
                             <p class="text-sm font-medium" style="color: {focusMeta.color}">{focusMeta.label}</p>
+                        </div>
+                    </div>
+                {/if}
+                {#if feelMeta}
+                    <div class="flex items-center gap-2 p-3 bg-[#0a0809] rounded-lg border border-[#221c18]">
+                        <span class="text-2xl">{feelMeta.icon}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-[#6b5f4d]">Ride Feel</p>
+                            <p class="text-sm font-medium" style="color: {feelMeta.color}">{feelMeta.label}</p>
                         </div>
                     </div>
                 {/if}

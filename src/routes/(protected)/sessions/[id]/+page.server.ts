@@ -59,6 +59,7 @@ export const actions: Actions = {
         const weather = data.get('weather') as string | null;
         const surface = data.get('surface') as string | null;
         const focus = data.get('focus') as string | null;
+        const feel = data.get('feel') as string | null;
         
         if (!sessionId) {
             return fail(400, { error: 'Missing sessionId' });
@@ -71,6 +72,7 @@ export const actions: Actions = {
                 weather_conditions: weather || null,
                 track_surface: surface || null,
                 session_focus: focus || null,
+                ride_feel: feel || null,
             })
             .eq('id', sessionId)
             .eq('user_id', session.user.id); // Security: Verify ownership

@@ -2,7 +2,7 @@
     import { getContext } from 'svelte';
     import type { LayoutData } from './$types';
     import SessionContextEditor from '$lib/components/SessionContextEditor.svelte';
-    import type { WeatherCondition, TrackSurface, SessionFocus } from '$lib/types/sessionContext';
+    import type { WeatherCondition, TrackSurface, SessionFocus, RideFeel } from '$lib/types/sessionContext';
     import CrossRunProgression from '$lib/components/CrossRunProgression.svelte';
     import SessionNarrativeCard from '$lib/components/performance-insights/SessionNarrativeCard.svelte';
     import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
@@ -165,6 +165,7 @@
         initialWeather={(data.session as any).weather_conditions as WeatherCondition | null}
         initialSurface={(data.session as any).track_surface as TrackSurface | null}
         initialFocus={(data.session as any).session_focus as SessionFocus | null}
+        initialFeel={(data.session as any).ride_feel as RideFeel | null}
     />
 
     <!-- ══════════════════════════════════════════════════════

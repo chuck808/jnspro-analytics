@@ -23,7 +23,7 @@ export type BikeWithTires = Pick<BikeRow,
 
 export type SessionWithRelations = Pick<SessionRow,
     'id' | 'session_type' | 'timestamp' | 'notes' | 'archived' |
-    'weather_conditions' | 'track_surface' | 'session_focus'
+    'weather_conditions' | 'track_surface' | 'session_focus' | 'ride_feel'
 > & {
     bikes: BikeWithTires | null;
     rider_profiles: Pick<RiderProfileRow,

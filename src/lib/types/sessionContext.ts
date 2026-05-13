@@ -33,6 +33,13 @@ export type SessionFocus =
     | 'recovery' 
     | 'testing';
 
+export type RideFeel =
+    | 'off'
+    | 'solid'
+    | 'good'
+    | 'dialled'
+    | 'peak';
+
 export interface WeatherMeta {
     value: WeatherCondition;
     label: string;
@@ -49,6 +56,14 @@ export interface SurfaceMeta {
 
 export interface FocusMeta {
     value: SessionFocus;
+    label: string;
+    icon: string;
+    description: string;
+    color: string;
+}
+
+export interface RideFeelMeta {
+    value: RideFeel;
     label: string;
     icon: string;
     description: string;
@@ -134,6 +149,44 @@ export const FOCUS_OPTIONS: FocusMeta[] = [
     },
 ];
 
+export const RIDE_FEEL_OPTIONS: RideFeelMeta[] = [
+    {
+        value: 'off',
+        label: 'Off Day',
+        icon: '😔',
+        description: 'Not feeling it — body or mind wasn\'t there',
+        color: '#9a8f7a'
+    },
+    {
+        value: 'solid',
+        label: 'Solid',
+        icon: '👍',
+        description: 'Decent session — nothing special but consistent',
+        color: '#6b9fd4'
+    },
+    {
+        value: 'good',
+        label: 'Good',
+        icon: '💪',
+        description: 'Felt good — responsive and in control',
+        color: '#f5a623'
+    },
+    {
+        value: 'dialled',
+        label: 'Dialled',
+        icon: '🎯',
+        description: 'Everything clicking — timing and flow felt right',
+        color: '#3de8c8'
+    },
+    {
+        value: 'peak',
+        label: 'Peak',
+        icon: '🔥',
+        description: 'Best I\'ve felt — explosive, sharp, locked in',
+        color: '#ff6b3d'
+    },
+];
+
 /**
  * Get metadata for a weather condition
  */
@@ -156,6 +209,14 @@ export function getSurfaceMeta(surface: TrackSurface | null): SurfaceMeta | null
 export function getFocusMeta(focus: SessionFocus | null): FocusMeta | null {
     if (!focus) return null;
     return FOCUS_OPTIONS.find(opt => opt.value === focus) ?? null;
+}
+
+/**
+ * Get metadata for ride feel
+ */
+export function getRideFeelMeta(feel: RideFeel | null): RideFeelMeta | null {
+    if (!feel) return null;
+    return RIDE_FEEL_OPTIONS.find(opt => opt.value === feel) ?? null;
 }
 
 /**
