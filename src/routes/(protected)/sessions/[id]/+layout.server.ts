@@ -109,7 +109,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
     // Compute session-level summary stats
     // Filter runs: exclude warmup and explicitly excluded runs
     const allRuns = runs ?? [];
-    const includedRuns = allRuns.filter(r => !shouldExcludeFromStats((r as any).tags));
+    const includedRuns = allRuns.filter(r => !shouldExcludeFromStats(r.tags as any));
     const excludedCount = allRuns.length - includedRuns.length;
     
     const gateRuns = includedRuns
@@ -445,7 +445,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
                 ? Math.max(...prevValidRuns.map(g => g!.peak_speed_ms ?? 0))
                 : null,
             reaction_cv: prevReactionCv,
-            bike_name: (previousSession.bikes as any)?.name ?? null,
+            bike_name: previousSession.bikes && typeof previousSession.bikes === 'object' && 'name' in previousSession.bikes ? previousSession.bikes.name : null,
             weather: null, // Would need to add to query if tracked
             surface: null,
         };
@@ -458,9 +458,9 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         sessionNotes: sessionNotes ?? [],
         previousSessionSummary, // For comparison modal
         // Pass rider + bike data for analytics
-        riderWeight:  (session.rider_profiles as any)?.weight_kg ?? null,
-        bikeWeight:   (session.bikes as any)?.weight_kg ?? null,
-        crankLength:  (session.bikes as any)?.crank_length_mm ?? null,
+        riderWeight:  session.rider_profiles && typeof session.rider_profiles === 'object' && 'weight_kg' in session.rider_profiles ? session.rider_profiles.weight_kg : null,
+        bikeWeight:   session.bikes && typeof session.bikes === 'object' && 'weight_kg' in session.bikes ? session.bikes.weight_kg : null,
+        crankLength:  session.bikes && typeof session.bikes === 'object' && 'crank_length_mm' in session.bikes ? session.bikes.crank_length_mm : null,
         // Goal progress
         goalProgress: goalProgress.filter((g): g is NonNullable<typeof g> => g !== null),
         hasActiveGoals: (goals ?? []).length > 0,

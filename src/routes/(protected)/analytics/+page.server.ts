@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     // Flat list of all individual runs across all sessions (for heatmap + correlation)
     const allRuns = sessionsWithRuns.flatMap(session =>
         (session.runs ?? []).flatMap(run =>
-            (run.gate_runs ?? []).map((g: any) => ({
+            (run.gate_runs ?? []).map(g => ({
                 session_id:       session.id,
                 session_date:     session.timestamp,
                 reaction_time_ms: g.reaction_time_ms,
@@ -157,7 +157,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 
     // ── CORRELATION INSIGHTS (Phase 3 Task 3.2) ──
     // Generate insights when sufficient data is available
-    const correlationData = prepareCorrelationData(sessionsWithRuns as any[], sessionSummaries);
+    const correlationData = prepareCorrelationData(sessionsWithRuns, sessionSummaries);
     const correlationInsights = generateCorrelationInsights(correlationData, 10);
 
     return { 
