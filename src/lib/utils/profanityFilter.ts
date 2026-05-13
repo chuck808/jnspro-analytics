@@ -4,27 +4,25 @@
  */
 
 const PROFANITY_PATTERNS = [
-	// Common variations and l33t speak
-	/f[u*]+ck/i,
-	/sh[i1!]+t/i,
-	/b[i1!]+tch/i,
-	/[a@]ss/i,
-	/d[a@]mn/i,
-	/hell/i,
-	/[a@]sshole/i,
-	/b[a@]st[a@]rd/i,
-	/c[o0]ck/i,
-	/d[i1!]ck/i,
-	/p[i1!]ss/i,
-	/wh[o0]re/i,
-	/sl[u*]t/i,
-	/c[u*]nt/i,
-	/f[a@]g/i,
-	/n[i1!]gg/i,
-	/k[i1!]ke/i,
-	/sp[i1!]c/i,
-	/ch[i1!]nk/i,
-	// Add more patterns as needed
+	// Serious slurs — match as whole words only
+	/\bn[i1!]gg(a|er)\b/i,
+	/\bk[i1!]ke\b/i,
+	/\bsp[i1!]c\b/i,
+	/\bch[i1!]nk\b/i,
+	/\bf[a@]gg?[o0]t\b/i,
+	/\bc[u*]nt\b/i,
+	/\bwh[o0]re\b/i,
+	/\bsl[u*]t\b/i,
+
+	// Profanity — whole words only
+	/\bf[u*@]ck(er|ing|ed|s)?\b/i,
+	/\bsh[i1!]t(ter|ty|s)?\b/i,
+	/\bb[i1!]tch(es)?\b/i,
+	/\bd[i1!]ck(head|s)?\b/i,
+	/\bc[o0]ck(s|head)?\b/i,
+	/\bp[i1!]ss(ed|off)?\b/i,
+	/\ba[s$]{2}h[o0]le\b/i,
+	/\bb[a@]st[a@]rd\b/i,
 ];
 
 export function containsProfanity(text: string): boolean {
