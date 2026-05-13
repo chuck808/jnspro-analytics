@@ -64,10 +64,13 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
     }
 
     // Compute summary stats per session  
-    let sessionsWithStats = (sessions ?? []).map((session: any) => {
+    type SessionRun = { gate_runs: Array<{ reaction_time_ms: number; max_g: number; peak_speed_ms: number | null; analytics_valid: boolean }> | null };
+    type SessionWithRuns = { id: string; session_type: string; timestamp: string; notes: string | null; bikes: { name: string } | null; runs: SessionRun[] };
+    
+    let sessionsWithStats = (sessions as SessionWithRuns[] ?? []).map((session) => {
         const runs = session.runs ?? [];
         const gateRuns = runs
-            .map((r: any) => r.gate_runs)
+            .map((r) => r.gate_runs)
             .flat()
             .filter(Boolean);
 
@@ -99,8 +102,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
     // Client-side sorting (since we computed stats after query)
     if (sortBy && sessionsWithStats.length > 0) {
         sessionsWithStats.sort((a, b) => {
-            let aVal: any = null;
-            let bVal: any = null;
+            let aVal: number = 0;
+            let bVal: number = 0;
             
             switch (sortBy) {
                 case 'timestamp':
