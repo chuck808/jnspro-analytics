@@ -96,7 +96,7 @@ Before you begin, ensure you have:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/jnspro-analytics.git
+git clone https://github.com/chuck808/jnspro-analytics.git
 cd jnspro-analytics
 ```
 
@@ -360,7 +360,7 @@ Use clear, descriptive commit messages:
 
 Found a bug or have a feature suggestion?
 
-1. Check existing [Issues](https://github.com/your-org/jnspro-analytics/issues)
+1. Check existing [Issues](https://github.com/chuck808/jnspro-analytics/issues)
 2. Create a new issue with detailed information
 3. Use appropriate labels (bug, enhancement, etc.)
 
@@ -395,6 +395,6 @@ For support, email [support@jnsprosystems.com](mailto:support@jnsprosystems.com)
 
 Making lab-grade BMX gate start analytics accessible to every rider and coach.
 
-[Website](https://appgatepro.com) • [Twitter](https://twitter.com/jnsprosystems) • [Instagram](https://instagram.com/jnsprosystems)
+[Live Site](https://jnspro-analytics.vercel.app) • [GitHub](https://github.com/chuck808/jnspro-analytics)
 
 </div>
