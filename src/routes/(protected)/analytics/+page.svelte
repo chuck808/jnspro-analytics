@@ -217,10 +217,10 @@
 
     let powerData = $derived(data.sessions.map((session, index) => {
         // Power requires rider weight + bike weight
-        const riderWeight = (data.profile as any)?.weight_kg ?? null;
+        const riderWeight = data.profile && typeof data.profile === 'object' && 'weight_kg' in data.profile ? (data.profile.weight_kg as number | null) : null;
         const bikeWeight = data.bikes?.[0]?.weight_kg ?? null;
-        const hasWeight = (riderWeight ?? 0) + (bikeWeight ?? 0) > 0;
-        const totalMassKg = hasWeight ? (riderWeight ?? 0) + (bikeWeight ?? 0) : null;
+        const hasWeight = ((riderWeight ?? 0) as number) + ((bikeWeight ?? 0) as number) > 0;
+        const totalMassKg = hasWeight ? ((riderWeight ?? 0) as number) + ((bikeWeight ?? 0) as number) : null;
         
         return {
             sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
@@ -232,7 +232,7 @@
             avgPowerW: session.avg_max_g && totalMassKg 
                 ? Math.round(session.avg_max_g * 9.81 * totalMassKg) 
                 : null,
-            riderWeightKg: riderWeight,
+            riderWeightKg: riderWeight as number | null,
         };
     }));
 
@@ -249,9 +249,9 @@
 
     let wheelieData = $derived(data.sessions.map((session, index) => {
         const sessionRuns = data.allRuns.filter(r => r.session_id === session.id);
-        // Note: front_wheel_lifted requires full run data from server
-        const wheelieRuns = sessionRuns.filter(r => (r as any).front_wheel_lifted === true);
-        const nonWheelieRuns = sessionRuns.filter(r => (r as any).front_wheel_lifted !== true);
+        // Note: front_wheel_lifted not available in allRuns data structure
+        const wheelieRuns = sessionRuns.filter(r => 'front_wheel_lifted' in r && r.front_wheel_lifted === true);
+        const nonWheelieRuns = sessionRuns.filter(r => !('front_wheel_lifted' in r) || r.front_wheel_lifted !== true);
         
         const avgReaction = (runs: typeof sessionRuns) => {
             const valid = runs.filter(r => r.reaction_time_ms !== null);
