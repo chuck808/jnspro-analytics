@@ -36,7 +36,7 @@
 
         <!-- Full-width background image -->
         <div class="hero-img-wrap">
-            <img src="/bmx-hero.png" alt="BMX rider gate start" class="hero-img" />
+            <img src="/bmx-hero.webp" alt="BMX rider gate start" class="hero-img" />
             <div class="hero-img-scrim"></div>
         </div>
 
