@@ -69,9 +69,9 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
         [
             `default-src 'self'`,
             `script-src 'self' 'unsafe-inline'`,          // unsafe-inline needed for Svelte's inline scripts
-            `style-src 'self' 'unsafe-inline'`,            // unsafe-inline needed for Tailwind/Svelte styles
+            `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,            // unsafe-inline needed for Tailwind/Svelte styles
             `img-src 'self' data: blob:`,                  // data: for Chart.js canvas exports, blob: for file previews
-            `font-src 'self'`,
+            `font-src 'self' https://fonts.gstatic.com`,
             `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
             `frame-ancestors 'none'`,                      // belt-and-braces with X-Frame-Options
             `base-uri 'self'`,
