@@ -521,7 +521,7 @@
                         </div>
 
                         <div class="flex items-center gap-2 flex-wrap">
-                            {#if (goal as any).adaptiveAnalysis && (goal as any).adaptiveAnalysis.suggestions.length > 0}
+                            {#if (goal as any).adaptiveAnalysis?.suggestions && (goal as any).adaptiveAnalysis.suggestions.length > 0}
                                 <button
                                     onclick={() => selectedGoalForSuggestions = goal}
                                     class="px-3 py-1.5 text-xs text-[#f5a623] bg-[#f5a623]/10

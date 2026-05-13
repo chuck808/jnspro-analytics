@@ -48,3 +48,15 @@ export type GoalWithProfile = Pick<TrainingGoalRow,
 > & {
     profiles: Pick<ProfileRow, 'email' | 'name'> | null;
 };
+
+export interface AdaptiveAnalysisSuggestion {
+    id: string;
+    text: string;
+    priority?: 'high' | 'medium' | 'low';
+}
+
+export interface GoalWithAdaptiveAnalysis {
+    adaptiveAnalysis?: {
+        suggestions: AdaptiveAnalysisSuggestion[];
+    };
+}
