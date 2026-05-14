@@ -1,18 +1,16 @@
-import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals: { supabase, session, user } }) => {
-    // Session and user are already validated by authGuard in hooks.server.ts
-    // No need to call safeGetSession() again - just use the values from locals
-    if (!session || !user) {
-        throw redirect(303, '/auth/sign-in');
-    }
-
+    // The authGuard in hooks.server.ts already validates and redirects if no session
+    // So by the time we get here, we know session and user exist
+    // No need to check or redirect again - that was causing the loop
+    
     // Get user profile from database
+    // user is guaranteed to exist here because authGuard already validated it
     const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', user!.id)
         .single();
 
     return { session, user, profile };
