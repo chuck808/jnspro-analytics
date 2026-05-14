@@ -204,9 +204,10 @@
         };
     });
 
-    // Re-render when runs change
+    // Re-render when runs or metric change
     $effect(() => {
         runs; // Track dependency
+        metric; // Track metric dependency
         if (chartCanvas) {
             setTimeout(() => renderChart(), 0);
         }

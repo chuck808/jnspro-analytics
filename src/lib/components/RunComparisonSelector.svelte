@@ -1,5 +1,6 @@
 <script lang="ts">
     import MultiRunOverlayChart from './charts/MultiRunOverlayChart.svelte';
+    import { computeSpeedCurve, computeJerk, GRAVITY_MS2 } from '$lib/performance-engine/physics';
 
     interface Run {
         id: string;
@@ -8,6 +9,7 @@
         elapsed_time_ms: number;
         gate_runs?: {
             reaction_time_ms: number;
+            peak_speed_ms?: number;
         } | null;
     }
 
@@ -29,7 +31,7 @@
     let showComparison = $state(false);
     let metric = $state<'gForce' | 'speed' | 'jerk'>('gForce');
 
-    // Derived selected runs with colors
+    // Derived selected runs with colors - data changes based on metric
     let selectedRuns = $derived.by(() => {
         const selected: Array<{
             runNumber: number;
@@ -41,9 +43,31 @@
         let colorIndex = 0;
         for (const run of runs) {
             if (selectedRunIds.has(run.id)) {
+                const chartData = run.chart_data as number[];
+                const elapsedMs = run.elapsed_time_ms;
+                
+                // Transform data based on selected metric
+                let dataToDisplay: number[];
+                
+                if (metric === 'speed') {
+                    // Compute speed from G-Force data
+                    const actualPeakSpeedKmh = run.gate_runs?.peak_speed_ms 
+                        ? run.gate_runs.peak_speed_ms * 3.6 
+                        : null;
+                    const curve = computeSpeedCurve(chartData, elapsedMs, 0, actualPeakSpeedKmh);
+                    dataToDisplay = curve.speeds;
+                } else if (metric === 'jerk') {
+                    // Compute jerk from G-Force data
+                    const jerkEstimate = computeJerk(chartData, elapsedMs);
+                    dataToDisplay = jerkEstimate?.series.map(s => s.value) ?? [];
+                } else {
+                    // Use raw G-Force data
+                    dataToDisplay = chartData;
+                }
+                
                 selected.push({
                     runNumber: run.run_number,
-                    data: run.chart_data as number[],
+                    data: dataToDisplay,
                     elapsedMs: run.elapsed_time_ms,
                     color: CHART_COLORS[colorIndex % CHART_COLORS.length],
                 });

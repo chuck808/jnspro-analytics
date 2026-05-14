@@ -7,5 +7,6 @@ export { default as PerformanceChartsPanel } from './PerformanceChartsPanel.svel
 export { default as PeakSpeedScatterChart } from './PeakSpeedScatterChart.svelte';
 export { default as SpeedWithAverageLineChart } from './SpeedWithAverageLineChart.svelte';
 export { default as SpeedHeatmapChart } from './SpeedHeatmapChart.svelte';
+export { default as PerformanceDistributionChart } from './PerformanceDistributionChart.svelte';
 export * from './types';
 export * from './chartUtils';

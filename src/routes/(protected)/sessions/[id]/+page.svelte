@@ -5,6 +5,7 @@
     import type { WeatherCondition, TrackSurface, SessionFocus, RideFeel } from '$lib/types/sessionContext';
     import CrossRunProgression from '$lib/components/CrossRunProgression.svelte';
     import SessionNarrativeCard from '$lib/components/performance-insights/SessionNarrativeCard.svelte';
+    import StrengthsLimiters from '$lib/components/session/StrengthsLimiters.svelte';
     import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
     import { getUCICategory } from '$lib/utils/uciCategories';
 
@@ -17,6 +18,7 @@
     let uciCategory        = $derived(ctx.uciCategory);
     let performanceAnalysis = $derived(ctx.performanceAnalysis);
     let consistency        = $derived(ctx.consistency);
+    let insightPack        = $derived(ctx.insightPack);
 
     // ── Formatting helpers ─────────────────────────────────────────────────────
     function fmt(n: number | null | undefined, dec = 2, suf = '') {
@@ -257,6 +259,19 @@
                 </div>
             </div>
             <SessionNarrativeCard narrative={sessionNarrative} detailLevel="coach" />
+        </div>
+    {/if}
+
+    <!-- ══════════════════════════════════════════════════════
+         STRENGTHS & LIMITERS
+         ══════════════════════════════════════════════════════ -->
+    {#if insightPack && (insightPack.strengths.length > 0 || insightPack.limiters.length > 0)}
+        <div class="themed-card rounded-xl p-5">
+            <h3 class="text-base font-bold themed-text-primary mb-4">Performance Summary</h3>
+            <StrengthsLimiters 
+                strengths={insightPack.strengths} 
+                limiters={insightPack.limiters} 
+            />
         </div>
     {/if}
 

@@ -8,6 +8,8 @@
     import RunComparisonSelector from '$lib/components/RunComparisonSelector.svelte';
     import { ImpulseChart, PowerChart } from '$lib/components/performance-charts';
     import { TrainingInsightsPanel } from '$lib/components/performance-insights';
+    import CoachDiagnosticsCard from '$lib/components/session/CoachDiagnosticsCard.svelte';
+    import TechniqueScoreBreakdown from '$lib/components/session/TechniqueScoreBreakdown.svelte';
     import { buildChartSeries, shouldShowPower } from '$lib/performance-engine';
     import { computeDetailedPhases } from '$lib/performance-engine/phaseAnalysis';
     import { getChartOptions } from '$lib/utils/chartConfig';
@@ -28,6 +30,8 @@
     let chartSeries         = $derived(ctx.chartSeries);
     let techniqueScores     = $derived(ctx.techniqueScores);
     let jerkProfile         = $derived(ctx.jerkProfile);
+    let coachDiagnostics    = $derived(ctx.coachDiagnostics);
+    let techniqueScoreBreakdown = $derived(ctx.techniqueScoreBreakdown);
 
     // ── Per-run derived ────────────────────────────────────────────────────────
     let chartData = $derived((selectedRun?.chart_data as number[]) ?? []);
@@ -505,6 +509,29 @@
     {/if}
 
     <!-- ══════════════════════════════════════════════════════
+         DETAILED TECHNIQUE BREAKDOWN
+         ══════════════════════════════════════════════════════ -->
+    {#if techniqueScoreBreakdown}
+        <div class="themed-card rounded-xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <h3 class="text-base font-bold themed-text-primary">Detailed Technique Breakdown</h3>
+                <HelpButton label="Technique Breakdown" onclick={() => ctx.openHelp('techniqueScore')} />
+            </div>
+            <p class="text-xs themed-text-secondary mb-5">
+                Six dimensions of gate start technique, scored 0-100 and benchmarked against {riderLevel ?? 'intermediate'} level
+            </p>
+            <TechniqueScoreBreakdown scores={techniqueScoreBreakdown} />
+        </div>
+    {/if}
+
+    <!-- ══════════════════════════════════════════════════════
+         COACH DIAGNOSTICS
+         ══════════════════════════════════════════════════════ -->
+    {#if coachDiagnostics && coachDiagnostics.length > 0}
+        <CoachDiagnosticsCard diagnostics={coachDiagnostics} />
+    {/if}
+
+    <!-- ══════════════════════════════════════════════════════
          TRAINING INSIGHTS PANEL
          ══════════════════════════════════════════════════════ -->
     {#if sessionIntelligence}
@@ -515,6 +542,7 @@
                 id: r.id,
                 run_number: r.run_number,
                 gate_runs: r.gate_runs ? {
+                    reaction_time_ms:    r.gate_runs.reaction_time_ms    ?? null,
                     front_wheel_lifted:  r.gate_runs.front_wheel_lifted  ?? null,
                     wheelie_duration_ms: r.gate_runs.wheelie_duration_ms ?? null,
                     max_pitch:           r.gate_runs.max_pitch_deg        ?? null,

@@ -7,7 +7,7 @@
     import { ReportOptionsPanel, ReportPreview } from '$lib/components/reports';
     import { buildCoachSessionReport } from '$lib/report-engine';
     import type { GeneratedReport, ReportDetailLevel } from '$lib/report-engine/types';
-    import { analyseSession, type DetailLevel } from '$lib/performance-engine';
+    import { analyseSession, type DetailLevel, scoreRunTechnique, buildCoachDiagnostics, buildPerformanceInsightPack } from '$lib/performance-engine';
     import { analyseSessionIntelligence } from '$lib/performance-engine';
     import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
     import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
@@ -92,6 +92,28 @@
     let selectedRun  = $derived(data.runs[selectedRunIdx]);
     let selectedGate = $derived((selectedRun as any)?.gate_runs ?? null);
     let riderLevel   = $derived((data.session.rider_profiles as any)?.rider_level ?? null);
+
+    // ── NEW: Performance Engine Detailed Analysis ──────────────────────────────
+    let techniqueScoreBreakdown = $derived.by(() => {
+        if (!performanceAnalysis.selectedRun) return null;
+        return scoreRunTechnique(
+            performanceAnalysis.selectedRun,
+            performanceAnalysis,
+            { riderLevel: (riderLevel as DetailLevel) || 'rider' }
+        );
+    });
+
+    let coachDiagnostics = $derived.by(() => {
+        if (!techniqueScoreBreakdown) return [];
+        return buildCoachDiagnostics(performanceAnalysis, techniqueScoreBreakdown);
+    });
+
+    let insightPack = $derived(
+        buildPerformanceInsightPack(
+            performanceAnalysis,
+            (riderLevel as DetailLevel) || 'rider'
+        )
+    );
     let uciCategory  = $derived(getUCICategory((data.session.rider_profiles as any)?.date_of_birth));
 
     let sessionDate = $derived(new Date(data.session.timestamp).toLocaleDateString('en-GB', {
@@ -206,7 +228,7 @@
                 sessionReport: {
                     sessionQuality: qualityScore,
                     headline:       view.headline,
-                    confidence:     'medium' as const,
+                    confidence:     50,
                     repeatability: cvPercent !== null ? { overall: repeatabilityScore, cvPercent, label: consistency?.label ?? null } : null,
                     bestVsAvg: bestVsAvgGap !== null ? { gapPercent: bestVsAvgGap } : null,
                     setLength: { optimal: optimalSetLength, message: optimalSetLength < data.runs.length ? `Quality held for ${optimalSetLength} of ${data.runs.length} runs` : null },
@@ -229,7 +251,7 @@
                         whyThisMatters: view.insights?.[0]?.body ?? null,
                         watchFor:       watchItems[0] ?? null,
                     },
-                    trust: { confidence: 'medium' as const },
+                    trust: { confidence: 50 },
                     insights: (view.insights ?? []).map((i: any) => ({ title: i.title, body: i.body, tone: i.tone })),
                 },
                 techniqueSummary,
@@ -306,25 +328,28 @@
     // ── Expose shared state to child pages via Svelte context ─────────────────
 
     setContext('session', {
-        get data()                 { return data; },
-        get selectedRunIdx()       { return selectedRunIdx; },
-        set selectedRunIdx(v: number) { selectedRunIdx = v; },
-        get selectedRun()          { return selectedRun; },
-        get selectedGate()         { return selectedGate; },
-        get isMobile()             { return isMobile; },
-        get riderLevel()           { return riderLevel; },
-        get sessionDate()          { return sessionDate; },
-        get uciCategory()          { return uciCategory; },
-        get performanceAnalysis()  { return performanceAnalysis; },
-        get enhancedAnalysis()     { return enhancedAnalysis; },
-        get analysisView()         { return analysisView; },
-        get chartSeries()          { return chartSeries; },
-        get consistency()          { return consistency; },
-        get techniqueScores()      { return techniqueScores; },
-        get jerkProfile()          { return jerkProfile; },
-        get weaknesses()           { return weaknesses; },
-        get recommendations()      { return recommendations; },
-        get crossSessionReport()   { return crossSessionReport; },
+        get data()                      { return data; },
+        get selectedRunIdx()            { return selectedRunIdx; },
+        set selectedRunIdx(v: number)   { selectedRunIdx = v; },
+        get selectedRun()               { return selectedRun; },
+        get selectedGate()              { return selectedGate; },
+        get isMobile()                  { return isMobile; },
+        get riderLevel()                { return riderLevel; },
+        get sessionDate()               { return sessionDate; },
+        get uciCategory()               { return uciCategory; },
+        get performanceAnalysis()       { return performanceAnalysis; },
+        get enhancedAnalysis()          { return enhancedAnalysis; },
+        get analysisView()              { return analysisView; },
+        get chartSeries()               { return chartSeries; },
+        get consistency()               { return consistency; },
+        get techniqueScores()           { return techniqueScores; },
+        get jerkProfile()               { return jerkProfile; },
+        get weaknesses()                { return weaknesses; },
+        get recommendations()           { return recommendations; },
+        get crossSessionReport()        { return crossSessionReport; },
+        get techniqueScoreBreakdown()   { return techniqueScoreBreakdown; },
+        get coachDiagnostics()          { return coachDiagnostics; },
+        get insightPack()               { return insightPack; },
         openHelp,
         openReport: () => { showReportOptions = true; },
     });

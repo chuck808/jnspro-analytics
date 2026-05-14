@@ -1,5 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { prepareCorrelationData, generateCorrelationInsights } from '$lib/analytics/correlationAnalysis';
+import { analyseSession, scoreRunTechnique, buildCoachDiagnostics, buildPerformanceInsightPack } from '$lib/performance-engine';
+import type { SessionAnalysis, TechniqueAnalysis, CoachDiagnostic, PerformanceInsightPack } from '$lib/performance-engine';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
     const { profile } = await parent();
@@ -28,7 +30,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     const sessionIds = sessions.map(s => s.id);
     const { data: runs, error: runsError } = await supabase
         .from('runs')
-        .select('id, session_id, elapsed_time_ms, distance_m')
+        .select('id, session_id, run_number, elapsed_time_ms, distance_m, chart_data')
         .in('session_id', sessionIds);
 
     if (runsError) {
@@ -160,7 +162,91 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     const correlationData = prepareCorrelationData(sessionsWithRuns, sessionSummaries);
     const correlationInsights = generateCorrelationInsights(correlationData, 10);
 
-    return { 
+    // ── PERFORMANCE ENGINE ANALYSIS (Phase 2) ──
+    // Analyze last 10 sessions for technique trends and diagnostics
+    interface SessionAnalysisResult {
+        sessionId: string;
+        timestamp: string;
+        analysis: SessionAnalysis;
+        techniqueScores: TechniqueAnalysis | null;
+        diagnostics: CoachDiagnostic[];
+        insightPack: PerformanceInsightPack;
+    }
+
+    let sessionAnalyses: SessionAnalysisResult[] = [];
+    
+    if (sessionCount > 0) {
+        // Limit to last 10 sessions for performance
+        const sessionsToAnalyze = sessionsWithRuns.slice(-10);
+        
+        sessionAnalyses = sessionsToAnalyze
+            .map(session => {
+                const sessionRuns = session.runs || [];
+                
+                // Only analyze if we have chart_data
+                if (sessionRuns.length === 0 || !sessionRuns.some((r: any) => r.chart_data)) {
+                    return null;
+                }
+                
+                try {
+                    // Build session object for Performance Engine
+                    const sessionForAnalysis = {
+                        id: session.id,
+                        session_type: session.session_type,
+                        timestamp: session.timestamp,
+                        runs: sessionRuns.map((run: any) => ({
+                            id: run.id,
+                            run_number: run.run_number,
+                            elapsed_time_ms: run.elapsed_time_ms,
+                            chart_data: run.chart_data,
+                            gate_runs: run.gate_runs?.[0] || null,
+                        })),
+                    };
+                    
+                    // Run full Performance Engine analysis
+                const analysis = analyseSession(sessionForAnalysis as any, {
+                    riderWeightKg: (profile as any).weight_kg,
+                    bikeWeightKg: bikes?.[0]?.weight_kg,
+                    riderLevel: (profile as any).rider_level,
+                });
+                    
+                    // Extract technique scores from selected run
+                    const techniqueScores = analysis.selectedRun?.technique ?? null;
+                    
+                    // Generate coach diagnostics if we have a selected run
+                    let diagnostics: CoachDiagnostic[] = [];
+                    if (analysis.selectedRun) {
+                        const scoreBreakdown = scoreRunTechnique(
+                            analysis.selectedRun,
+                            analysis,
+                            { riderLevel: ((profile as any).rider_level as any) || 'rider' }
+                        );
+                        diagnostics = buildCoachDiagnostics(analysis, scoreBreakdown);
+                    }
+                    
+                    // Build insight pack
+                    const insightPack = buildPerformanceInsightPack(
+                        analysis,
+                        ((profile as any).rider_level as any) || 'rider'
+                    );
+                    
+                    return {
+                        sessionId: session.id,
+                        timestamp: session.timestamp,
+                        analysis,
+                        techniqueScores,
+                        diagnostics,
+                        insightPack,
+                    };
+                } catch (error) {
+                    console.error(`Error analyzing session ${session.id}:`, error);
+                    return null;
+                }
+            })
+            .filter((result): result is SessionAnalysisResult => result !== null);
+    }
+
+    return {
         profile,
         sessions: sessionSummaries, 
         sessionCount, 
@@ -172,5 +258,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         goalTargets,
         bikes: bikes ?? [],
         correlationInsights, // NEW: Pattern discovery insights
+        sessionAnalyses, // NEW: Performance Engine analysis for last 10 sessions
     };
 };

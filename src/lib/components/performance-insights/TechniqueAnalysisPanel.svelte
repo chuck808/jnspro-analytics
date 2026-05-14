@@ -15,14 +15,14 @@
   } from '$lib/performance-engine';
   
   import {
-    PeakSpeedScatterChart,
-    SpeedWithAverageLineChart
+    PerformanceDistributionChart
   } from '$lib/components/performance-charts';
   
   interface Run {
     id?: string;
     run_number?: number;
     gate_runs?: {
+      reaction_time_ms?: number | null;
       front_wheel_lifted?: boolean | null;
       wheelie_duration_ms?: number | null;
       max_pitch?: number | null;
@@ -224,19 +224,13 @@
       <p class="insight-watch">👁️ Watch for: {wheeliePattern().watchFor}</p>
     </div>
 
-    <!-- Charts Section (Advanced users only) -->
-    {#if showCharts && isAdvanced}
-      <div class="charts-section">
-        <h4 class="section-title">Performance Distribution</h4>
-        <div class="chart-container">
-          <PeakSpeedScatterChart
-            points={speedPoints}
-            title="Speed Consistency"
-            subtitle="Peak speed variation across runs"
-            compact={true}
-          />
-        </div>
-      </div>
+    <!-- Performance Distribution - Now visible to all levels with 2+ runs -->
+    {#if runs.length >= 2}
+      <PerformanceDistributionChart
+        runs={runs}
+        height={compact ? 'h-48' : 'h-64'}
+        compact={compact}
+      />
     {/if}
 
     <!-- Detailed Wheelie Analysis (Coach level) -->

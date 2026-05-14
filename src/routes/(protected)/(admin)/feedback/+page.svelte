@@ -9,11 +9,12 @@
         subject: string;
         description: string;
         email: string | null;
-        status: string;
+        status: string | null;
         admin_notes: string | null;
-        created_at: string;
-        updated_at: string;
-        profiles: { full_name: string; email: string } | null;
+        created_at: string | null;
+        updated_at: string | null;
+        user_id: string | null;
+        profiles?: { full_name: string; email: string };
     };
 
     let selectedFeedback: FeedbackItem | null = $state(null);
@@ -40,7 +41,7 @@
     };
 
     const filteredFeedback = $derived.by(() => {
-        let items = data.feedback;
+        let items = data.feedback as FeedbackItem[];
         
         if (filterType !== 'all') {
             items = items.filter(f => f.type === filterType);
@@ -53,7 +54,8 @@
         return items;
     });
 
-    function formatDate(dateString: string) {
+    function formatDate(dateString: string | null) {
+        if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return new Intl.DateTimeFormat('en-GB', {
             day: '2-digit',
@@ -67,7 +69,7 @@
     function openDetail(feedback: FeedbackItem) {
         selectedFeedback = feedback;
         updateData = {
-            status: feedback.status,
+            status: feedback.status ?? 'new',
             admin_notes: feedback.admin_notes || ''
         };
     }
@@ -107,8 +109,9 @@
 
     const stats = $derived.by(() => {
         const total = data.feedback.length;
-        const byStatus = data.feedback.reduce((acc, f) => {
-            acc[f.status] = (acc[f.status] || 0) + 1;
+        const byStatus = (data.feedback as FeedbackItem[]).reduce((acc, f) => {
+            const status = f.status ?? 'new';
+            acc[status] = (acc[status] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         
@@ -221,8 +224,8 @@
                             {/if}
                         </p>
                     </div>
-                    <div class="fi-status" style="background: {statusColors[feedback.status]}20; color: {statusColors[feedback.status]}">
-                        {feedback.status.replace('_', ' ')}
+                    <div class="fi-status" style="background: {statusColors[feedback.status ?? 'new']}20; color: {statusColors[feedback.status ?? 'new']}">
+                        {(feedback.status ?? 'new').replace('_', ' ')}
                     </div>
                 </div>
                 <p class="fi-desc">{feedback.description}</p>
