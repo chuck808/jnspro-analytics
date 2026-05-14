@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
-    const { session, user } = await safeGetSession();
-
+export const load: LayoutServerLoad = async ({ locals: { supabase, session, user } }) => {
+    // Session and user are already validated by authGuard in hooks.server.ts
+    // No need to call safeGetSession() again - just use the values from locals
     if (!session || !user) {
         throw redirect(303, '/auth/sign-in');
     }
