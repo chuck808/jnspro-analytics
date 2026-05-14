@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-    default: async ({ request, locals, url }) => {
+    default: async ({ request, locals, cookies, url }) => {
         const form = await request.formData();
         const email = form.get('email') as string;
         const password = form.get('password') as string;
@@ -27,9 +27,14 @@ export const actions: Actions = {
             return fail(400, { error: error.message });
         }
 
-        // Session is now established and cookies will be set by the Supabase client
-        // The redirect will happen with the cookies in place
+        if (data.session) {
+            await locals.supabase.auth.setSession({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token
+            });
+        }
+
         const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard';
-        throw redirect(303, safeRedirect);
+        return { success: true, redirectTo: safeRedirect };
     }
 };

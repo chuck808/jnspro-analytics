@@ -183,13 +183,12 @@ const supabaseHandle: Handle = async ({ event, resolve }) => {
                 getAll: () => event.cookies.getAll(),
                 setAll: (cookiesToSet) => {
                     cookiesToSet.forEach(({ name, value, options }) => {
-                        event.cookies.set(name, value, { 
-                            ...options, 
+                        event.cookies.set(name, value, {
+                            ...options,
                             path: '/',
-                            // Ensure cookies work across the site
-                            httpOnly: options.httpOnly ?? true,
+                            httpOnly: true,
                             secure: true,
-                            sameSite: 'lax'
+                            sameSite: 'none'
                         });
                     });
                 },
@@ -231,13 +230,14 @@ const supabaseHandle: Handle = async ({ event, resolve }) => {
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 
 const authGuard: Handle = async ({ event, resolve }) => {
-    const { session, user } = await event.locals.safeGetSession();
+    const { data: { session } } = await event.locals.supabase.auth.getSession();
+    const user = session?.user ?? null;
 
     event.locals.session = session;
-    event.locals.user     = user;
+    event.locals.user = user;
 
     const { pathname } = event.url;
-    const isProtected = pathname.startsWith('/(protected)') || pathname.startsWith('/sessions') ||
+    const isProtected = pathname.startsWith('/sessions') ||
                         pathname.startsWith('/dashboard')   || pathname.startsWith('/analytics') ||
                         pathname.startsWith('/goals')       || pathname.startsWith('/profile')   ||
                         pathname.startsWith('/admin')       || pathname.startsWith('/upload');
@@ -246,7 +246,6 @@ const authGuard: Handle = async ({ event, resolve }) => {
         throw redirect(303, '/auth/sign-in');
     }
 
-    // Redirect signed-in users away from auth pages
     if (session && (pathname.startsWith('/auth/sign-in') || pathname.startsWith('/auth/sign-up'))) {
         throw redirect(303, '/dashboard');
     }

@@ -1,10 +1,17 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import type { ActionData, PageData } from './$types';
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
 
     let loading = $state(false);
     let showPassword = $state(false);
+
+    $effect(() => {
+        if (form && 'success' in form && form.success && 'redirectTo' in form) {
+            goto((form.redirectTo as string) ?? '/dashboard');
+        }
+    });
 </script>
 
 <svelte:head>

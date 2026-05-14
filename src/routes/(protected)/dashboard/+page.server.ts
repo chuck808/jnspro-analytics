@@ -14,7 +14,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 
     if (!profile) return empty;
 
-    // Session count and personal bests
     const { data: sessions } = await supabase
         .from('sessions')
         .select('id, timestamp')
@@ -27,26 +26,23 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 
     const sessionIds = sessions.map(s => s.id);
 
-    // All gate runs for personal bests and consistency
-    // Need to join through runs table since gate_runs has run_id, not session_id
     const { data: gateRuns } = await supabase
         .from('gate_runs')
-        .select('reaction_time_ms, peak_speed_ms, max_g, analytics_valid, runs!inner(session_id)')
+        .select('reaction_time_ms, peak_speed_ms, max_g, analytics_valid')
         .in('runs.session_id', sessionIds)
         .eq('analytics_valid', true);
 
     const validRuns = gateRuns ?? [];
     const reactionTimes = validRuns.map(r => r.reaction_time_ms).filter((v): v is number => v !== null);
-    const speeds       = validRuns.map(r => r.peak_speed_ms).filter((v): v is number => v !== null);
-    const gForces      = validRuns.map(r => r.max_g).filter((v): v is number => v !== null);
+    const speeds = validRuns.map(r => r.peak_speed_ms).filter((v): v is number => v !== null);
+    const gForces = validRuns.map(r => r.max_g).filter((v): v is number => v !== null);
 
     const personalBests = {
-        reaction_ms:    reactionTimes.length ? Math.min(...reactionTimes) : null,
-        peak_speed_ms:  speeds.length        ? Math.max(...speeds)        : null,
-        max_g:          gForces.length        ? Math.max(...gForces)       : null,
+        reaction_ms:   reactionTimes.length ? Math.min(...reactionTimes) : null,
+        peak_speed_ms: speeds.length        ? Math.max(...speeds)        : null,
+        max_g:         gForces.length       ? Math.max(...gForces)       : null,
     };
 
-    // Consistency — CV% of reaction times across all runs
     let consistency: number | null = null;
     if (reactionTimes.length >= 3) {
         const mean = reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length;
@@ -54,18 +50,16 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         consistency = (std / mean) * 100;
     }
 
-    // Total runs across all sessions
     const { count: totalRuns } = await supabase
         .from('runs')
         .select('id', { count: 'exact', head: true })
         .in('session_id', sessionIds);
 
-    // Recent sessions (last 5) with summary stats
     const recentIds = sessions.slice(0, 5).map(s => s.id);
 
     const { data: recentGateRuns } = await supabase
         .from('gate_runs')
-        .select('reaction_time_ms, peak_speed_ms, analytics_valid, runs!inner(session_id)')
+        .select('runs!inner(session_id), reaction_time_ms, peak_speed_ms, analytics_valid')
         .in('runs.session_id', recentIds);
 
     const { data: recentRunCounts } = await supabase
@@ -74,8 +68,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         .in('session_id', recentIds);
 
     const recentSessions = sessions.slice(0, 5).map(session => {
-        const sGateRuns = (recentGateRuns ?? []).filter(r => r.runs.session_id === session.id && r.analytics_valid);
-        const sRunCount = (recentRunCounts ?? []).filter(r => r.session_id === session.id).length;
+        const sGateRuns  = (recentGateRuns ?? []).filter(r => r.runs.session_id === session.id && r.analytics_valid);
+        const sRunCount  = (recentRunCounts ?? []).filter(r => r.session_id === session.id).length;
         const sReactions = sGateRuns.map(r => r.reaction_time_ms).filter((v): v is number => v !== null);
         const sSpeeds    = sGateRuns.map(r => r.peak_speed_ms).filter((v): v is number => v !== null);
 
@@ -87,17 +81,16 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         }
 
         return {
-            id:                session.id,
-            timestamp:         session.timestamp,
-            run_count:         sRunCount,
-            best_reaction_ms:  sReactions.length ? Math.min(...sReactions) : null,
-            best_peak_speed_ms: sSpeeds.length   ? Math.max(...sSpeeds)    : null,
-            has_valid_speed:   sSpeeds.length > 0,
+            id:                 session.id,
+            timestamp:          session.timestamp,
+            run_count:          sRunCount,
+            best_reaction_ms:   sReactions.length ? Math.min(...sReactions) : null,
+            best_peak_speed_ms: sSpeeds.length    ? Math.max(...sSpeeds)    : null,
+            has_valid_speed:    sSpeeds.length > 0,
             reaction_cv,
         };
     });
 
-    // Active goals
     const { data: goals } = await supabase
         .from('training_goals')
         .select('id, metric, target_value, start_value, current_value, deadline')
@@ -108,13 +101,13 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 
     const now = new Date();
     const activeGoals = (goals ?? []).map(goal => {
-        const deadline    = goal.deadline ? new Date(goal.deadline) : null;
-        const daysUntil   = deadline ? Math.ceil((deadline.getTime() - now.getTime()) / 86400000) : 999;
-        const start       = goal.start_value ?? 0;
-        const target      = goal.target_value ?? 0;
-        const current     = goal.current_value ?? start;
-        const range       = Math.abs(target - start);
-        const progress    = range > 0 ? Math.min(100, Math.round((Math.abs(current - start) / range) * 100)) : 0;
+        const deadline  = goal.deadline ? new Date(goal.deadline) : null;
+        const daysUntil = deadline ? Math.ceil((deadline.getTime() - now.getTime()) / 86400000) : 999;
+        const start     = goal.start_value ?? 0;
+        const target    = goal.target_value ?? 0;
+        const current   = goal.current_value ?? start;
+        const range     = Math.abs(target - start);
+        const progress  = range > 0 ? Math.min(100, Math.round((Math.abs(current - start) / range) * 100)) : 0;
 
         return {
             ...goal,
