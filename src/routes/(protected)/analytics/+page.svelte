@@ -14,7 +14,10 @@
         PowerOutputTrend,
         SmoothnessTrend,
         WheeliePatternAnalysis,
-        CorrelationInsightsPanel
+        CorrelationInsightsPanel,
+        TechniqueScoreTrends,
+        DiagnosticPatternsCard,
+        StrengthsLimitersEvolution
     } from '$lib/components/analytics';
     import RawPerformanceTrendsSection from '$lib/components/analytics/RawPerformanceTrendsSection.svelte';
     import { analyseSessionIntelligence } from '$lib/performance-engine';
@@ -29,6 +32,8 @@
     let { data }: { data: PageData } = $props();
 
     let isMobile = $state(false);
+    let scrolled = $state(false);
+    let activeTab = $state<'overview' | 'trends' | 'insights'>('overview');
     let helpKey = $state('');
     let helpOpen = $state(false);
     function openHelp(key: string) { helpKey = key; helpOpen = true; }
@@ -36,7 +41,10 @@
     onMount(() => {
         isMobile = window.innerWidth < 640;
         const handleResize = () => { isMobile = window.innerWidth < 640; };
+        const handleScroll = () => { scrolled = window.scrollY > 200; };
+        
         window.addEventListener('resize', handleResize);
+        window.addEventListener('scroll', handleScroll);
         
         // Handle URL focus parameter for deep-linking to specific charts
         const focus = $page.url.searchParams.get('focus');
@@ -49,7 +57,10 @@
             }, 300);
         }
         
-        return () => window.removeEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('scroll', handleScroll);
+        };
     });
 
     const THRESHOLDS = $derived([
@@ -414,31 +425,90 @@
     function toggleProgressOptions() {
         showProgressOptions = !showProgressOptions;
     }
+
+    function navClass(tab: typeof activeTab) {
+        return tab === activeTab
+            ? 'px-4 py-1.5 rounded-lg text-xs font-semibold themed-bg-accent themed-accent border border-[color:var(--accent)]/30'
+            : 'px-4 py-1.5 rounded-lg text-xs font-medium themed-text-secondary hover:themed-text-primary hover:bg-[color:var(--card-nested)] transition-colors';
+    }
 </script>
 
 <svelte:head>
     <title>Analytics — AppGatePro</title>
 </svelte:head>
 
-<div class="space-y-6">
+<div class="pb-20 space-y-6">
 
-    <!-- Header -->
-    <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-            <h2 class="text-lg font-bold themed-text-primary">Performance Analytics</h2>
-            <p class="text-sm themed-text-secondary mt-0.5">{data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''} analysed</p>
-        </div>
-        {#if data.sessionCount > 0}
-            <div class="flex items-center gap-2">
-                <ExportButton sessions={data.sessions} variant="secondary" />
-                <a href="/sessions"
-                   class="text-sm themed-text-secondary hover:text-[color:var(--accent)] transition-colors min-h-[44px] flex items-center
-                          focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--card)] rounded">
-                    View all sessions →
-                </a>
+    <!-- ══════════════════════════════════════════════════════
+         HERO SECTION
+         ══════════════════════════════════════════════════════ -->
+    {#if data.sessionCount > 0}
+        <div class="themed-card rounded-xl p-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded themed-bg-accent themed-accent border border-[color:var(--accent)]/20">
+                            Performance Analytics
+                        </span>
+                        {#if crossSessionReport?.confidence}
+                            <span class="px-2 py-0.5 text-xs rounded themed-nested-card themed-text-secondary">
+                                {crossSessionReport.confidence} confidence
+                            </span>
+                        {/if}
+                    </div>
+                    <h2 class="text-xl font-bold themed-text-primary">
+                        {#if crossSessionReport?.headline}
+                            {crossSessionReport.headline}
+                        {:else}
+                            Your Training Journey
+                        {/if}
+                    </h2>
+                    <p class="text-sm themed-text-secondary mt-1">
+                        {data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''} analysed
+                        {#if data.sessions.length >= 2}
+                            {@const firstDate = new Date(data.sessions[0].timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            {@const lastDate = new Date(data.sessions[data.sessions.length - 1].timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            · {firstDate} to {lastDate}
+                        {/if}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <ExportButton sessions={data.sessions} variant="secondary" />
+                    <a href="/sessions"
+                       class="text-sm themed-text-secondary hover:themed-accent transition-colors flex items-center gap-1 min-h-[44px]
+                              focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--bg)] rounded px-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        All sessions
+                    </a>
+                </div>
             </div>
-        {/if}
-    </div>
+
+            {#if data.personalBests}
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="themed-nested-card rounded-lg p-4">
+                        <p class="text-xs themed-text-subtle mb-1">Best Reaction</p>
+                        <p class="text-xl font-bold themed-accent">
+                            {data.personalBests.reaction_ms ? (data.personalBests.reaction_ms / 1000).toFixed(3) + 's' : '—'}
+                        </p>
+                    </div>
+                    <div class="themed-nested-card rounded-lg p-4">
+                        <p class="text-xs themed-text-subtle mb-1">Top Speed</p>
+                        <p class="text-xl font-bold themed-accent">
+                            {data.personalBests.peak_speed_ms ? (data.personalBests.peak_speed_ms * 3.6).toFixed(1) + ' km/h' : '—'}
+                        </p>
+                    </div>
+                    <div class="themed-nested-card rounded-lg p-4">
+                        <p class="text-xs themed-text-subtle mb-1">Peak G-Force</p>
+                        <p class="text-xl font-bold themed-accent">
+                            {data.personalBests.max_g ? data.personalBests.max_g.toFixed(2) + 'G' : '—'}
+                        </p>
+                    </div>
+                </div>
+            {/if}
+        </div>
+    {/if}
 
     {#if data.depth === 'none'}
         <!-- Empty state -->
@@ -460,226 +530,304 @@
 
     {:else}
 
-        <!-- Unlock progress -->
-        <div class="themed-card rounded-xl p-5">
-            <p class="text-xs font-semibold themed-text-subtle uppercase tracking-wider mb-3">Analytics unlocked</p>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {#each THRESHOLDS as t}
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="{t.unlocked ? 'text-[#3de8c8]' : 'themed-text-subtle'}">{t.unlocked ? '✓' : `${t.count}+`}</span>
-                        <span class="{t.unlocked ? 'themed-text-secondary' : 'themed-text-subtle'}">{t.label}</span>
-                    </div>
-                {/each}
+        <!-- Content based on active tab -->
+        {#if activeTab === 'overview'}
+            <!-- Unlock progress -->
+            <div class="themed-card rounded-xl p-5">
+                <p class="text-xs font-semibold themed-text-subtle uppercase tracking-wider mb-3">Analytics unlocked</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {#each THRESHOLDS as t}
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="{t.unlocked ? 'text-[#3de8c8]' : 'themed-text-subtle'}">{t.unlocked ? '✓' : `${t.count}+`}</span>
+                            <span class="{t.unlocked ? 'themed-text-secondary' : 'themed-text-subtle'}">{t.label}</span>
+                        </div>
+                    {/each}
+                </div>
             </div>
-        </div>
 
-        <!-- 🥇 1. PERFORMANCE OVERVIEW (Decision Layer) -->
-        <PerformanceOverview
-            sessionCount={data.sessionCount}
-            crossSessionReport={crossSessionReport}
-            latestSessionRatings={latestSessionRatings}
-            personalBests={data.personalBests}
-            {isMobile}
-        />
-
-        <!-- 🧠 CROSS-SESSION PROGRESS ONLY (v8.1) -->
-        {#if crossSessionReport}
-            <TrainingInsightsPanel
-                sessionReport={null}
+            <!-- 🥇 1. PERFORMANCE OVERVIEW (Decision Layer) -->
+            <PerformanceOverview
+                sessionCount={data.sessionCount}
                 crossSessionReport={crossSessionReport}
-                runs={[]}
-                detailLevel="rider"
-                showSessionSection={false}
-                showTechniqueSection={false}
-                showProgressSection={true}
+                latestSessionRatings={latestSessionRatings}
+                personalBests={data.personalBests}
+                {isMobile}
+            />
+
+            <!-- 🧠 CROSS-SESSION PROGRESS ONLY (v8.1) -->
+            {#if crossSessionReport}
+                <TrainingInsightsPanel
+                    sessionReport={null}
+                    crossSessionReport={crossSessionReport}
+                    runs={[]}
+                    detailLevel="rider"
+                    showSessionSection={false}
+                    showTechniqueSection={false}
+                    showProgressSection={true}
+                />
+            {/if}
+
+        {:else if activeTab === 'trends'}
+            <!-- 📊 3. PERFORMANCE PATTERNS (Core Charts Section) -->
+            <PerformancePatternsSection 
+                sessions={performancePatternsData}
+                {isMobile}
+                onOpenHelp={openHelp}
+            />
+
+            <!-- 📈 4. RAW PERFORMANCE TRENDS (Data View) -->
+            {#if data.sessionCount >= 3}
+                <div class="space-y-5">
+                    <div class="themed-card rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <h2 class="text-lg font-bold themed-text-primary">Raw Performance Trends</h2>
+                                <p class="text-sm themed-text-secondary mt-1">Direct metrics over time</p>
+                            </div>
+                            <span class="text-xs px-3 py-1.5 rounded-full themed-nested-card themed-text-subtle font-medium">
+                                Data View
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <RawPerformanceTrendsSection
+                        sessions={data.sessions}
+                        trend={data.trend}
+                        {isMobile}
+                        onOpenHelp={openHelp}
+                        goalTargets={data.goalTargets}
+                    />
+                </div>
+
+                <!-- Goal Creation CTAs based on trends -->
+                {#if data.trend.reaction !== null || data.trend.speed !== null}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {#if data.trend.reaction !== null && data.trend.reaction < 0 && !data.activeGoalMetrics.includes('reactionTime')}
+                            <div class="bg-[#3de8c8]/10 border border-[#3de8c8]/30 rounded-xl p-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-[#3de8c8] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-[#3de8c8] mb-1">📈 Reaction Time Improving</p>
+                                        <p class="text-xs text-[#9a8f7a] mb-2">
+                                            {Math.abs(data.trend.reaction).toFixed(1)}% faster — set a goal to stay motivated!
+                                        </p>
+                                        <a href="/goals" 
+                                           class="inline-flex items-center gap-1 text-xs text-[#3de8c8] hover:text-[#f0ece4] font-medium transition-colors
+                                                  focus:outline-none focus:ring-2 focus:ring-[#3de8c8] rounded">
+                                            Create reaction time goal
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
+                        
+                        {#if data.trend.speed !== null && data.trend.speed > 0 && !data.activeGoalMetrics.includes('peakSpeed')}
+                            <div class="bg-[#ff6b3d]/10 border border-[#ff6b3d]/30 rounded-xl p-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-[#ff6b3d] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-[#ff6b3d] mb-1">⚡ Speed Increasing</p>
+                                        <p class="text-xs text-[#9a8f7a] mb-2">
+                                            +{data.trend.speed.toFixed(1)}% improvement — track your progress with a goal!
+                                        </p>
+                                        <a href="/goals" 
+                                           class="inline-flex items-center gap-1 text-xs text-[#ff6b3d] hover:text-[#f0ece4] font-medium transition-colors
+                                                  focus:outline-none focus:ring-2 focus:ring-[#ff6b3d] rounded">
+                                            Create speed goal
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
+            {/if}
+
+        {:else if activeTab === 'insights'}
+            <!-- ── 📊 PERFORMANCE ENGINE DEEP ANALYTICS (Phase 2 & 3) ── -->
+            {#if data.sessionCount >= 5}
+                <div class="space-y-5">
+                    <div class="themed-card rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <h2 class="text-lg font-bold themed-text-primary">Performance Engine Analytics</h2>
+                                <p class="text-sm themed-text-secondary mt-1">Deep insights from comprehensive session analysis</p>
+                            </div>
+                            <span class="text-xs px-3 py-1.5 rounded-full bg-[#f5a623]/20 text-[#f5a623] font-medium">
+                                🚀 Phase 2 & 3
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Active components with real data -->
+                    {#if techniqueData.length > 0 || smoothnessData.length > 0}
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            {#if techniqueData.length > 0}
+                                <TechniqueQualityTrend data={techniqueData} {isMobile} />
+                            {/if}
+                            {#if smoothnessData.length > 0}
+                                <SmoothnessTrend data={smoothnessData} {isMobile} />
+                            {/if}
+                        </div>
+                    {/if}
+
+                    {#if powerData.length > 0 || dataQualityData.length > 0}
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            {#if powerData.length > 0}
+                                <PowerOutputTrend data={powerData} {isMobile} />
+                            {/if}
+                            {#if dataQualityData.length > 0}
+                                <DataQualityTrend data={dataQualityData} {isMobile} />
+                            {/if}
+                        </div>
+                    {/if}
+
+                    {#if wheelieData.length > 0}
+                        <WheeliePatternAnalysis data={wheelieData} {isMobile} />
+                    {/if}
+                    
+                    <!-- Phase 3: New Performance Engine Components -->
+                    {#if (data as any).sessionAnalyses && (data as any).sessionAnalyses.length > 0}
+                        <!-- Technique Score Trends (Task 3.2) -->
+                        {#if (data as any).sessionAnalyses.some((s: any) => s.techniqueScores)}
+                            {@const techniqueDataPhase3 = (data as any).sessionAnalyses.map((s: any, i: number) => ({
+                                sessionDate: new Date(s.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                                sessionNumber: i + 1,
+                                overall: s.techniqueScores?.overall ?? null,
+                                launchQuality: s.insightPack?.scores?.launchQuality ?? null,
+                                explosiveness: s.insightPack?.scores?.explosiveness ?? null,
+                                speedCarry: s.insightPack?.scores?.speedCarry ?? null,
+                                smoothness: s.insightPack?.scores?.smoothness ?? null,
+                                impulseTiming: s.insightPack?.scores?.impulseTiming ?? null,
+                                repeatability: s.insightPack?.scores?.repeatability ?? null,
+                            }))}
+                            <TechniqueScoreTrends data={techniqueDataPhase3} {isMobile} />
+                        {/if}
+                        
+                        <!-- Diagnostic Patterns (Task 3.4) -->
+                        {@const diagnosticPatterns = (() => {
+                            const patterns = new Map();
+                            (data as any).sessionAnalyses.forEach((s: any) => {
+                                s.diagnostics?.forEach((d: any) => {
+                                    if (patterns.has(d.title)) {
+                                        patterns.get(d.title).occurrences++;
+                                        patterns.get(d.title).lastSeen = s.timestamp;
+                                    } else {
+                                        patterns.set(d.title, {
+                                            issue: d.title,
+                                            occurrences: 1,
+                                            lastSeen: s.timestamp,
+                                            tone: d.tone,
+                                        });
+                                    }
+                                });
+                            });
+                            return Array.from(patterns.values())
+                                .sort((a, b) => b.occurrences - a.occurrences)
+                                .slice(0, 5);
+                        })()}
+                        {#if diagnosticPatterns.length > 0}
+                            <DiagnosticPatternsCard patterns={diagnosticPatterns} />
+                        {/if}
+                        
+                        <!-- Strengths/Limiters Evolution (Task 3.6) -->
+                        {@const sessionInsights = (data as any).sessionAnalyses.map((s: any) => ({
+                            sessionId: s.sessionId,
+                            timestamp: s.timestamp,
+                            strengths: s.insightPack?.strengths ?? [],
+                            limiters: s.insightPack?.limiters ?? [],
+                        }))}
+                        {#if sessionInsights.length >= 2}
+                            <StrengthsLimitersEvolution sessionInsights={sessionInsights} />
+                        {/if}
+                    {/if}
+                </div>
+            {:else}
+                <div class="themed-card rounded-xl p-8 text-center">
+                    <p class="text-sm font-medium themed-text-primary mb-1">
+                        {5 - data.sessionCount} more session{5 - data.sessionCount !== 1 ? 's' : ''} to unlock deep insights
+                    </p>
+                    <p class="text-xs themed-text-subtle">
+                        Advanced analytics unlock at 5 sessions
+                    </p>
+                </div>
+            {/if}
+
+            <!-- ── 🔍 CORRELATION INSIGHTS (Phase 3 Task 3.2) ── -->
+            <CorrelationInsightsPanel
+                insights={data.correlationInsights ?? []}
+                minSessionsRequired={10}
+                currentSessionCount={data.sessionCount}
             />
         {/if}
 
-        <!-- ── Generate Progress Report Button ── -->
-        {#if data.sessionCount >= 3}
-            <button
-                onclick={() => showProgressOptions = true}
-                class="w-full bg-[#131010] border border-[#221c18] hover:border-[#f5a623]/40 rounded-xl p-5
-                       transition-colors text-left group
-                       focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#0a0809]">
-                <div class="flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-[#f5a623]/10 flex items-center justify-center
-                                    group-hover:bg-[#f5a623]/20 transition-colors flex-shrink-0">
-                            <svg class="w-5 h-5 text-[#f5a623]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-[#f0ece4] group-hover:text-[#f5a623] transition-colors mb-0.5">
-                                Generate Progress Report
-                            </h3>
-                            <p class="text-xs text-[#6b5f4d]">
-                                {data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''} analysed
-                                · Reaction, speed, consistency and fatigue trends
-                            </p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-[#6b5f4d] group-hover:text-[#f5a623] transition-colors flex-shrink-0"
-                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </div>
-            </button>
-        {/if}
-
-        <!-- 📊 3. PERFORMANCE PATTERNS (Core Charts Section) -->
-        <PerformancePatternsSection 
-            sessions={performancePatternsData}
-            {isMobile}
-            onOpenHelp={openHelp}
-        />
-
-        <!-- 📈 4. RAW PERFORMANCE TRENDS (Data View) -->
-        {#if data.sessionCount >= 3}
-            <div class="space-y-5">
-                <div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-                    <div class="flex items-center justify-between mb-2">
-                        <div>
-                            <h2 class="text-lg font-bold text-[#f0ece4]">Raw Performance Trends</h2>
-                            <p class="text-sm text-[#9a8f7a] mt-1">Direct metrics over time</p>
-                        </div>
-                        <span class="text-xs px-3 py-1.5 rounded-full bg-[#6b5f4d]/20 text-[#9a8f7a] font-medium">
-                            Data View
-                        </span>
-                    </div>
-                </div>
-                
-                <RawPerformanceTrendsSection
-                    sessions={data.sessions}
-                    trend={data.trend}
-                    {isMobile}
-                    onOpenHelp={openHelp}
-                    goalTargets={data.goalTargets}
-                />
-            </div>
-
-            <!-- Goal Creation CTAs based on trends -->
-            {#if data.trend.reaction !== null || data.trend.speed !== null}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {#if data.trend.reaction !== null && data.trend.reaction < 0 && !data.activeGoalMetrics.includes('reactionTime')}
-                        <div class="bg-[#3de8c8]/10 border border-[#3de8c8]/30 rounded-xl p-4">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-[#3de8c8] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                </svg>
-                                <div class="flex-1">
-                                    <p class="text-sm font-semibold text-[#3de8c8] mb-1">📈 Reaction Time Improving</p>
-                                    <p class="text-xs text-[#9a8f7a] mb-2">
-                                        {Math.abs(data.trend.reaction).toFixed(1)}% faster — set a goal to stay motivated!
-                                    </p>
-                                    <a href="/goals" 
-                                       class="inline-flex items-center gap-1 text-xs text-[#3de8c8] hover:text-[#f0ece4] font-medium transition-colors
-                                              focus:outline-none focus:ring-2 focus:ring-[#3de8c8] rounded">
-                                        Create reaction time goal
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                        </svg>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    {/if}
-                    
-                    {#if data.trend.speed !== null && data.trend.speed > 0 && !data.activeGoalMetrics.includes('peakSpeed')}
-                        <div class="bg-[#ff6b3d]/10 border border-[#ff6b3d]/30 rounded-xl p-4">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-[#ff6b3d] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                </svg>
-                                <div class="flex-1">
-                                    <p class="text-sm font-semibold text-[#ff6b3d] mb-1">⚡ Speed Increasing</p>
-                                    <p class="text-xs text-[#9a8f7a] mb-2">
-                                        +{data.trend.speed.toFixed(1)}% improvement — track your progress with a goal!
-                                    </p>
-                                    <a href="/goals" 
-                                       class="inline-flex items-center gap-1 text-xs text-[#ff6b3d] hover:text-[#f0ece4] font-medium transition-colors
-                                              focus:outline-none focus:ring-2 focus:ring-[#ff6b3d] rounded">
-                                        Create speed goal
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                        </svg>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    {/if}
-                </div>
-            {/if}
-        {/if}
-
-        <!-- ── 📊 PERFORMANCE ENGINE DEEP ANALYTICS ── -->
-        {#if data.sessionCount >= 5}
-            <div class="space-y-5">
-                <div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-                    <div class="flex items-center justify-between mb-2">
-                        <div>
-                            <h2 class="text-lg font-bold text-[#f0ece4]">Performance Engine Analytics</h2>
-                            <p class="text-sm text-[#9a8f7a] mt-1">Deep insights from comprehensive session analysis</p>
-                        </div>
-                        <span class="text-xs px-3 py-1.5 rounded-full bg-[#f5a623]/20 text-[#f5a623] font-medium">
-                            🚀 New
-                        </span>
-                    </div>
-                    <p class="text-xs text-[#6b5f4d] mt-3 italic">
-                        These components are ready for use. To enable, add Performance Engine analysis in +page.server.ts. 
-                        See ANALYTICS_ENHANCEMENTS.md for implementation guide.
-                    </p>
-                </div>
-
-                <!-- Active components with real data -->
-                {#if techniqueData.length > 0 || smoothnessData.length > 0}
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                        {#if techniqueData.length > 0}
-                            <TechniqueQualityTrend data={techniqueData} {isMobile} />
-                        {/if}
-                        {#if smoothnessData.length > 0}
-                            <SmoothnessTrend data={smoothnessData} {isMobile} />
-                        {/if}
-                    </div>
-                {/if}
-
-                {#if powerData.length > 0 || dataQualityData.length > 0}
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                        {#if powerData.length > 0}
-                            <PowerOutputTrend data={powerData} {isMobile} />
-                        {/if}
-                        {#if dataQualityData.length > 0}
-                            <DataQualityTrend data={dataQualityData} {isMobile} />
-                        {/if}
-                    </div>
-                {/if}
-
-                {#if wheelieData.length > 0}
-                    <WheeliePatternAnalysis data={wheelieData} {isMobile} />
-                {/if}
-            </div>
-        {/if}
-
-        <!-- ── 🔍 CORRELATION INSIGHTS (Phase 3 Task 3.2) ── -->
-        <CorrelationInsightsPanel
-            insights={data.correlationInsights ?? []}
-            minSessionsRequired={10}
-            currentSessionCount={data.sessionCount}
-        />
-
         <!-- Show unlock message for minimal depth -->
         {#if data.depth === 'minimal'}
-            <div class="bg-[#131010] border border-[#f5a623]/20 rounded-xl p-6 text-center">
+            <div class="themed-card border-[#f5a623]/20 rounded-xl p-6 text-center">
                 <p class="text-sm font-medium text-[#f5a623] mb-1">{3 - data.sessionCount} more session{3 - data.sessionCount !== 1 ? 's' : ''} to unlock trends</p>
-                <p class="text-xs text-[#9a8f7a]">Trend charts, consistency scoring and comparison unlock at 3 sessions</p>
+                <p class="text-xs themed-text-subtle">Trend charts, consistency scoring and comparison unlock at 3 sessions</p>
             </div>
         {/if}
 
     {/if}
 
 </div>
+
+<!-- ══════════════════════════════════════════════════════
+     STICKY FOOTER WITH TABS AND REPORT BUTTON
+     ══════════════════════════════════════════════════════ -->
+{#if scrolled && data.sessionCount > 0}
+    <div class="fixed bottom-0 left-0 right-0 z-40 bg-[color:var(--card)]/95 backdrop-blur-sm border-t border-[color:var(--border)] shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+            <div class="flex items-center justify-between gap-4">
+
+                <!-- Tab navigation -->
+                <nav class="flex items-center gap-1" aria-label="Analytics sections">
+                    <button onclick={() => activeTab = 'overview'} class="{navClass('overview')}">Overview</button>
+                    <button onclick={() => activeTab = 'trends'} class="{navClass('trends')}">Trends</button>
+                    <button onclick={() => activeTab = 'insights'} class="{navClass('insights')}">Insights</button>
+                </nav>
+
+                <!-- Analytics info (desktop) -->
+                <div class="hidden md:flex items-center gap-2 text-xs themed-text-secondary">
+                    <span>{data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''}</span>
+                    {#if data.sessions.length >= 2}
+                        {@const firstDate = new Date(data.sessions[0].timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {@const lastDate = new Date(data.sessions[data.sessions.length - 1].timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        <span>•</span>
+                        <span>{firstDate} – {lastDate}</span>
+                    {/if}
+                </div>
+
+                <!-- Generate Report button -->
+                {#if data.sessionCount >= 3}
+                    <button
+                        onclick={() => showProgressOptions = true}
+                        class="flex items-center gap-2 px-4 py-2 bg-[color:var(--accent)] hover:bg-[color:var(--accent-dark)]
+                               text-[color:var(--bg)] text-sm font-semibold rounded-lg transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--card)]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="hidden sm:inline">Report</span>
+                    </button>
+                {/if}
+
+            </div>
+        </div>
+    </div>
+{/if}
 
 <!-- ── Report Options Modal ── -->
 {#if showProgressOptions}
@@ -698,28 +846,28 @@
              onkeydown={(e) => e.stopPropagation()}>
 
             <!-- Modal header -->
-            <div class="bg-[#131010] border-b border-[#221c18] rounded-t-xl px-5 py-4 flex items-center justify-between gap-4">
+            <div class="themed-card border-b border-[color:var(--border)] rounded-t-xl px-5 py-4 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-[#f5a623]/10 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-[#f5a623]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 rounded-lg themed-bg-accent flex items-center justify-center">
+                        <svg class="w-4 h-4 themed-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
                     </div>
                     <div>
-                        <h2 id="progress-report-options-title" class="text-base font-bold text-[#f0ece4]">
+                        <h2 id="progress-report-options-title" class="text-base font-bold themed-text-primary">
                             Generate Progress Report
                         </h2>
-                        <p class="text-xs text-[#6b5f4d]">
+                        <p class="text-xs themed-text-subtle">
                             {data.sessionCount} sessions · {crossSessionReport?.confidence ?? 'medium'} confidence
                         </p>
                     </div>
                 </div>
                 <button
                     onclick={() => showProgressOptions = false}
-                    class="w-8 h-8 flex items-center justify-center rounded-lg text-[#6b5f4d]
-                           hover:text-[#f0ece4] hover:bg-[#221c18] transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
+                    class="w-8 h-8 flex items-center justify-center rounded-lg themed-text-subtle
+                           hover:themed-text-primary hover:bg-[color:var(--card-nested)] transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
                     aria-label="Close">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -728,45 +876,45 @@
             </div>
 
             <!-- Modal body -->
-            <div class="bg-[#131010] rounded-b-xl p-5 space-y-4">
+            <div class="themed-card rounded-b-xl p-5 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     <!-- Options panel -->
                     <div class="space-y-5">
                         <!-- Detail level -->
                         <fieldset>
-                            <legend class="text-xs font-semibold text-[#6b5f4d] uppercase tracking-wider mb-2">Audience</legend>
+                            <legend class="text-xs font-semibold themed-text-subtle uppercase tracking-wider mb-2">Audience</legend>
                             <div class="space-y-1.5">
                                 <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors
-                                              {progressDetailLevel === 'simple' ? 'bg-[#f5a623]/10 border border-[#f5a623]/30' : 'bg-[#0a0809] border border-[#221c18] hover:border-[#f5a623]/20'}">
-                                    <input type="radio" bind:group={progressDetailLevel} value="simple" class="mt-0.5 accent-[#f5a623]" />
+                                              {progressDetailLevel === 'simple' ? 'themed-bg-accent border border-[color:var(--accent)]/30' : 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}">
+                                    <input type="radio" bind:group={progressDetailLevel} value="simple" class="mt-0.5 accent-[color:var(--accent)]" />
                                     <div>
-                                        <p class="text-sm font-medium {progressDetailLevel === 'simple' ? 'text-[#f5a623]' : 'text-[#f0ece4]'}">Simple</p>
-                                        <p class="text-xs text-[#6b5f4d]">Rider or parent — plain language</p>
+                                        <p class="text-sm font-medium {progressDetailLevel === 'simple' ? 'themed-accent' : 'themed-text-primary'}">Simple</p>
+                                        <p class="text-xs themed-text-subtle">Rider or parent — plain language</p>
                                     </div>
                                 </label>
                                 <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors
-                                              {progressDetailLevel === 'standard' ? 'bg-[#f5a623]/10 border border-[#f5a623]/30' : 'bg-[#0a0809] border border-[#221c18] hover:border-[#f5a623]/20'}">
-                                    <input type="radio" bind:group={progressDetailLevel} value="standard" class="mt-0.5 accent-[#f5a623]" />
+                                              {progressDetailLevel === 'standard' ? 'themed-bg-accent border border-[color:var(--accent)]/30' : 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}">
+                                    <input type="radio" bind:group={progressDetailLevel} value="standard" class="mt-0.5 accent-[color:var(--accent)]" />
                                     <div>
-                                        <p class="text-sm font-medium {progressDetailLevel === 'standard' ? 'text-[#f5a623]' : 'text-[#f0ece4]'}">Standard</p>
-                                        <p class="text-xs text-[#6b5f4d]">Club rider — some context</p>
+                                        <p class="text-sm font-medium {progressDetailLevel === 'standard' ? 'themed-accent' : 'themed-text-primary'}">Standard</p>
+                                        <p class="text-xs themed-text-subtle">Club rider — some context</p>
                                     </div>
                                 </label>
                                 <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors
-                                              {progressDetailLevel === 'coach' ? 'bg-[#f5a623]/10 border border-[#f5a623]/30' : 'bg-[#0a0809] border border-[#221c18] hover:border-[#f5a623]/20'}">
-                                    <input type="radio" bind:group={progressDetailLevel} value="coach" class="mt-0.5 accent-[#f5a623]" />
+                                              {progressDetailLevel === 'coach' ? 'themed-bg-accent border border-[color:var(--accent)]/30' : 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}">
+                                    <input type="radio" bind:group={progressDetailLevel} value="coach" class="mt-0.5 accent-[color:var(--accent)]" />
                                     <div>
-                                        <p class="text-sm font-medium {progressDetailLevel === 'coach' ? 'text-[#f5a623]' : 'text-[#f0ece4]'}">Coach</p>
-                                        <p class="text-xs text-[#6b5f4d]">Full coaching detail</p>
+                                        <p class="text-sm font-medium {progressDetailLevel === 'coach' ? 'themed-accent' : 'themed-text-primary'}">Coach</p>
+                                        <p class="text-xs themed-text-subtle">Full coaching detail</p>
                                     </div>
                                 </label>
                                 <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors
-                                              {progressDetailLevel === 'technical' ? 'bg-[#f5a623]/10 border border-[#f5a623]/30' : 'bg-[#0a0809] border border-[#221c18] hover:border-[#f5a623]/20'}">
-                                    <input type="radio" bind:group={progressDetailLevel} value="technical" class="mt-0.5 accent-[#f5a623]" />
+                                              {progressDetailLevel === 'technical' ? 'themed-bg-accent border border-[color:var(--accent)]/30' : 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}">
+                                    <input type="radio" bind:group={progressDetailLevel} value="technical" class="mt-0.5 accent-[color:var(--accent)]" />
                                     <div>
-                                        <p class="text-sm font-medium {progressDetailLevel === 'technical' ? 'text-[#f5a623]' : 'text-[#f0ece4]'}">Technical</p>
-                                        <p class="text-xs text-[#6b5f4d]">All metrics and diagnostics</p>
+                                        <p class="text-sm font-medium {progressDetailLevel === 'technical' ? 'themed-accent' : 'themed-text-primary'}">Technical</p>
+                                        <p class="text-xs themed-text-subtle">All metrics and diagnostics</p>
                                     </div>
                                 </label>
                             </div>
@@ -774,28 +922,28 @@
 
                         <!-- Options -->
                         <fieldset>
-                            <legend class="text-xs font-semibold text-[#6b5f4d] uppercase tracking-wider mb-2">Include</legend>
+                            <legend class="text-xs font-semibold themed-text-subtle uppercase tracking-wider mb-2">Include</legend>
                             <div class="space-y-2">
                                 <label class="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" bind:checked={progressIncludeCharts} class="accent-[#f5a623]" />
+                                    <input type="checkbox" bind:checked={progressIncludeCharts} class="accent-[color:var(--accent)]" />
                                     <div>
-                                        <p class="text-sm text-[#f0ece4] group-hover:text-[#f5a623] transition-colors">Charts</p>
-                                        <p class="text-xs text-[#6b5f4d]">Visual evidence sections</p>
+                                        <p class="text-sm themed-text-primary group-hover:themed-accent transition-colors">Charts</p>
+                                        <p class="text-xs themed-text-subtle">Visual evidence sections</p>
                                     </div>
                                 </label>
                                 <label class="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" bind:checked={progressIncludeDiag} class="accent-[#f5a623]" />
+                                    <input type="checkbox" bind:checked={progressIncludeDiag} class="accent-[color:var(--accent)]" />
                                     <div>
-                                        <p class="text-sm text-[#f0ece4] group-hover:text-[#f5a623] transition-colors">Data quality notes</p>
-                                        <p class="text-xs text-[#6b5f4d]">Sensor and calibration detail</p>
+                                        <p class="text-sm themed-text-primary group-hover:themed-accent transition-colors">Data quality notes</p>
+                                        <p class="text-xs themed-text-subtle">Sensor and calibration detail</p>
                                     </div>
                                 </label>
                                 {#if data.goalTargets && Object.keys(data.goalTargets).length > 0}
                                     <label class="flex items-center gap-3 cursor-pointer group">
-                                        <input type="checkbox" bind:checked={progressIncludeGoals} class="accent-[#f5a623]" />
+                                        <input type="checkbox" bind:checked={progressIncludeGoals} class="accent-[color:var(--accent)]" />
                                         <div>
-                                            <p class="text-sm text-[#f0ece4] group-hover:text-[#f5a623] transition-colors">Goal progress</p>
-                                            <p class="text-xs text-[#6b5f4d]">Progress toward active training goals</p>
+                                            <p class="text-sm themed-text-primary group-hover:themed-accent transition-colors">Goal progress</p>
+                                            <p class="text-xs themed-text-subtle">Progress toward active training goals</p>
                                         </div>
                                     </label>
                                 {/if}
@@ -810,34 +958,34 @@
                             }}
                             disabled={generatingProgress}
                             class="w-full py-3 rounded-xl text-sm font-bold transition-all
-                                   bg-[#f5a623] text-[#0a0809] hover:bg-[#c97e0a]
+                                   bg-[color:var(--accent)] text-[color:var(--bg)] hover:bg-[color:var(--accent-dark)]
                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]"
+                                   focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--card)]"
                         >
                             {generatingProgress ? 'Generating…' : 'Generate Report'}
                         </button>
                     </div>
 
                     <!-- What's included preview -->
-                    <div class="bg-[#0a0809] rounded-lg p-4 border border-[#221c18]">
-                        <h4 class="text-xs font-semibold text-[#f5a623] uppercase tracking-wider mb-3">
+                    <div class="themed-nested-card rounded-lg p-4 border border-[color:var(--border)]">
+                        <h4 class="text-xs font-semibold themed-accent uppercase tracking-wider mb-3">
                             What's Included
                         </h4>
-                        <ul class="space-y-2 text-xs text-[#9a8f7a]">
+                        <ul class="space-y-2 text-xs themed-text-secondary">
                             <li class="flex items-start gap-2">
-                                <span class="text-[#f5a623]">•</span>
+                                <span class="themed-accent">•</span>
                                 <span>Progress headline with confidence level</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <span class="text-[#f5a623]">•</span>
+                                <span class="themed-accent">•</span>
                                 <span>Reaction time and speed trends across {data.sessionCount} sessions</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <span class="text-[#f5a623]">•</span>
+                                <span class="themed-accent">•</span>
                                 <span>Consistency and fatigue patterns over time</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <span class="text-[#f5a623]">•</span>
+                                <span class="themed-accent">•</span>
                                 <span>Forward-looking observations for next sessions</span>
                             </li>
                             {#if progressIncludeCharts}
@@ -853,8 +1001,8 @@
                                 </li>
                             {/if}
                         </ul>
-                        <div class="mt-4 pt-4 border-t border-[#221c18]">
-                            <p class="text-[10px] text-[#6b5f4d]">
+                        <div class="mt-4 pt-4 border-t border-[color:var(--border)]">
+                            <p class="text-[10px] themed-text-subtle">
                                 Progress reports cover trends across all sessions.
                                 For single-session detail, use the Session Report on any session page.
                             </p>

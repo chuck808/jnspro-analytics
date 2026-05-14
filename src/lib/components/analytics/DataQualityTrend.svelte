@@ -93,48 +93,53 @@
     {/if}
   </div>
 
-  <!-- Session quality timeline -->
+  <!-- Quality trend visualization -->
   <div class="mb-4">
-    <div class="flex items-center justify-between mb-3">
-      <p class="text-xs text-[#6b5f4d]">Quality per session</p>
-      <div class="flex items-center gap-2 text-xs">
+    <p class="text-xs text-[#6b5f4d] mb-3">Quality trend over time</p>
+    
+    <!-- Visual timeline bar -->
+    <div class="relative h-12 bg-[#0a0809] rounded-lg border border-[#221c18] overflow-hidden mb-3">
+      <div class="absolute inset-0 flex items-stretch">
+        {#each data as session, index}
+          {@const width = 100 / data.length}
+          <div 
+            class="flex-1 transition-all hover:opacity-80 group relative"
+            style="background:{qualityColors[session.qualityRating]}; opacity: 0.6;"
+            title="{session.sessionDate}: {session.qualityRating}"
+          >
+            <!-- Tooltip on hover -->
+            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#0a0809] border border-[#221c18] rounded text-[10px] text-[#f0ece4] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+              <div class="font-semibold">{session.sessionDate}</div>
+              <div class="text-[#9a8f7a]" style="color:{qualityColors[session.qualityRating]}">{session.qualityRating}</div>
+              {#if session.biasCorrection !== null}
+                <div class="text-[#6b5f4d]">Bias: {session.biasCorrection.toFixed(2)} m/s²</div>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+      
+      <!-- Legend overlay -->
+      <div class="absolute top-1 right-1 flex items-center gap-1.5 text-[9px] bg-[#0a0809]/80 backdrop-blur-sm px-2 py-1 rounded">
         {#each [
-          { label: 'Excellent', color: qualityColors.excellent },
+          { label: 'Exc', color: qualityColors.excellent },
           { label: 'Good', color: qualityColors.good },
           { label: 'Fair', color: qualityColors.fair },
-          { label: 'Calibrate', color: qualityColors.calibrate },
+          { label: 'Cal', color: qualityColors.calibrate },
         ] as legend}
-          <div class="flex items-center gap-1">
-            <div class="w-2 h-2 rounded-full" style="background:{legend.color}"></div>
+          <div class="flex items-center gap-0.5">
+            <div class="w-1.5 h-1.5 rounded-full" style="background:{legend.color}"></div>
             <span class="text-[#9a8f7a]">{legend.label}</span>
           </div>
         {/each}
       </div>
     </div>
     
-    <!-- Session badges grid -->
-    <div class="flex flex-wrap gap-2">
-      {#each data as session}
-        <div class="flex flex-col items-center gap-1 group">
-          <div 
-            class="w-10 h-10 rounded-lg flex items-center justify-center border-2 transition-transform group-hover:scale-110"
-            style="
-              background:{qualityColors[session.qualityRating]}20; 
-              border-color:{qualityColors[session.qualityRating]};
-            "
-            title="{session.sessionDate}: {session.qualityRating} (bias: {session.biasCorrection?.toFixed(2) ?? 'N/A'} m/s²)"
-          >
-            <span class="text-xs font-bold" style="color:{qualityColors[session.qualityRating]}">
-              {#if session.qualityRating === 'excellent'}✓
-              {:else if session.qualityRating === 'good'}•
-              {:else if session.qualityRating === 'fair'}~
-              {:else}⚠
-              {/if}
-            </span>
-          </div>
-          <span class="text-[9px] text-[#6b5f4d]">{session.sessionNumber}</span>
-        </div>
-      {/each}
+    <!-- Session range indicator -->
+    <div class="flex items-center justify-between text-[10px] text-[#6b5f4d]">
+      <span>Session 1</span>
+      <span>{data.length} sessions</span>
+      <span>Session {data.length}</span>
     </div>
   </div>
 
