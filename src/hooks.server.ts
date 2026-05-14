@@ -180,10 +180,17 @@ const supabaseHandle: Handle = async ({ event, resolve }) => {
         PUBLIC_SUPABASE_ANON_KEY,
         {
             cookies: {
-                getAll:    () => event.cookies.getAll(),
+                getAll: () => event.cookies.getAll(),
                 setAll: (cookiesToSet) => {
                     cookiesToSet.forEach(({ name, value, options }) => {
-                        event.cookies.set(name, value, { ...options, path: '/' });
+                        event.cookies.set(name, value, { 
+                            ...options, 
+                            path: '/',
+                            // Ensure cookies work across the site
+                            httpOnly: options.httpOnly ?? true,
+                            secure: true,
+                            sameSite: 'lax'
+                        });
                     });
                 },
             },
