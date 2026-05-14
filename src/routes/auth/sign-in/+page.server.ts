@@ -18,7 +18,7 @@ export const actions: Actions = {
             return fail(400, { error: 'Email and password are required' });
         }
 
-        const { error } = await locals.supabase.auth.signInWithPassword({
+        const { data, error } = await locals.supabase.auth.signInWithPassword({
             email,
             password
         });
@@ -27,6 +27,8 @@ export const actions: Actions = {
             return fail(400, { error: error.message });
         }
 
+        // Session is now established and cookies will be set by the Supabase client
+        // The redirect will happen with the cookies in place
         const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard';
         throw redirect(303, safeRedirect);
     }
