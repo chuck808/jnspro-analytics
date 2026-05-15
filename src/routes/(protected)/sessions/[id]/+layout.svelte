@@ -263,7 +263,48 @@
                     blocksSpeed:    performanceAnalysis.hasCalibrationWarning ?? false,
                 },
                 recommendations: mergedRecs,
-                charts: [],
+                // Build actual chart data from performance analysis
+                charts: includeCharts ? [
+                    // Acceleration/G-Force chart
+                    {
+                        id: 'gforce-chart',
+                        title: 'G-Force Trace',
+                        description: 'Acceleration through the run — shows force application timing and peak.',
+                        chartType: 'line' as const,
+                        dataKey: 'acceleration',
+                        includeByDefault: true,
+                        data: chartSeries?.acceleration?.map((p: any, i: number) => ({
+                            x: p.timeS ?? i * 0.01,
+                            y: p.value ?? 0
+                        })) ?? []
+                    },
+                    // Run progression chart (reaction times)
+                    {
+                        id: 'run-progression-chart',
+                        title: 'Run-by-Run Performance',
+                        description: 'Reaction time across all runs — shows consistency and drop-off patterns.',
+                        chartType: 'bar' as const,
+                        dataKey: 'runProgression',
+                        includeByDefault: true,
+                        data: allRuns.map((r: any, i: number) => ({
+                            x: i + 1,
+                            y: (r.reactionMs ?? 0) / 1000 // Convert to seconds
+                        }))
+                    },
+                    // Speed curve (if available)
+                    ...(chartSeries?.speed && chartSeries.speed.length > 0 ? [{
+                        id: 'speed-chart',
+                        title: 'Speed Development',
+                        description: 'Estimated speed curve from IMU data.',
+                        chartType: 'line' as const,
+                        dataKey: 'speed',
+                        includeByDefault: true,
+                        data: chartSeries.speed.map((p: any, i: number) => ({
+                            x: p.timeS ?? i * 0.01,
+                            y: p.value ?? 0
+                        }))
+                    }] : [])
+                ] : undefined
             };
 
             report = buildCoachSessionReport(sessionInput, {

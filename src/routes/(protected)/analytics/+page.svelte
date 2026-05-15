@@ -397,8 +397,8 @@
                 // Goal context
                 goalContext,
 
-                // Charts (stubs for now)
-                charts: [],
+                // Charts - allow report engine to use default charts
+                // charts: [],
             };
 
             progressReport = buildProgressReport(progressInput, {

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { ReportSection, ReportDetailLevel } from '$lib/report-engine/types';
     import ReportMetricGrid from './ReportMetricGrid.svelte';
+    import ReportChart from './ReportChart.svelte';
 
     let {
         section,
@@ -181,19 +182,16 @@
         </div>
     {/if}
 
-    <!-- Chart placeholders -->
+    <!-- Actual charts -->
     {#if section.charts && section.charts.length > 0}
         <div class="mt-4 space-y-2">
             {#each section.charts.filter(c => c.includeByDefault) as chart}
-                <div class="bg-[#f9f7f4] border border-[#ede8e0] rounded p-4">
-                    <p class="text-xs font-semibold text-[#6b5f4d] mb-1">{chart.title}</p>
-                    {#if chart.description}
-                        <p class="text-xs text-[#9a8f7a]">{chart.description}</p>
-                    {/if}
-                    <div class="mt-3 h-5 rounded bg-[#ede8e0] flex items-center justify-center">
-                        <span class="text-[10px] text-[#9a8f7a]">Chart · {chart.chartType}</span>
-                    </div>
-                </div>
+                <ReportChart
+                    title={chart.title}
+                    description={chart.description}
+                    chartType={chart.chartType}
+                    data={chart.data ?? []}
+                />
             {/each}
         </div>
     {/if}

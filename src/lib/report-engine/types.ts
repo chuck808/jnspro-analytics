@@ -51,6 +51,7 @@ export interface ReportChart {
   chartType: 'line' | 'bar' | 'scatter' | 'heatmap' | 'table';
   dataKey: string;
   includeByDefault: boolean;
+  data?: Array<{ x: number; y: number; label?: string }>; // Actual chart data
 }
 
 export interface ReportAppendix {

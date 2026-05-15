@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 
     const { data: gateRuns } = await supabase
         .from('gate_runs')
-        .select('reaction_time_ms, peak_speed_ms, max_g, analytics_valid')
+        .select('reaction_time_ms, peak_speed_ms, max_g, analytics_valid, runs!inner(session_id)')
         .in('runs.session_id', sessionIds)
         .eq('analytics_valid', true);
 
