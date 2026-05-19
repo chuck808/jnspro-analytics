@@ -13,6 +13,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { type Handle, redirect, error } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import { building } from '$app/environment';
 import {
     PUBLIC_SUPABASE_URL,
     PUBLIC_SUPABASE_ANON_KEY,
@@ -134,6 +135,12 @@ setInterval(() => {
 }, 5 * 60 * 1000); // every 5 minutes
 
 const rateLimiter: Handle = async ({ event, resolve }) => {
+    // Skip rate limiting during prerendering/build phase
+    // getClientAddress() is not available during prerendering
+    if (building) {
+        return resolve(event);
+    }
+
     const { pathname } = event.url;
 
     // Upload rate limit — keyed by user ID (set after Supabase handle runs)
