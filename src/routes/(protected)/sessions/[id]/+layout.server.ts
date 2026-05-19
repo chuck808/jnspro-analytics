@@ -9,6 +9,7 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { processGoalImprovements, isSignificantImprovement } from '$lib/server/goalMilestones';
 import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
+import { buildSessionSummaries } from '$lib/server/sessionSummaryBuilder';
 import { shouldExcludeFromStats } from '$lib/types/runs';
 
 function getMetricLabel(metric: string): string {
@@ -186,7 +187,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
     }> = [];
 
     const goalProgress = (goals ?? []).map(goal => {
-        const sessionValue = sessionMetrics[goal.metric as keyof typeof sessionMetrics];
+        const sessionValue = sessionMetrics[goal.metric as keyof typeof sessionMetrics] ?? null;
         const previousValue = goal.current_value;
         
         if (sessionValue === null || previousValue === null) return null;
@@ -329,58 +330,14 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         `)
         .in('session_id', recentSessionIds);
 
-    // Build session summaries for advanced analytics.
-    // Only stats-eligible runs (non-warmup, not excluded) feed the numbers.
-    const sessionSummaries = (recentSessions ?? []).map(s => {
-        const sessionRuns = (allRecentRuns ?? [])
-            .filter(r => r.session_id === s.id && !shouldExcludeFromStats(r.tags as any))
-            .map(r => r.gate_runs)
-            .flat()
-            .filter(Boolean);
-
-        const validRuns = sessionRuns.filter(g => g!.analytics_valid);
-        const reactionTimes = sessionRuns.map(g => g!.reaction_time_ms).filter(v => v !== null);
-
-        const bestReaction = reactionTimes.length > 0 ? Math.min(...reactionTimes) : null;
-        const avgReaction = reactionTimes.length > 0 
-            ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length 
-            : null;
-        
-        const mean = avgReaction;
-        const reactionCv = reactionTimes.length > 1 && mean
-            ? (() => {
-                const variance = reactionTimes.reduce((s, t) => s + Math.pow(t - mean, 2), 0) / reactionTimes.length;
-                return (Math.sqrt(variance) / mean) * 100;
-              })()
-            : null;
-
-        return {
-            id: s.id,
-            timestamp: s.timestamp,
-            run_count: sessionRuns.length,
-            best_reaction_ms: bestReaction,
-            avg_reaction_ms: avgReaction,
-            best_peak_speed_ms: validRuns.length > 0
-                ? Math.max(...validRuns.map(g => g!.peak_speed_ms ?? 0))
-                : null,
-            avg_peak_speed_ms: validRuns.length > 0
-                ? validRuns.reduce((s, g) => s + (g!.peak_speed_ms ?? 0), 0) / validRuns.length
-                : null,
-            reaction_cv: reactionCv,
-            best_max_g: sessionRuns.length > 0
-                ? Math.max(...sessionRuns.map(g => g!.max_g))
-                : null,
-            avg_max_g: sessionRuns.length > 0
-                ? sessionRuns.reduce((s, g) => s + g!.max_g, 0) / sessionRuns.length
-                : null,
-            has_valid_speed: validRuns.length > 0,
-            // Context fields for correlation analysis
-            weather_conditions: s.weather_conditions ?? null,
-            track_surface:      s.track_surface ?? null,
-            session_focus:      s.session_focus ?? null,
-            ride_feel:          s.ride_feel ?? null,
-        };
-    });
+    // Build session summaries using the shared utility — same computation as
+    // the analytics page so both surfaces always produce identical values.
+    const sessionSummaries = buildSessionSummaries(
+        (recentSessions ?? []).map(s => ({
+            ...s,
+            runs: (allRecentRuns ?? []).filter(r => r.session_id === s.id),
+        })) as any
+    );
 
     // Flatten stats-eligible runs only for cross-run analysis
     const allRunsData = (allRecentRuns ?? [])

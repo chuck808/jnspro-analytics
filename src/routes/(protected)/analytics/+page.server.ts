@@ -3,6 +3,7 @@ import { shouldExcludeFromStats } from '$lib/types/runs';
 import { prepareCorrelationData, generateCorrelationInsights } from '$lib/analytics/correlationAnalysis';
 import { analyseSession, scoreRunTechnique, buildCoachDiagnostics, buildPerformanceInsightPack } from '$lib/performance-engine';
 import type { SessionAnalysis, TechniqueAnalysis, CoachDiagnostic, PerformanceInsightPack } from '$lib/performance-engine';
+import { buildSessionSummaries } from '$lib/server/sessionSummaryBuilder';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
     const { profile } = await parent();
@@ -74,38 +75,9 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
             )
     );
 
-    // Per-session summaries
-    const sessionSummaries = sessionsWithRuns.map(session => {
-        const allGateRuns = session.runs
-            .filter((r: any) => !shouldExcludeFromStats(r.tags as any))
-            .flatMap((r: any) => r.gate_runs).filter(Boolean);
-        const validRuns   = allGateRuns.filter(g => g!.analytics_valid);
-        if (allGateRuns.length === 0) return null;
-
-        const reactionTimes = allGateRuns.map(g => g!.reaction_time_ms);
-        const mean    = reactionTimes.reduce((s, v) => s + v, 0) / reactionTimes.length;
-        const variance = reactionTimes.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / reactionTimes.length;
-        const stdDev  = Math.sqrt(variance);
-        const cv      = mean > 0 ? (stdDev / mean) * 100 : null;
-
-        return {
-            id:                 session.id,
-            timestamp:          session.timestamp,
-            run_count:          session.runs.length,
-            best_reaction_ms:   Math.min(...reactionTimes),
-            avg_reaction_ms:    mean,
-            reaction_cv:        cv,
-            best_max_g:         Math.max(...allGateRuns.map(g => g!.max_g)),
-            avg_max_g:          allGateRuns.reduce((s, g) => s + g!.max_g, 0) / allGateRuns.length,
-            best_peak_speed_ms: validRuns.length > 0 ? Math.max(...validRuns.map(g => g!.peak_speed_ms ?? 0)) : null,
-            avg_peak_speed_ms:  validRuns.length > 0 ? validRuns.reduce((s, g) => s + (g!.peak_speed_ms ?? 0), 0) / validRuns.length : null,
-            avg_max_pitch_deg:  allGateRuns.some(g => g!.max_pitch_deg !== null)
-                                    ? allGateRuns.reduce((s, g) => s + (g!.max_pitch_deg ?? 0), 0) / allGateRuns.length
-                                    : null,
-            wheelie_count:      allGateRuns.filter(g => g!.front_wheel_lifted).length,
-            has_valid_speed:    validRuns.length > 0,
-        };
-    }).filter(Boolean) as any[];
+    // Per-session summaries — built by the shared utility so both the analytics
+    // page and the session detail page produce identical values.
+    const sessionSummaries = buildSessionSummaries(sessionsWithRuns as any);
 
     const sessionCount = sessionSummaries.length;
 
@@ -182,25 +154,30 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     let sessionAnalyses: SessionAnalysisResult[] = [];
     
     if (sessionCount > 0) {
-        // Limit to last 10 sessions for performance
-        const sessionsToAnalyze = sessionsWithRuns.slice(-10);
+        // Analyse all sessions up to 'full' depth (up to 19 sessions).
+        // At 'advanced' (20+), limit to the last 30 — approximately two full season
+        // blocks — which is the meaningful trend window for gate start development.
+        // Previously limited to 10 which truncated technique trends for active riders.
+        const analysisLimit = depth === 'advanced' ? 30 : sessionCount;
+        const sessionsToAnalyze = sessionsWithRuns.slice(-analysisLimit);
         
         sessionAnalyses = sessionsToAnalyze
             .map(session => {
                 const sessionRuns = session.runs || [];
+                const eligibleRuns = sessionRuns.filter((r: any) => !shouldExcludeFromStats(r.tags as any));
                 
-                // Only analyze if we have chart_data
-                if (sessionRuns.length === 0 || !sessionRuns.some((r: any) => r.chart_data)) {
+                // Only analyze if we have chart_data on eligible runs
+                if (eligibleRuns.length === 0 || !eligibleRuns.some((r: any) => r.chart_data)) {
                     return null;
                 }
                 
                 try {
-                    // Build session object for Performance Engine
+                    // Build session object for Performance Engine using stats-eligible runs only
                     const sessionForAnalysis = {
                         id: session.id,
                         session_type: session.session_type,
                         timestamp: session.timestamp,
-                        runs: sessionRuns.map((run: any) => ({
+                        runs: eligibleRuns.map((run: any) => ({
                             id: run.id,
                             run_number: run.run_number,
                             elapsed_time_ms: run.elapsed_time_ms,

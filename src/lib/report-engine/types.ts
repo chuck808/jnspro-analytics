@@ -135,6 +135,12 @@ export interface CoachSessionReportInput {
   excludedReasons?: string[];
   sessionFocus?: string | null;
   trackSurface?: string | null;
+  sessionNotes?: Array<{
+    note_type: 'pre' | 'during' | 'post' | 'coach';
+    content: string;
+    author_role?: string | null;
+    created_at?: string;
+  }>;
   sessionReport?: any;
   sessionNarrative?: SessionNarrative;
   techniqueSummary?: any;

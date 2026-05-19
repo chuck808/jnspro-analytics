@@ -485,6 +485,9 @@ export function buildCoachSessionReport(
                 ],
             })]
             : []),
+
+        // 9. Coaching log — rendered when notes exist
+        ...buildCoachingLogSection(input),
     ].filter((s): s is NonNullable<typeof s> => s !== null);
 
     // ── Assemble report ───────────────────────────────────────────────────────
@@ -661,4 +664,67 @@ function defaultSessionCharts(): ReportChart[] {
             includeByDefault: true,
         },
     ];
+}
+
+// ─── Coaching log ─────────────────────────────────────────────────────────────
+
+const NOTE_TYPE_LABELS: Record<string, string> = {
+    pre:    'Pre-session',
+    during: 'During session',
+    post:   'Post-session',
+    coach:  'Coach feedback',
+};
+
+const AUTHOR_ROLE_LABELS: Record<string, string> = {
+    rider:  'Rider',
+    parent: 'Parent',
+    coach:  'Coach',
+};
+
+/**
+ * Build a coaching log section from session notes.
+ * Notes are grouped by type and rendered in order: pre → during → post → coach.
+ * Returns an empty array when no notes exist so the section is omitted.
+ */
+function buildCoachingLogSection(input: CoachSessionReportInput): ReturnType<typeof createSection>[] {
+    const notes = input.sessionNotes;
+    if (!notes || notes.length === 0) return [];
+
+    const ORDER: Array<'pre' | 'during' | 'post' | 'coach'> = ['pre', 'during', 'post', 'coach'];
+    const grouped: Record<string, typeof notes> = {};
+
+    for (const note of notes) {
+        if (!grouped[note.note_type]) grouped[note.note_type] = [];
+        grouped[note.note_type].push(note);
+    }
+
+    const lines: string[] = [];
+
+    for (const type of ORDER) {
+        const typeNotes = grouped[type];
+        if (!typeNotes || typeNotes.length === 0) continue;
+
+        lines.push(`${NOTE_TYPE_LABELS[type] ?? type}:`);
+        for (const note of typeNotes) {
+            const author = note.author_role
+                ? AUTHOR_ROLE_LABELS[note.author_role] ?? note.author_role
+                : null;
+            const prefix = author ? `[${author}] ` : '';
+            lines.push(`${prefix}${note.content}`);
+        }
+        lines.push(''); // blank line between groups
+    }
+
+    // Remove trailing blank line
+    while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+
+    if (lines.length === 0) return [];
+
+    return [createSection({
+        id:       'coaching-log',
+        type:     'appendix',
+        title:    'Coaching Log',
+        priority: 'low',
+        content:  lines,
+    })];
 }

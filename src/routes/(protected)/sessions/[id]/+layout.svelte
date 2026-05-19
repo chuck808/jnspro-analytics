@@ -235,6 +235,12 @@
                     .flatMap((r: any) => getExclusionReasons(r.tags)),
                 sessionFocus:    (data.session as any).session_focus ?? null,
                 trackSurface:    (data.session as any).track_surface ?? null,
+                sessionNotes:    (data.sessionNotes ?? []).map((n: any) => ({
+                    note_type:   n.note_type,
+                    content:     n.content,
+                    author_role: n.author_role ?? null,
+                    created_at:  n.created_at,
+                })),
                 riderLevel:      riderLevel ?? undefined,
                 sessionReport: {
                     sessionQuality: qualityScore,
