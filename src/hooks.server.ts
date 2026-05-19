@@ -136,11 +136,6 @@ setInterval(() => {
 const rateLimiter: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
 
-    // Skip rate limiting during prerendering
-    if (event.isSubRequest || !event.platform) {
-        return resolve(event);
-    }
-
     // Upload rate limit — keyed by user ID (set after Supabase handle runs)
     if (pathname === '/api/upload' || pathname.startsWith('/api/upload')) {
         const userId = event.locals.user?.id ?? event.getClientAddress();

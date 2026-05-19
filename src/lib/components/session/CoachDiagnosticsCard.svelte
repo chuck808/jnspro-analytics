@@ -19,16 +19,6 @@
         if (tone === 'warning') return '⚠';
         return '○';
     }
-    
-    function getAudienceBadge(audience: string) {
-        const badges: Record<string, string> = {
-            grom: 'Beginner',
-            rider: 'Intermediate',
-            elite: 'Advanced',
-            coach: 'Coach View'
-        };
-        return badges[audience] || audience;
-    }
 </script>
 
 <div class="themed-card rounded-xl p-5 space-y-4">
@@ -65,11 +55,6 @@
                             </span>
                             <h4 class="text-sm font-semibold themed-text-primary">{diagnostic.title}</h4>
                         </div>
-                        {#if diagnostic.audience}
-                            <span class="text-[10px] px-2 py-0.5 rounded themed-bg-accent themed-accent uppercase tracking-wider">
-                                {getAudienceBadge(diagnostic.audience)}
-                            </span>
-                        {/if}
                     </div>
                     
                     <!-- Summary -->

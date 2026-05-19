@@ -35,7 +35,16 @@
         </span>
         {#if narrative.trust.basedOnRuns}
           <span class="data-badge">
-            {narrative.trust.basedOnRuns} run{narrative.trust.basedOnRuns !== 1 ? 's' : ''}
+            {#if narrative.trust.excludedRuns && narrative.trust.excludedRuns > 0}
+              {narrative.trust.basedOnRuns} of {narrative.trust.basedOnRuns + narrative.trust.excludedRuns} runs
+            {:else}
+              {narrative.trust.basedOnRuns} run{narrative.trust.basedOnRuns !== 1 ? 's' : ''}
+            {/if}
+          </span>
+        {/if}
+        {#if narrative.trust.excludedRuns && narrative.trust.excludedRuns > 0}
+          <span class="excluded-badge" title="Excluded from analysis: {narrative.trust.excludedReasons?.join(', ') ?? 'tagged runs'}">
+            {narrative.trust.excludedRuns} excluded
           </span>
         {/if}
       </div>
@@ -176,6 +185,12 @@
   .data-badge {
     background: rgba(107, 95, 77, 0.2);
     color: var(--theme-text-subtle, #9a8f7a);
+  }
+
+  .excluded-badge {
+    background: rgba(245, 166, 35, 0.12);
+    color: #f5a623;
+    cursor: help;
   }
 
   .narrative-section {

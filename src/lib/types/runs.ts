@@ -75,6 +75,17 @@ export function shouldExcludeFromStats(tags: RunTag[] | null): boolean {
 }
 
 /**
+ * Returns human-readable labels for whichever tags caused a run to be excluded.
+ * Returns an empty array if the run is not excluded.
+ */
+export function getExclusionReasons(tags: RunTag[] | null): string[] {
+  if (!tags || tags.length === 0) return [];
+  return tags
+    .filter(t => t === 'warmup' || t === 'exclude-from-stats')
+    .map(t => getTagMeta(t)?.label ?? t);
+}
+
+/**
  * Helper function to get tag metadata
  */
 export function getTagMeta(tag: RunTag): RunTagMeta | undefined {

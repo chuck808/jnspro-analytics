@@ -5,6 +5,14 @@ export interface RiderContext {
   riderWeightKg?: number | null;
   bikeWeightKg?: number | null;
   crankLengthMm?: number | null;
+  // Session context — affects interpretation, not physics calculations
+  sessionFocus?: 
+    | 'reaction-time' | 'explosiveness' | 'speed-carry'
+    | 'technique' | 'endurance' | 'consistency'
+    | 'recovery' | 'testing' | null;
+  rideFeel?: 'off' | 'solid' | 'good' | 'dialled' | 'peak' | null;
+  weatherCondition?: string | null;
+  trackSurface?: string | null;
 }
 
 export interface GateRunLike {

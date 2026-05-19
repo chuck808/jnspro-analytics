@@ -5,7 +5,7 @@
  * Applies all unit conversions documented in the working document:
  *
  *   chartData (int16×100)     → ÷100 → float G-units
- *   reactionTime (centisecs)  → ×10  → reaction_time_ms
+ *   reactionTime (ms)         → direct → reaction_time_ms  (firmware outputs ms)
  *   timeSeries.pitchRad       → ×180/π → degrees
  *   timeSeries.rollRad        → ×180/π → degrees
  *   All speeds stored as m/s — conversion to km/h at display layer only
@@ -44,7 +44,7 @@ interface SDTimeSeries {
 
 interface SDRun {
     timestamp?:          number;
-    reactionTime:        number;   // seconds (as per Schema v2 spec)
+    reactionTime:        number;   // milliseconds — used directly, no conversion
     elapsedMs:           number;   // milliseconds
     maxG:                number;
     avgG:                number;
@@ -132,9 +132,9 @@ export function validateSDFile(data: unknown): ValidationResult {
         }
 
         // Sanity checks
-        // reactionTime is in seconds — warn if > 10 seconds or negative
-		if ((r.reactionTime as number) < 0 || (r.reactionTime as number) > 10) {
-			warnings.push(`Run ${i + 1}: reaction time ${(r.reactionTime as number).toFixed(3)}s looks unusual`);
+        // reactionTime is in milliseconds — warn if implausible (< 0 or > 3000ms)
+		if ((r.reactionTime as number) < 0 || (r.reactionTime as number) > 3000) {
+			warnings.push(`Run ${i + 1}: reaction time ${(r.reactionTime as number).toFixed(0)}ms looks unusual`);
 		}
         if ((r.maxG as number) < 0 || (r.maxG as number) > 4) {
             warnings.push(`Run ${i + 1}: maxG ${r.maxG} exceeds ±2G sensor range — data may be corrupt`);
@@ -255,8 +255,8 @@ export function transformSDFile(file: SDCardFile): IngestSession {
             distance_m:      safeNum(run.distance),
             chart_data:      chartData,
 
-            // reactionTime from device is in seconds - multiply by 1000 to get milliseconds
-            reaction_time_ms: Math.round((run.reactionTime ?? 0) * 1000),
+            // reactionTime from device is already in milliseconds — use directly
+            reaction_time_ms: Math.round(run.reactionTime ?? 0),
             max_g:                 run.maxG,
             avg_g:                 run.avgG,
 

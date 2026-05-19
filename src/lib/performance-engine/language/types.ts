@@ -21,6 +21,8 @@ export interface CoachMessage {
 export interface TrustContext {
   confidence: ConfidenceLevel;
   basedOnRuns: number;
+  excludedRuns?: number;
+  excludedReasons?: string[];
   trustedMetrics: string[];
   cautionMetrics: string[];
   blockedMetrics: string[];

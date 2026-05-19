@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { shouldExcludeFromStats } from '$lib/types/runs';
 import { prepareCorrelationData, generateCorrelationInsights } from '$lib/analytics/correlationAnalysis';
 import { analyseSession, scoreRunTechnique, buildCoachDiagnostics, buildPerformanceInsightPack } from '$lib/performance-engine';
 import type { SessionAnalysis, TechniqueAnalysis, CoachDiagnostic, PerformanceInsightPack } from '$lib/performance-engine';
@@ -16,7 +17,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     // Fetch sessions with context data for correlation analysis
     const { data: sessions, error } = await supabase
         .from('sessions')
-        .select('id, timestamp, session_type, weather_conditions, track_surface, session_focus')
+        .select('id, timestamp, session_type, weather_conditions, track_surface, session_focus, ride_feel')
         .eq('user_id', profile.id)
         .eq('archived', false)
         .eq('session_type', 'gate')
@@ -30,7 +31,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     const sessionIds = sessions.map(s => s.id);
     const { data: runs, error: runsError } = await supabase
         .from('runs')
-        .select('id, session_id, run_number, elapsed_time_ms, distance_m, chart_data')
+        .select('id, session_id, run_number, elapsed_time_ms, distance_m, chart_data, tags')
         .in('session_id', sessionIds);
 
     if (runsError) {
@@ -56,23 +57,28 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
             }))
     }));
 
-    // Flat list of all individual runs across all sessions (for heatmap + correlation)
+    // Flat list of stats-eligible runs across all sessions (for heatmap + correlation).
+    // Warmup and excluded runs are filtered out — they would skew trend data.
     const allRuns = sessionsWithRuns.flatMap(session =>
-        (session.runs ?? []).flatMap(run =>
-            (run.gate_runs ?? []).map(g => ({
-                session_id:       session.id,
-                session_date:     session.timestamp,
-                reaction_time_ms: g.reaction_time_ms,
-                max_g:            g.max_g,
-                peak_speed_ms:    g.analytics_valid ? (g.peak_speed_ms ?? null) : null,
-                analytics_valid:  g.analytics_valid,
-            }))
-        )
+        (session.runs ?? [])
+            .filter(run => !shouldExcludeFromStats(run.tags as any))
+            .flatMap(run =>
+                (run.gate_runs ?? []).map(g => ({
+                    session_id:       session.id,
+                    session_date:     session.timestamp,
+                    reaction_time_ms: g.reaction_time_ms,
+                    max_g:            g.max_g,
+                    peak_speed_ms:    g.analytics_valid ? (g.peak_speed_ms ?? null) : null,
+                    analytics_valid:  g.analytics_valid,
+                }))
+            )
     );
 
     // Per-session summaries
     const sessionSummaries = sessionsWithRuns.map(session => {
-        const allGateRuns = session.runs.flatMap(r => r.gate_runs).filter(Boolean);
+        const allGateRuns = session.runs
+            .filter((r: any) => !shouldExcludeFromStats(r.tags as any))
+            .flatMap((r: any) => r.gate_runs).filter(Boolean);
         const validRuns   = allGateRuns.filter(g => g!.analytics_valid);
         if (allGateRuns.length === 0) return null;
 
@@ -205,9 +211,13 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
                     
                     // Run full Performance Engine analysis
                 const analysis = analyseSession(sessionForAnalysis as any, {
-                    riderWeightKg: (profile as any).weight_kg,
-                    bikeWeightKg: bikes?.[0]?.weight_kg,
-                    riderLevel: (profile as any).rider_level,
+                    riderWeightKg:    (profile as any).weight_kg,
+                    bikeWeightKg:     bikes?.[0]?.weight_kg,
+                    riderLevel:       (profile as any).rider_level,
+                    sessionFocus:     (session as any).session_focus ?? null,
+                    rideFeel:         (session as any).ride_feel ?? null,
+                    weatherCondition: (session as any).weather_conditions ?? null,
+                    trackSurface:     (session as any).track_surface ?? null,
                 });
                     
                     // Extract technique scores from selected run
@@ -221,7 +231,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
                             analysis,
                             { riderLevel: ((profile as any).rider_level as any) || 'rider' }
                         );
-                        diagnostics = buildCoachDiagnostics(analysis, scoreBreakdown);
+                        diagnostics = buildCoachDiagnostics(analysis, scoreBreakdown, {
+                            sessionFocus: (session as any).session_focus ?? null,
+                            rideFeel:     (session as any).ride_feel ?? null,
+                        });
                     }
                     
                     // Build insight pack

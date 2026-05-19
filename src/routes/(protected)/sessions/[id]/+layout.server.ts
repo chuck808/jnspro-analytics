@@ -8,6 +8,7 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { processGoalImprovements, isSignificantImprovement } from '$lib/server/goalMilestones';
+import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
 import { shouldExcludeFromStats } from '$lib/types/runs';
 
 function getMetricLabel(metric: string): string {
@@ -158,13 +159,22 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         .eq('user_id', profile.id)
         .is('completed_at', null);
 
-    // Calculate current metric values from this session
-    const sessionMetrics: Record<string, number | null> = {
-        reactionTime: sessionStats.best_reaction_ms,
-        maxG: sessionStats.best_max_g,
-        peakSpeed: sessionStats.best_peak_speed_ms,
-        consistency: sessionStats.reaction_cv ? Math.max(0, 100 - sessionStats.reaction_cv) : null,
-    };
+    // Calculate current metric values from this session using the shared utility.
+    // Map from includedRuns so we can access both runs.elapsed_time_ms and gate_runs fields.
+    const sessionMetrics = computeSessionGoalMetrics(
+        includedRuns.flatMap(r => {
+            const gates = Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []);
+            return gates.map(g => ({
+                reaction_time_ms:      g.reaction_time_ms,
+                max_g:                 g.max_g,
+                peak_speed_ms:         g.peak_speed_ms ?? null,
+                elapsed_time_ms:       (r as any).elapsed_time_ms ?? null,
+                time_to_peak_speed_ms: g.time_to_peak_speed_ms ?? null,
+                analytics_valid:       g.analytics_valid,
+            }));
+        }),
+        includedRuns.length
+    );
 
     // Check which goals were improved by this session
     const improvements: Array<{
@@ -176,7 +186,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
     }> = [];
 
     const goalProgress = (goals ?? []).map(goal => {
-        const sessionValue = sessionMetrics[goal.metric];
+        const sessionValue = sessionMetrics[goal.metric as keyof typeof sessionMetrics];
         const previousValue = goal.current_value;
         
         if (sessionValue === null || previousValue === null) return null;
@@ -252,10 +262,13 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
     
     const allSessionIds = (allUserSessions ?? []).map(s => s.id);
     
-    // Get all gate runs from user's sessions
+    // Get all gate runs from user's sessions.
+    // tags is included so warmup and excluded runs can be filtered out —
+    // a warmup run with a fast reaction time should not count as a personal best.
     const { data: allUserRuns } = await supabase
         .from('runs')
         .select(`
+            tags,
             gate_runs(
                 reaction_time_ms,
                 max_g,
@@ -266,6 +279,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         .in('session_id', allSessionIds);
     
     const allTimeGateRuns = (allUserRuns ?? [])
+        .filter(r => !shouldExcludeFromStats(r.tags as any))
         .map(r => r.gate_runs)
         .flat()
         .filter(Boolean);
@@ -288,7 +302,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
     // ── ADVANCED ANALYTICS: Load recent sessions for cross-session analysis ──
     const { data: recentSessions } = await supabase
         .from('sessions')
-        .select('id, timestamp')
+        .select('id, timestamp, weather_conditions, track_surface, session_focus, ride_feel')
         .eq('user_id', profile.id)
         .eq('session_type', 'gate')
         .eq('archived', false)
@@ -297,12 +311,15 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 
     const recentSessionIds = (recentSessions ?? []).map(s => s.id);
     
-    // Load all runs from recent sessions for advanced analytics
+    // Load all runs from recent sessions for advanced analytics.
+    // tags is included so shouldExcludeFromStats can filter warmup and
+    // excluded runs from cross-session calculations.
     const { data: allRecentRuns } = await supabase
         .from('runs')
         .select(`
             id,
             session_id,
+            tags,
             gate_runs(
                 reaction_time_ms,
                 max_g,
@@ -312,10 +329,11 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         `)
         .in('session_id', recentSessionIds);
 
-    // Build session summaries for advanced analytics
+    // Build session summaries for advanced analytics.
+    // Only stats-eligible runs (non-warmup, not excluded) feed the numbers.
     const sessionSummaries = (recentSessions ?? []).map(s => {
         const sessionRuns = (allRecentRuns ?? [])
-            .filter(r => r.session_id === s.id)
+            .filter(r => r.session_id === s.id && !shouldExcludeFromStats(r.tags as any))
             .map(r => r.gate_runs)
             .flat()
             .filter(Boolean);
@@ -356,11 +374,17 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
                 ? sessionRuns.reduce((s, g) => s + g!.max_g, 0) / sessionRuns.length
                 : null,
             has_valid_speed: validRuns.length > 0,
+            // Context fields for correlation analysis
+            weather_conditions: s.weather_conditions ?? null,
+            track_surface:      s.track_surface ?? null,
+            session_focus:      s.session_focus ?? null,
+            ride_feel:          s.ride_feel ?? null,
         };
     });
 
-    // Flatten all runs for cross-run analysis
+    // Flatten stats-eligible runs only for cross-run analysis
     const allRunsData = (allRecentRuns ?? [])
+        .filter(r => !shouldExcludeFromStats(r.tags as any))
         .map(r => r.gate_runs)
         .flat()
         .filter(Boolean)
@@ -454,6 +478,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
     return {
         session,
         runs: runs ?? [],
+        analysisRuns: includedRuns,    // stats-eligible runs only — use for all engine/analysis calls
         sessionStats,
         sessionNotes: sessionNotes ?? [],
         previousSessionSummary, // For comparison modal
@@ -474,4 +499,3 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         },
     };
 };
-

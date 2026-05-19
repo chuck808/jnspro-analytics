@@ -2,6 +2,8 @@ import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import type { GoalWithProfile } from '$lib/types/queries';
 
+const LOWER_IS_BETTER_METRICS = ['reactionTime', 'elapsedTime', 'accelerationPhase'];
+
 export const load: PageServerLoad = async () => {
 	const admin = createSupabaseAdminClient();
 
@@ -24,10 +26,13 @@ export const load: PageServerLoad = async () => {
 		`)
 		.order('created_at', { ascending: false });
 
-	// Fetch all sessions for analysis
+	// Fetch gate sessions only (not archived) for overtraining detection.
+	// Previously fetched all sessions regardless of type or archived status.
 	const { data: sessions } = await admin
 		.from('sessions')
 		.select('id, user_id, timestamp, archived')
+		.eq('session_type', 'gate')
+		.eq('archived', false)
 		.order('timestamp', { ascending: false });
 
 	// Calculate goal statistics
@@ -42,7 +47,6 @@ export const load: PageServerLoad = async () => {
 		return acc;
 	}, {});
 
-	// Simulate health analysis for all users with goals (in production, use actual anomaly detection service)
 	const healthWarnings = {
 		critical: 0,
 		warning: 0,
@@ -62,12 +66,11 @@ export const load: PageServerLoad = async () => {
 			(s) => new Date(s.timestamp) >= thirtyDaysAgo
 		);
 
-		// Check for concerning patterns
 		const sessionsLast7Days = userSessions.filter(
 			(s) => new Date(s.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 		);
 
-		// Flag overtraining (>5 sessions in 7 days)
+		// Flag overtraining (>5 gate sessions in 7 days)
 		if (sessionsLast7Days.length > 5) {
 			healthWarnings.warning++;
 			usersAtRisk.push({
@@ -80,13 +83,22 @@ export const load: PageServerLoad = async () => {
 			});
 		}
 
-		// Track goal progress
-		const progress =
-			goal.start_value && goal.target_value && goal.current_value !== null
-				? ((goal.current_value - goal.start_value) /
-						(goal.target_value - goal.start_value)) *
-					100
-				: 0;
+		// Direction-aware progress calculation.
+		// For lower-is-better metrics (reaction time etc), progress means
+		// current_value going DOWN toward target.
+		const lowerIsBetter = LOWER_IS_BETTER_METRICS.includes(goal.metric);
+		const start   = goal.start_value ?? 0;
+		const target  = goal.target_value ?? 0;
+		const current = goal.current_value ?? start;
+
+		let progress = 0;
+		if (start !== target) {
+			progress = Math.min(100, Math.max(0,
+				lowerIsBetter
+					? ((start - current) / (start - target)) * 100
+					: ((current - start) / (target - start)) * 100
+			));
+		}
 
 		recentGoalActivity.push({
 			goal_id: goal.id,
@@ -100,12 +112,9 @@ export const load: PageServerLoad = async () => {
 		});
 	});
 
-	// Model usage statistics (simulated - in production, track actual model usage)
-	const modelStats = {
-		linear: Math.floor(activeGoals.length * 0.4),
-		polynomial: Math.floor(activeGoals.length * 0.35),
-		exponential: Math.floor(activeGoals.length * 0.25)
-	};
+	// Model stats — removed simulated values.
+	// Track actual model selections when predictions are generated.
+	const modelStats = null;
 
 	// Calculate completion rate
 	const totalGoals = (goals || []).length;

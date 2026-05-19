@@ -12,8 +12,8 @@
     import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
     import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
     import { createAnalysisView } from '$lib/analysis-views';
-    import { integrateWithPerformanceEngine } from '$lib/performance-bridge/legacyIntegration';
     import { buildChartSeries, shouldShowPower } from '$lib/performance-engine';
+    import { getExclusionReasons } from '$lib/types/runs';
     import { getUCICategory } from '$lib/utils/uciCategories';
 
     let { data, children }: { data: LayoutData; children: any } = $props();
@@ -75,17 +75,20 @@
     // ── Performance Engine (single source of truth) ───────────────────────────
 
     let performanceAnalysis = $derived(analyseSession(
-        { ...data.session, runs: data.runs as any },
+        { ...data.session, runs: (data as any).analysisRuns as any },
         {
-            riderLevel:    (data.session.rider_profiles as any)?.rider_level,
-            riderWeightKg: data.riderWeight,
-            bikeWeightKg:  data.bikeWeight,
-            crankLengthMm: data.crankLength,
+            riderLevel:       (data.session.rider_profiles as any)?.rider_level,
+            riderWeightKg:    data.riderWeight,
+            bikeWeightKg:     data.bikeWeight,
+            crankLengthMm:    data.crankLength,
+            sessionFocus:     (data.session as any).session_focus ?? null,
+            rideFeel:         (data.session as any).ride_feel ?? null,
+            weatherCondition: (data.session as any).weather_conditions ?? null,
+            trackSurface:     (data.session as any).track_surface ?? null,
         },
         { selectedRunIndex: selectedRunIdx }
     ));
 
-    let enhancedAnalysis = $derived(integrateWithPerformanceEngine(performanceAnalysis));
     let analysisView     = $derived(createAnalysisView(performanceAnalysis, 'coach'));
     let chartSeries      = $derived(buildChartSeries(performanceAnalysis));
 
@@ -105,7 +108,10 @@
 
     let coachDiagnostics = $derived.by(() => {
         if (!techniqueScoreBreakdown) return [];
-        return buildCoachDiagnostics(performanceAnalysis, techniqueScoreBreakdown);
+        return buildCoachDiagnostics(performanceAnalysis, techniqueScoreBreakdown, {
+                sessionFocus: (data.session as any).session_focus ?? null,
+                rideFeel:     (data.session as any).ride_feel ?? null,
+            });
     });
 
     let insightPack = $derived(
@@ -133,8 +139,8 @@
         data: performanceAnalysis.selectedRun.physics.jerkSeries?.map((p: any) => ({ timeS: p.timeS, jerk: p.value })) ?? []
     } : null);
     let impulse   = $derived(performanceAnalysis.selectedRun?.physics?.impulse);
-    let weaknesses     = $derived(enhancedAnalysis.weaknesses);
-    let recommendations = $derived(enhancedAnalysis.recommendations);
+    let weaknesses     = $derived(performanceAnalysis.weaknesses);
+    let recommendations = $derived(performanceAnalysis.recommendations);
 
     async function generateReport() {
         generating = true;
@@ -205,7 +211,7 @@
                 explosiveness:   selectedRunAnalysis.technique.explosiveness ?? null,
                 smoothness:      selectedRunAnalysis.technique.smoothness    ?? null,
                 efficiency:      selectedRunAnalysis.technique.efficiency    ?? null,
-                wheelieRunCount: data.runs.filter((r: any) => r.gate_runs?.front_wheel_lifted).length,
+                wheelieRunCount: (data as any).analysisRuns.filter((r: any) => r.gate_runs?.front_wheel_lifted).length,
                 controlledLiftCount: 0,
                 excessiveLiftCount:  0,
                 summary: selectedRunAnalysis.physics?.jerk?.insight ?? jerkProfile?.insight ?? null,
@@ -219,19 +225,24 @@
             const quality = performanceAnalysis.selectedRun?.physics?.dataQuality;
 
             const sessionInput = {
-                riderName:    (data as any).profile?.name ?? (data as any).profile?.display_name ?? undefined,
-                sessionId:    data.session.id,
-                sessionTitle: sessionDate,
-                sessionDate:  sessionDate,
-                runCount:     data.runs.length,
-                riderLevel:   riderLevel ?? undefined,
+                riderName:       (data as any).profile?.name ?? (data as any).profile?.display_name ?? undefined,
+                sessionId:       data.session.id,
+                sessionTitle:    sessionDate,
+                sessionDate:     sessionDate,
+                runCount:        (data as any).analysisRuns.length,
+                excludedRunCount: data.sessionStats.excluded_run_count ?? 0,
+                excludedReasons: data.runs
+                    .flatMap((r: any) => getExclusionReasons(r.tags)),
+                sessionFocus:    (data.session as any).session_focus ?? null,
+                trackSurface:    (data.session as any).track_surface ?? null,
+                riderLevel:      riderLevel ?? undefined,
                 sessionReport: {
                     sessionQuality: qualityScore,
                     headline:       view.headline,
                     confidence:     50,
                     repeatability: cvPercent !== null ? { overall: repeatabilityScore, cvPercent, label: consistency?.label ?? null } : null,
                     bestVsAvg: bestVsAvgGap !== null ? { gapPercent: bestVsAvgGap } : null,
-                    setLength: { optimal: optimalSetLength, message: optimalSetLength < data.runs.length ? `Quality held for ${optimalSetLength} of ${data.runs.length} runs` : null },
+                    setLength: { optimal: optimalSetLength, message: optimalSetLength < (data as any).analysisRuns.length ? `Quality held for ${optimalSetLength} of ${(data as any).analysisRuns.length} runs` : null },
                     dropOff: { dropOffRun },
                     phaseAnalysis: null,
                     impulseAnalysis: impulse ? {
@@ -251,7 +262,20 @@
                         whyThisMatters: view.insights?.[0]?.body ?? null,
                         watchFor:       watchItems[0] ?? null,
                     },
-                    trust: { confidence: 50 },
+                    trust: {
+                        confidence: 'moderate' as const,
+                        basedOnRuns: (data as any).analysisRuns.length,
+                        excludedRuns: data.sessionStats.excluded_run_count ?? 0,
+                        excludedReasons: data.runs
+                            .filter((r: any) => data.sessionStats.excluded_run_count > 0)
+                            .flatMap((r: any) => getExclusionReasons(r.tags)),
+                        trustedMetrics: ['reaction time'],
+                        cautionMetrics: (
+                            (data.session as any).track_surface === 'wet' ||
+                            (data.session as any).track_surface === 'muddy'
+                        ) ? ['speed', 'explosiveness'] : [],
+                        blockedMetrics: [],
+                    },
                     insights: (view.insights ?? []).map((i: any) => ({ title: i.title, body: i.body, tone: i.tone })),
                 },
                 techniqueSummary,
@@ -379,7 +403,6 @@
         get sessionDate()               { return sessionDate; },
         get uciCategory()               { return uciCategory; },
         get performanceAnalysis()       { return performanceAnalysis; },
-        get enhancedAnalysis()          { return enhancedAnalysis; },
         get analysisView()              { return analysisView; },
         get chartSeries()               { return chartSeries; },
         get consistency()               { return consistency; },

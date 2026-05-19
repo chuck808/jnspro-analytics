@@ -10,12 +10,18 @@
     let { scores, showLabels = true, compact = false }: Props = $props();
     
     const dimensions = [
-        { key: 'launchQuality', label: 'Launch Quality', icon: '🚀', description: 'Reaction time & initial drive' },
-        { key: 'explosiveness', label: 'Explosiveness', icon: '💥', description: 'Peak power & acceleration' },
-        { key: 'speedCarry', label: 'Speed Carry', icon: '⚡', description: 'Maintaining velocity' },
-        { key: 'smoothness', label: 'Smoothness', icon: '〰️', description: 'Force application consistency' },
-        { key: 'impulseTiming', label: 'Impulse Timing', icon: '⏱️', description: 'Force application timing' },
-        { key: 'repeatability', label: 'Repeatability', icon: '🔁', description: 'Run-to-run consistency' },
+        { key: 'launchQuality', label: 'Launch Quality', icon: '🚀', description: 'Reaction time & initial drive',
+          basis: 'measured', basisNote: 'From measured reaction time' },
+        { key: 'explosiveness', label: 'Explosiveness', icon: '💥', description: 'Peak power & acceleration',
+          basis: 'measured', basisNote: 'From peak G-force' },
+        { key: 'speedCarry', label: 'Speed Carry', icon: '⚡', description: 'Maintaining velocity',
+          basis: 'derived', basisNote: 'Derived from IMU speed estimate' },
+        { key: 'smoothness', label: 'Smoothness', icon: '〰️', description: 'Force application consistency',
+          basis: 'derived', basisNote: 'Derived from jerk analysis' },
+        { key: 'impulseTiming', label: 'Impulse Timing', icon: '⏱️', description: 'Force application timing',
+          basis: 'derived', basisNote: 'Derived from G-force integration' },
+        { key: 'repeatability', label: 'Repeatability', icon: '🔁', description: 'Run-to-run consistency',
+          basis: 'derived', basisNote: 'Derived from reaction time spread' },
     ];
     
     function getScoreColor(score: number | null) {
@@ -106,6 +112,14 @@
                     ></div>
                 {/if}
             </div>
+
+            <!-- Metric basis -->
+            {#if !compact}
+                <p class="text-[10px] themed-text-subtle mt-2 flex items-center gap-1">
+                    <span class="opacity-60">{dimension.basis === 'measured' ? '📡' : '∫'}</span>
+                    {dimension.basisNote}
+                </p>
+            {/if}
         </div>
     {/each}
 </div>

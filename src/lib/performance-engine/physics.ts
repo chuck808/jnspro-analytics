@@ -207,16 +207,50 @@ export function analyseImpulse(chartData: number[], elapsedMs: number, totalMass
 export function computeJerk(chartData: number[], elapsedMs: number): JerkEstimate | null {
   if (!chartData || chartData.length < 3 || !elapsedMs) return null;
   const dt = (elapsedMs / 1000) / chartData.length;
-  const values = chartData.slice(1).map((g, i) => ((g - chartData[i]) * GRAVITY_MS2) / dt);
+
+  // Apply 5-sample moving-average smoothing before differencing.
+  // Raw IMU data is noisy; differencing amplifies sensor noise into jerk spikes
+  // that don't reflect real technique variation. Smoothing first gives a cleaner
+  // signal that better represents actual force-application quality.
+  const smooth = (data: number[], w = 5): number[] =>
+    data.map((_, i) => {
+      const s = Math.max(0, i - Math.floor(w / 2));
+      const e = Math.min(data.length, i + Math.floor(w / 2) + 1);
+      return data.slice(s, e).reduce((a, b) => a + b, 0) / (e - s);
+    });
+
+  const accelMs2 = smooth(chartData.map(g => g * GRAVITY_MS2));
+
+  const values: number[] = [];
+  for (let i = 1; i < accelMs2.length; i++) {
+    values.push((accelMs2[i] - accelMs2[i - 1]) / dt);
+  }
+
   const series = values.map((value, i) => ({ timeS: (i + 1) * dt, value }));
   const abs = values.map(Math.abs);
   const meanAbsolute = abs.reduce((a, b) => a + b, 0) / abs.length;
-  const peakG = Math.max(...chartData.map(Math.abs)) || 1;
-  const smoothnessScore = Math.max(0, Math.min(100, 100 - (meanAbsolute / (peakG * GRAVITY_MS2)) * 10));
+  const peakAccelMs2 = Math.max(...accelMs2) || 1;
 
-  let insight = 'Smooth acceleration profile.';
-  if (smoothnessScore < 50) insight = 'Acceleration changes are abrupt; smoothness may be costing speed carry.';
-  else if (smoothnessScore < 75) insight = 'Moderate acceleration variation; transition work may help.';
+  // Normalise against peakAccel * 0.5: gives a more discriminating 0-100 scale
+  // than dividing by raw GRAVITY_MS2, since actual peak accel varies by rider.
+  const smoothnessScore = Math.max(0, Math.min(100,
+    100 - (meanAbsolute / (peakAccelMs2 * 0.5)) * 100
+  ));
+
+  // Classify initial stroke character from the first 10% of jerk values.
+  const initialWindow = values.slice(0, Math.max(1, Math.floor(values.length * 0.1)));
+  const initialAvg = initialWindow.reduce((a, b) => a + b, 0) / initialWindow.length;
+
+  let insight: string;
+  if (smoothnessScore >= 75) {
+    insight = initialAvg > 0
+      ? 'Explosive start with smooth force application — good technique.'
+      : 'Gradual power development — smooth, but consider a more explosive initial stroke.';
+  } else if (smoothnessScore >= 50) {
+    insight = 'Moderate acceleration variation; transition work may help.';
+  } else {
+    insight = 'Acceleration changes are abrupt; smoothness may be costing speed carry.';
+  }
 
   return { meanAbsolute: round(meanAbsolute, 2)!, smoothnessScore: Math.round(smoothnessScore), insight, series };
 }

@@ -1,4 +1,4 @@
-import type { SessionAnalysis } from './types';
+import type { SessionAnalysis, RiderContext } from './types';
 import type { TechniqueScoreBreakdown } from './techniqueScoring';
 
 export type DiagnosticTone = 'positive' | 'neutral' | 'warning';
@@ -12,9 +12,14 @@ export interface CoachDiagnostic {
   audience: 'grom' | 'rider' | 'elite' | 'coach';
 }
 
-export function buildCoachDiagnostics(analysis: SessionAnalysis, scores: TechniqueScoreBreakdown): CoachDiagnostic[] {
+export function buildCoachDiagnostics(
+  analysis: SessionAnalysis,
+  scores: TechniqueScoreBreakdown,
+  rider: RiderContext = {}
+): CoachDiagnostic[] {
   const out: CoachDiagnostic[] = [];
   const p = analysis.selectedRun?.physics;
+  const testing = rider.sessionFocus === 'testing' || rider.sessionFocus === 'technique';
 
   if ((scores.launchQuality ?? 0) >= 80 && (scores.explosiveness ?? 0) < 60) {
     out.push({
@@ -22,7 +27,11 @@ export function buildCoachDiagnostics(analysis: SessionAnalysis, scores: Techniq
       tone: 'warning',
       summary: 'The rider is reacting well, but the first drive phase is not producing enough acceleration.',
       evidence: [`Launch quality ${fmt(scores.launchQuality)}`, `Explosiveness ${fmt(scores.explosiveness)}`],
-      prescription: ['Keep gate reaction work ticking over.', 'Add first-pedal force drills.', 'Measure whether peak G improves without reaction time getting worse.'],
+      prescription: [
+        'Keep gate reaction work ticking over.',
+        'Add first-pedal force drills.',
+        'Measure whether peak G improves without reaction time getting worse.',
+      ],
       audience: 'coach',
     });
   }
@@ -33,7 +42,11 @@ export function buildCoachDiagnostics(analysis: SessionAnalysis, scores: Techniq
       tone: 'warning',
       summary: 'The run creates force early, but speed is not being carried through the later part of the effort.',
       evidence: [`Explosiveness ${fmt(scores.explosiveness)}`, `Speed carry ${fmt(scores.speedCarry)}`],
-      prescription: ['Work on drive-phase continuation after the first hit.', 'Use resisted starts followed by clean free-roll starts.', 'Compare speed at the end of each run, not just peak speed.'],
+      prescription: [
+        'Work on drive-phase continuation after the first hit.',
+        'Use resisted starts followed by clean free-roll starts.',
+        'Compare speed at the end of each run, not just peak speed.',
+      ],
       audience: 'elite',
     });
   }
@@ -44,20 +57,52 @@ export function buildCoachDiagnostics(analysis: SessionAnalysis, scores: Techniq
       tone: 'warning',
       summary: 'The acceleration trace changes sharply, suggesting inconsistent force delivery or noisy sensor mounting.',
       evidence: [`Smoothness ${fmt(scores.smoothness)}`, p?.jerk?.insight ?? 'Jerk profile needs review'],
-      prescription: ['Check device mounting first.', 'Coach smoother first three pedal strokes.', 'Use the jerk chart to spot spikes that are technique rather than noise.'],
+      prescription: [
+        'Check device mounting first.',
+        'Coach smoother first three pedal strokes.',
+        'Use the jerk chart to spot spikes that are technique rather than noise.',
+      ],
       audience: 'coach',
     });
   }
 
   if ((scores.repeatability ?? 100) < 65) {
-    out.push({
-      title: 'Repeatability is the main limiter',
-      tone: 'warning',
-      summary: 'The best effort may be useful, but the spread across runs suggests the rider cannot reproduce it consistently yet.',
-      evidence: [`Repeatability ${fmt(scores.repeatability)}`, `Consistency ${analysis.summary.consistencyLabel ?? 'unknown'}`],
-      prescription: ['Use smaller sets and stop before quality drops.', 'Track best vs average, not only personal best.', 'Add a consistency target to goals.'],
-      audience: 'rider',
-    });
+    // Testing/technique sessions: variability is intentional — reframe the
+    // diagnostic rather than presenting it as a problem to fix.
+    if (testing) {
+      out.push({
+        title: 'Repeatability lower — expected for a testing session',
+        tone: 'neutral',
+        summary: `Consistency varies when testing new ${rider.sessionFocus === 'technique' ? 'technique' : 'setup'} — this is normal. Run a standard session to measure the real baseline before drawing conclusions.`,
+        evidence: [
+          `Repeatability ${fmt(scores.repeatability)}`,
+          `Consistency ${analysis.summary.consistencyLabel ?? 'unknown'}`,
+          `Session focus: ${rider.sessionFocus}`,
+        ],
+        prescription: [
+          'Lock in the new approach before chasing repeatability.',
+          'Return to a standard session to confirm whether the change helped.',
+          'Compare this session against your pre-change baseline.',
+        ],
+        audience: 'rider',
+      });
+    } else {
+      out.push({
+        title: 'Repeatability is the main limiter',
+        tone: 'warning',
+        summary: 'The best effort may be useful, but the spread across runs suggests the rider cannot reproduce it consistently yet.',
+        evidence: [
+          `Repeatability ${fmt(scores.repeatability)}`,
+          `Consistency ${analysis.summary.consistencyLabel ?? 'unknown'}`,
+        ],
+        prescription: [
+          'Use smaller sets and stop before quality drops.',
+          'Track best vs average, not only personal best.',
+          'Add a consistency target to goals.',
+        ],
+        audience: 'rider',
+      });
+    }
   }
 
   if ((scores.impulseTiming ?? 0) >= 80 && p?.impulse) {
@@ -65,8 +110,14 @@ export function buildCoachDiagnostics(analysis: SessionAnalysis, scores: Techniq
       title: 'Impulse timing is strong',
       tone: 'positive',
       summary: 'Most of the estimated force is being produced early enough to support a strong launch.',
-      evidence: [`90% impulse at ${p.impulse.timeToNinetyPctImpulseS}s`, `Impulse timing ${fmt(scores.impulseTiming)}`],
-      prescription: ['Protect this quality while improving carry.', 'Avoid adding volume that makes the first phase slower.'],
+      evidence: [
+        `90% impulse at ${p.impulse.timeToNinetyPctImpulseS}s`,
+        `Impulse timing ${fmt(scores.impulseTiming)}`,
+      ],
+      prescription: [
+        'Protect this quality while improving carry.',
+        'Avoid adding volume that makes the first phase slower.',
+      ],
       audience: 'elite',
     });
   }
@@ -77,7 +128,10 @@ export function buildCoachDiagnostics(analysis: SessionAnalysis, scores: Techniq
       tone: 'neutral',
       summary: 'No single limiter dominates this run. Use the charts to decide whether to chase reaction, force, or consistency next.',
       evidence: [`Overall technique ${fmt(scores.overall)}`],
-      prescription: ['Pick one target metric for the next block.', 'Re-test with the same setup to make comparisons fair.'],
+      prescription: [
+        'Pick one target metric for the next block.',
+        'Re-test with the same setup to make comparisons fair.',
+      ],
       audience: 'rider',
     });
   }

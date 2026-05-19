@@ -24,8 +24,11 @@ export function analyseFatigue(values: number[]): FatigueAnalysis {
 
   let trend: FatigueTrend = 'stable';
 
-  if (diff > 0.05) trend = 'declining';
-  if (diff < -0.05) trend = 'improving';
+  // Speed values are passed in. Higher speed is better.
+  // Second half faster than first = rider improved through session = improving.
+  // Second half slower than first = rider fatigued through session = declining.
+  if (diff > 0.05)  trend = 'improving';
+  if (diff < -0.05) trend = 'declining';
 
   return {
     trend,

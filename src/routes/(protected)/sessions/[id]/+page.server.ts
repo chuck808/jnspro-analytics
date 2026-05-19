@@ -13,7 +13,10 @@ export const actions: Actions = {
      * Update run tags
      * Allows users to categorize runs (warmup, best-effort, etc.)
      */
-    updateRunTags: async ({ request, locals: { supabase } }) => {
+    updateRunTags: async ({ request, locals: { supabase, session } }) => {
+        // Auth check — session is set by authGuard in hooks.server.ts
+        if (!session) return fail(401, { error: 'Not authenticated' });
+
         const data = await request.formData();
         const runId = data.get('runId') as string;
         const sessionId = data.get('sessionId') as string;
@@ -30,12 +33,24 @@ export const actions: Actions = {
             return fail(400, { error: 'Invalid tags format' });
         }
         
-        // Update run tags
+        // Verify the run belongs to a session owned by this user before updating.
+        // The join ensures neither runId nor sessionId can be forged independently.
+        const { data: ownership, error: ownershipError } = await supabase
+            .from('runs')
+            .select('id, sessions!inner(user_id)')
+            .eq('id', runId)
+            .eq('session_id', sessionId)
+            .eq('sessions.user_id', session.user.id)
+            .maybeSingle();
+
+        if (ownershipError || !ownership) {
+            return fail(403, { error: 'Run not found or access denied' });
+        }
+
         const { error } = await supabase
             .from('runs')
             .update({ tags })
-            .eq('id', runId)
-            .eq('session_id', sessionId); // Security: Verify session ownership
+            .eq('id', runId);
         
         if (error) {
             console.error('Error updating run tags:', error);

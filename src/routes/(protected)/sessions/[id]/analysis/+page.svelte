@@ -13,7 +13,7 @@
     import { buildChartSeries, shouldShowPower } from '$lib/performance-engine';
     import { computeDetailedPhases } from '$lib/performance-engine/phaseAnalysis';
     import { getChartOptions } from '$lib/utils/chartConfig';
-    import { gaugeArcPath } from '$lib/utils/analyticsExtended';
+    import { gaugeArcPath } from '$lib/utils/svgHelpers';
     import DataQualityBadge from '$lib/components/DataQualityBadge.svelte';
 
     let { data }: { data: LayoutData } = $props();

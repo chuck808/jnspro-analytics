@@ -7,16 +7,30 @@
         getRankMedal,
         isTopPercentage,
         type LeaderboardMetric,
-        type TimePeriod
+        type TimePeriod,
+        type LeaderboardResult
     } from '$lib/services/benchmarking/leaderboards';
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
 
     let { data }: { data: PageData } = $props();
 
-    const selectedMetric = $derived(data.selectedMetric as LeaderboardMetric);
-    const selectedPeriod = $derived(data.selectedPeriod as TimePeriod);
-    const currentLeaderboard = $derived(data.leaderboards?.[selectedMetric]);
+    // $derived keeps pageData reactive when data updates (Svelte 5 runes requirement).
+    // The cast works around SvelteKit merging parent layout types into PageData.
+    const pageData = $derived(data as any as {
+        leaderboards: Record<string, LeaderboardResult> | null;
+        selectedMetric: LeaderboardMetric;
+        selectedPeriod: TimePeriod;
+        selectedAgeGroup?: string;
+        selectedExperience?: string;
+        userOptedIn: boolean;
+        userDisplayName: string | null;
+        profile: any;
+    });
+
+    const selectedMetric = $derived(pageData.selectedMetric as LeaderboardMetric);
+    const selectedPeriod = $derived(pageData.selectedPeriod as TimePeriod);
+    const currentLeaderboard = $derived(pageData.leaderboards?.[selectedMetric]);
 
     function updateFilter(param: string, value: string | undefined) {
         const params = new URLSearchParams($page.url.searchParams);
@@ -46,7 +60,7 @@
     </div>
 
     <!-- Opt-in Banner (if not opted in) -->
-    {#if !data.userOptedIn}
+    {#if !pageData.userOptedIn}
         <div class="bg-gradient-to-r from-[#f5a623]/10 to-[#f5a623]/5 border border-[#f5a623]/30 rounded-xl p-6">
             <div class="flex items-start gap-4">
                 <div class="flex-shrink-0 w-12 h-12 bg-[#f5a623]/20 rounded-full flex items-center justify-center">
@@ -133,7 +147,7 @@
                     Age Group
                 </label>
                 <select id="ageGroup"
-                        value={data.selectedAgeGroup || ''}
+                        value={pageData.selectedAgeGroup || ''}
                         onchange={(e) => updateFilter('ageGroup', e.currentTarget.value || undefined)}
                         class="input-field w-full">
                     <option value="">All Ages</option>
@@ -151,7 +165,7 @@
                     Experience Level
                 </label>
                 <select id="experience"
-                        value={data.selectedExperience || ''}
+                        value={pageData.selectedExperience || ''}
                         onchange={(e) => updateFilter('experience', e.currentTarget.value || undefined)}
                         class="input-field w-full">
                     <option value="">All Levels</option>
@@ -175,8 +189,8 @@
                     </h2>
                     <p class="text-xs text-[#9a8f7a] mt-0.5">
                         {getTimePeriodDisplayName(selectedPeriod)}
-                        {#if data.selectedAgeGroup} · Ages {data.selectedAgeGroup}{/if}
-                        {#if data.selectedExperience} · {data.selectedExperience.charAt(0).toUpperCase() + data.selectedExperience.slice(1)}{/if}
+                        {#if pageData.selectedAgeGroup} · Ages {pageData.selectedAgeGroup}{/if}
+                        {#if pageData.selectedExperience} · {pageData.selectedExperience.charAt(0).toUpperCase() + pageData.selectedExperience.slice(1)}{/if}
                     </p>
                 </div>
                 {#if currentLeaderboard}
@@ -191,7 +205,7 @@
         </div>
 
         <!-- Your Rank (if opted in and ranked) -->
-        {#if data.userOptedIn && currentLeaderboard?.userEntry}
+        {#if pageData.userOptedIn && currentLeaderboard?.userEntry}
             <div class="p-4 bg-[#f5a623]/5 border-b border-[#f5a623]/20">
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex items-center gap-4">
@@ -200,7 +214,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-semibold text-[#f0ece4]">Your Rank</p>
-                            <p class="text-xs text-[#9a8f7a]">{data.userDisplayName || 'Anonymous'}</p>
+                            <p class="text-xs text-[#9a8f7a]">{pageData.userDisplayName || 'Anonymous'}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-6">

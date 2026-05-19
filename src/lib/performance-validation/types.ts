@@ -1,5 +1,16 @@
 import type { SeriesPoint } from '$lib/performance-engine';
-import type { ExistingAppAnalytics } from '$lib/performance-bridge';
+
+// Inlined from the former performance-bridge/types.ts (bridge deleted post-migration).
+// Only used within the performance-validation module itself.
+export interface ExistingAppAnalytics {
+  curve?: { times: number[]; speeds: number[]; accels: number[]; distances: number[] } | null;
+  splits?: Array<{ label: string; phase: string; timeS: number; distanceM: number }> | null;
+  quality?: unknown;
+  speedProfile?: string | null;
+  techniqueScores?: unknown;
+  phaseMetrics?: unknown;
+  sessionStability?: unknown;
+}
 
 export type AgreementStatus = 'pass' | 'warn' | 'fail' | 'unknown';
 

@@ -12,7 +12,10 @@ import type {
   SessionPerformanceSummary,
   CrossSessionReport,
   CrossSessionOptions,
-  OverallTrend
+  OverallTrend,
+  PerformanceProgression,
+  ConsistencyTrends,
+  FatigueProgression,
 } from './types';
 
 const DEFAULT_OPTIONS: Required<CrossSessionOptions> = {
@@ -102,9 +105,9 @@ function createEmptyTrend() {
 }
 
 function determineOverallTrend(
-  performance: any,
-  consistency: any,
-  fatigue: any
+  performance: PerformanceProgression,
+  consistency: ConsistencyTrends,
+  fatigue: FatigueProgression
 ): OverallTrend {
   const improvingCount = [
     performance.speedTrend.improving,
@@ -130,9 +133,9 @@ function determineOverallTrend(
 }
 
 function generateWarnings(
-  performance: any,
-  consistency: any,
-  fatigue: any
+  performance: PerformanceProgression,
+  consistency: ConsistencyTrends,
+  fatigue: FatigueProgression
 ): string[] {
   const warnings: string[] = [];
 
@@ -165,9 +168,9 @@ function generateWarnings(
 }
 
 function generateRecommendations(
-  performance: any,
-  consistency: any,
-  fatigue: any,
+  performance: PerformanceProgression,
+  consistency: ConsistencyTrends,
+  fatigue: FatigueProgression,
   overallTrend: OverallTrend
 ): string[] {
   const rec: string[] = [];
@@ -198,9 +201,9 @@ function generateRecommendations(
 
 function generateHeadline(
   overallTrend: OverallTrend,
-  performance: any,
-  consistency: any,
-  fatigue: any
+  performance: PerformanceProgression,
+  consistency: ConsistencyTrends,
+  fatigue: FatigueProgression
 ): string {
   if (overallTrend === 'improving') {
     if (performance.speedTrend.change !== null) {

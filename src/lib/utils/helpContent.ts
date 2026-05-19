@@ -498,6 +498,256 @@ export const HELP_CONTENT: Record<string, HelpContent> = {
         },
     },
 
+    techniqueScoreTrends: {
+        title: 'Technique Score Trends',
+        description: 'How your technique scores develop across multiple dimensions over time',
+        levels: {
+            grom: {
+                heading: 'Tracking your technique improvements',
+                body: `This chart shows how different parts of your gate start technique are improving (or changing) over time. Each colored line represents one aspect — like reaction timing, explosiveness, or smoothness.\n\nYou can click the buttons above the chart to hide or show different lines. This helps you focus on specific areas you're working on. Look for lines that go upward — that means you're getting better in that area.`,
+                callout: `If one area isn't improving much, that might be where you need to focus your practice. Talk to your coach about it.`,
+            },
+            club: {
+                heading: 'Multi-dimensional technique development',
+                body: `Technique scores are broken into dimensions: Overall, Launch Quality, Explosiveness, Speed Carry, Smoothness, Impulse Timing, and Repeatability. Each is scored 0–100 based on performance engine analysis.\n\nTracking these separately reveals which aspects of your start are progressing fastest and which need attention. A rising overall score with flat individual dimensions suggests balanced improvement. One dimension improving while others plateau indicates a specific area of focus.\n\nUse the toggle buttons to isolate dimensions you're actively training. Look for correlation — does improving explosiveness also lift launch quality?`,
+                thresholds: [
+                    { label: 'Excellent', value: '80+', color: '#3de8c8' },
+                    { label: 'Good', value: '60–79', color: '#f5a623' },
+                    { label: 'Developing', value: '40–59', color: '#ff6b3d' },
+                ],
+            },
+            elite: {
+                heading: 'Dimensional technique analysis for coaching',
+                body: `Each dimension isolates a specific biomechanical or timing characteristic:\n\n**Launch Quality** — Initial movement efficiency and positioning\n**Explosiveness** — Rate of force application in first 30% of run\n**Speed Carry** — Maintenance of velocity through the measured window\n**Smoothness** — Consistency of force application (inverse of jerk)\n**Impulse Timing** — Temporal distribution of force application\n**Repeatability** — Run-to-run consistency within the session\n\nFor periodisation: different training phases should show different dimensional priorities. Preparation phases emphasize smoothness and repeatability. Pre-competition phases should show rising explosiveness and launch quality.\n\nDimensions that improve together suggest coupled movement patterns. Dimensions that trade off (one rises, another falls) indicate technique modifications that haven't yet consolidated.`,
+                callout: `Combine with the Strengths & Limiters Evolution chart to see which areas have shifted from limiters to strengths over time.`,
+            },
+        },
+    },
+
+    diagnosticPatterns: {
+        title: 'Recurring Diagnostic Patterns',
+        description: 'Issues or observations that appear repeatedly across multiple sessions',
+        levels: {
+            grom: {
+                heading: 'Patterns that keep showing up',
+                body: `This shows issues or observations that have appeared in multiple training sessions. If something shows up a lot (like "3x" or "5x"), it means the system has noticed the same thing several times.\n\nGreen patterns (✅) are good things you're doing consistently. Orange/yellow (ℹ️) are things to be aware of. Red warnings (⚠️) are areas that need attention — especially if they keep coming back.`,
+                callout: `If you see the same warning many times, it's worth asking your coach about it. Recurring problems need specific attention to fix.`,
+            },
+            club: {
+                heading: 'Pattern recognition across sessions',
+                body: `The diagnostics system flags observations in each session. This panel aggregates them to show which patterns are persistent versus one-off occurrences.\n\nRecurring positive patterns (appearing in 60%+ of sessions) represent consolidated technique strengths. Recurring warnings indicate systematic issues that training hasn't yet addressed — these are high-priority intervention targets.\n\nThe "Last Seen" date shows recency. A warning that hasn't appeared in recent sessions may indicate successful correction. A warning appearing across consecutive recent sessions needs immediate attention.`,
+            },
+            elite: {
+                heading: 'Diagnostic pattern analysis for intervention planning',
+                body: `This aggregates performance engine diagnostics across the last 10 sessions to identify systematic versus transient issues.\n\n**Persistent warnings** (appearing in 40%+ of sessions) indicate technical limiters that require structured intervention. Common examples: early wheelie pattern, inconsistent first-stroke timing, suboptimal drive phase positioning.\n\n**Resolved patterns** (appeared historically but not in recent 3 sessions) suggest successful adaptation from previous training focus.\n\n**Emerging patterns** (appearing only in recent sessions) may indicate regression under fatigue, setup changes, or new technical experiments that haven't consolidated.\n\nFor coaching: prioritize recurring warnings over frequency. A pattern appearing 3 times across 10 sessions with increasing recent frequency is more concerning than one appearing 5 times but not recently.`,
+                callout: `Cross-reference with the Strengths & Limiters Evolution panel to confirm whether flagged issues are being addressed or persisting.`,
+            },
+        },
+    },
+
+    strengthsLimitersEvolution: {
+        title: 'Strengths & Limiters Evolution',
+        description: 'How your strengths and areas for improvement change across training cycles',
+        levels: {
+            grom: {
+                heading: 'What you\'re good at and what needs work',
+                body: `This breaks your performance into four categories:\n\n**Consistent Strengths** 💪 — Things you do well most of the time. These are your reliable skills.\n\n**Emerging Strengths** 🌱 — Things that are getting better recently. Keep working on these!\n\n**Resolved Issues** ✅ — Problems you used to have but don't anymore. Great progress!\n\n**Persistent Focus Areas** 🎯 — Things that keep needing attention across multiple sessions. These need specific work.`,
+                callout: `Your consistent strengths are your foundation. Persistent focus areas are where the biggest gains can happen if you work on them deliberately.`,
+            },
+            club: {
+                heading: 'Longitudinal strength and limiter tracking',
+                body: `The performance engine identifies strengths and limiters in each session. This panel tracks how those classifications change over time.\n\n**Consistent Strengths** appear in 60%+ of sessions — your reliable foundation. Build on these in competition.\n\n**Emerging Strengths** appear in recent sessions but weren't present early — evidence of successful training adaptation.\n\n**Resolved Limiters** appeared in early sessions but not recently — cleared issues that no longer constrain performance.\n\n**Persistent Limiters** appear repeatedly, including recent sessions — systematic constraints requiring targeted intervention.\n\nThis reveals whether training is successfully converting limiters to strengths or whether issues are persisting despite focus.`,
+            },
+            elite: {
+                heading: 'Strengths/limiters evolution for periodisation assessment',
+                body: `This panel tracks the migration of performance characteristics across categories over training cycles. It answers: "Is training producing the intended adaptations?"\n\n**Evaluation criteria:**\n\n**Successful progression** — Limiters from early sessions migrate to resolved or emerging strengths. Consistent strengths remain stable.\n\n**Stalled development** — Limiters persist across multiple mesocycles without resolution. Indicates inadequate training stimulus or need for different intervention approach.\n\n**Regression patterns** — Previously consistent strengths disappear or migrate to limiters. May indicate overtraining, injury compensation, or technique modification that hasn't consolidated.\n\nFor coaching applications: compare this panel to training log to verify that resolved limiters correspond to specific training focuses, and persistent limiters receive intervention priority.`,
+                callout: `Use this alongside the Technique Score Trends chart. A limiter that's flagged consistently should show in dropping scores in related dimensions.`,
+            },
+        },
+    },
+
+    bestSessionAnalysis: {
+        title: 'Best Session Analysis',
+        description: 'Detailed breakdown of your highest-performing training session',
+        levels: {
+            grom: {
+                heading: 'What made your best session great',
+                body: `This shows your best session so far — the one where your overall score was highest. It tells you what you did well that day and what the conditions were.\n\nKnowing what made this session great helps you try to recreate those conditions. Maybe you were well-rested, or the weather was good, or you'd been practicing specific drills. The "What Made This Session Great" section lists the specific strengths from that day.`,
+                callout: `Try to remember how you felt and what you did in the lead-up to this session. Can you replicate any of those factors in future training?`,
+            },
+            club: {
+                heading: 'Peak performance session characteristics',
+                body: `This identifies your highest overall technique score session and breaks down its characteristics. Key metrics displayed:\n\n**Overall Score** — The composite technique score that defined this as your best\n**Session Quality** — Internal consistency and data reliability\n**Repeatability** — How consistent runs were within this session\n\nThe "What Made This Session Great" section lists the specific strengths identified by the performance engine that day. Common patterns: excellent reaction times, high explosiveness scores, strong repeatability, effective phase timing.\n\nAnalyzing your best session reveals your performance ceiling under optimal conditions. Compare against typical sessions to identify replicable factors versus one-off circumstances.`,
+                thresholds: [
+                    { label: 'Elite performance', value: '85+', color: '#3de8c8' },
+                    { label: 'Strong session', value: '70–84', color: '#f5a623' },
+                    { label: 'Good session', value: '55–69', color: '#ffcc44' },
+                ],
+            },
+            elite: {
+                heading: 'Peak performance profiling for replication',
+                body: `This panel profiles the session with the highest overall technique score to establish a performance template for replication.\n\n**Coaching applications:**\n\n**Contextual analysis** — Review session timestamp, weather conditions, time of day, training week position. Which factors are controllable?\n\n**Strength profiling** — The listed strengths define what "peak you" looks like. Are these strengths present in all sessions or unique to peak performance?\n\n**Repeatability assessment** — High repeatability in best session suggests you can reliably access peak state. Low repeatability in best session suggests ceiling was reached but inconsistently.\n\n**Comparative analysis** — Use the "View Full Session" link to review run-level data. What distinguished this session from others with similar conditions?\n\nFor periodisation: if best session occurred early in training cycle, ceiling was reached quickly — current training may be maintaining rather than advancing. If best session is recent, adaptation is still progressing.`,
+                callout: `Cross-reference with the Benchmark Achievement Tracking panel to see if this session represents an outlier or a new performance level you're sustaining.`,
+            },
+        },
+    },
+
+    consistencyTrendsAnalytics: {
+        title: 'Consistency Trends',
+        description: 'Tracking repeatability, CV%, and best-vs-average gap across sessions',
+        levels: {
+            grom: {
+                heading: 'Getting more consistent over time',
+                body: `This chart tracks three ways of measuring how consistent you are:\n\n**Repeatability Score** (teal line) — A simple score showing how similar your runs are. Higher is better.\n\n**CV %** (orange line) — How much your times vary. Lower is better (means more consistent).\n\n**Best vs Avg Gap** (red line) — How far your average is from your best. Smaller gap means most runs are close to your best.\n\nAt the bottom, you'll see percentage improvements from your first session to now. Green means you're getting more consistent!`,
+                callout: `Being consistent is as important as being fast. If you can do your best run reliably, you'll perform better in races.`,
+            },
+            club: {
+                heading: 'Multi-metric consistency assessment',
+                body: `Three complementary consistency metrics tracked longitudinally:\n\n**Repeatability Score (0–100)** — Computed from within-session variance across reaction times and technique. Higher = more consistent delivery.\n\n**CV% (Coefficient of Variation)** — Standard deviation / mean × 100 for reaction times. Lower = tighter clustering. <2% excellent, 2–5% good, 5–8% variable.\n\n**Best-vs-Average Gap %** — (Best - Average) / Best × 100. Lower = average performance closer to ceiling. <5% excellent, 5–15% good, >15% variable.\n\nImprovement percentages at bottom show first-to-latest session change. All three should ideally improve (repeatability up, CV down, gap down) as skill consolidates.\n\nDivergence between metrics is informative: improving repeatability with stable gap suggests you're becoming more consistent at your current level without raising the ceiling.`,
+            },
+            elite: {
+                heading: 'Consistency profiling across training cycles',
+                body: `This panel tracks three orthogonal consistency dimensions to profile run-to-run stability:\n\n**Repeatability Score** — Mean-referenced metric. Measures typical variance around session average. Sensitive to overall skill consolidation.\n\n**CV%** — Normalized variance. Allows cross-session and cross-rider comparison. Particularly useful for identifying session-level arousal or fatigue effects.\n\n**Best-vs-Average Gap** — Ceiling-referenced metric. Distinguishes between "reliable but sub-maximal" (high repeatability, large gap) versus "peak performance unlocked" (high repeatability, small gap).\n\n**Coaching interpretation patterns:**\n\n**All three improving simultaneously** — Skill consolidation. Performance becoming both more consistent and closer to potential ceiling.\n\n**Repeatability improving, gap stable** — Floor is rising but ceiling isn't. Consistent delivery of current technique; needs stimulus to raise ceiling.\n\n**Gap narrowing, repeatability stable** — Ceiling is rising or average is improving faster than stability. May indicate recent breakthrough that hasn't fully consolidated.\n\n**All three declining** — Potential overtraining, competition stress, or technique modification period.`,
+                callout: `Compare with the Session Consistency Trend in the main analytics to see CV% plotted alone. This chart adds the repeatability and gap metrics for fuller picture.`,
+            },
+        },
+    },
+
+    benchmarkAchievement: {
+        title: 'Benchmark Achievement Tracking',
+        description: 'How often you reach Excellent, Good, and Developing performance levels',
+        levels: {
+            grom: {
+                heading: 'Tracking your performance levels',
+                body: `This shows how many of your sessions reached different quality levels:\n\n🏆 **Excellent (80+)** — Your very best performances\n⭐ **Good (60–79)** — Solid, competitive performances\n📈 **Developing (40–59)** — Building performances where you're improving\n\nThe goal is to have more and more sessions in the "Excellent" category over time. The progress bars show what percentage of your sessions reached each level.`,
+                callout: `Consistency at any level is better than occasional excellence. Aim to get most sessions into "Good" or better, not just one or two "Excellent" sessions.`,
+            },
+            club: {
+                heading: 'Performance level distribution tracking',
+                body: `This tracks what percentage of your sessions achieve each benchmark level based on overall technique scores:\n\n**Excellent (80+)** — Elite-level execution with minimal technical compromise\n**Good (60–79)** — Competitive execution with room for refinement\n**Developing (40–59)** — Foundational technique present but inconsistent application\n\nAchievement rates reveal your current performance distribution. Elite riders typically show 60%+ excellent, 35%+ good. Club riders show 40%+ good, 20%+ excellent.\n\nThe recent milestone section highlights achievements in the last 5 sessions — this is your current form indicator. Hitting excellent 3/5 times shows you're consolidating at that level.`,
+                thresholds: [
+                    { label: 'Elite consistency', value: '60%+ excellent sessions', color: '#3de8c8' },
+                    { label: 'Strong development', value: '40%+ good sessions', color: '#f5a623' },
+                    { label: 'Building phase', value: '60%+ developing sessions', color: '#ffcc44' },
+                ],
+            },
+            elite: {
+                heading: 'Performance level distribution for periodisation',
+                body: `This panel quantifies the distribution of session-level performance across benchmark categories. It answers: "What is the athlete's current performance baseline and ceiling?"\n\n**Interpretation for coaching:**\n\n**High excellent rate (>60%)** — Athlete has consolidated at elite level. Training focus should be on maintaining form and preventing regression. Consider whether challenge level is sufficient.\n\n**Balanced good/excellent (30-50% each)** — Athlete is transitioning between levels. Typical during skill refinement phases. Expect continued improvement with appropriate stimulus.\n\n**High developing rate (>50%)** — Athlete is in foundational development. Large gains possible with proper progression. Focus on consistency before pushing ceiling.\n\n**Declining rates over time** — Warning sign. May indicate overtraining, inadequate recovery, or training stimulus that doesn't match current capacity.\n\nThe "recent milestone" detection looks at last 5 sessions only — this is current form. An athlete with 40% overall excellent but 60% recent excellent is peaking. The inverse suggests declining form requiring investigation.`,
+                callout: `Use alongside Best Session Analysis to confirm that your best sessions are representative of your top 20% or are outliers.`,
+            },
+        },
+    },
+
+    techniqueCorrelation: {
+        title: 'Technique Dimension Correlations',
+        description: 'How different aspects of your technique influence each other',
+        levels: {
+            grom: {
+                heading: 'Which skills are connected',
+                body: `This shows which parts of your technique tend to improve together. For example, if it shows "Reaction ↔️ Explosiveness: 70%", it means when your reaction gets better, your explosiveness usually does too.\n\nThis is useful because it means working on one thing can help other things automatically. Strong connections (high percentages) mean those skills are closely linked in how you perform them.`,
+                callout: `Focus your training on one skill from a strong connection pair — the other skill will often improve naturally as a result.`,
+            },
+            club: {
+                heading: 'Inter-dimensional correlation analysis',
+                body: `This calculates Pearson correlation coefficients between technique dimension pairs across your sessions. Only correlations above 0.4 (40%) are shown — these represent meaningful relationships.\n\n**Positive correlations** (shown with higher percentages) indicate dimensions that improve together. Example: Reaction and Explosiveness correlating at 0.65 means improved reaction timing is associated with better explosiveness.\n\n**Interpretation for training:**\n\nHigh correlation between dimensions suggests they share biomechanical or neurological foundations. Training one dimension will likely produce gains in the correlated dimension.\n\nLow or absent correlation means dimensions are independent — each requires separate training focus.\n\nThe correlation strength (shown as progress bar) indicates reliability of the relationship. Requires minimum 5 sessions to calculate meaningful correlations.`,
+                thresholds: [
+                    { label: 'Strong correlation', value: '> 60%', color: '#3de8c8' },
+                    { label: 'Moderate correlation', value: '40–60%', color: '#f5a623' },
+                ],
+            },
+            elite: {
+                heading: 'Correlation analysis for targeted intervention',
+                body: `This panel computes pairwise Pearson correlations between all technique dimensions across sessions, filtering for |r| > 0.4 to show only meaningful relationships.\n\n**Coaching applications:**\n\n**Coupled improvements** — Dimensions with r > 0.6 share underlying movement patterns or fitness qualities. Example: Explosiveness-Launch Quality correlation indicates that improving first-stroke power simultaneously improves positioning.\n\n**Independent dimensions** — Absence of correlation means dimensions are biomechanically decoupled. Each requires independent training stimulus. Common example: Reaction vs Smoothness — neurological timing versus force application control.\n\n**Strategic training focus** — When athlete shows weakness in correlated dimensions, addressing the more trainable dimension will produce gains in both. When dimensions are uncorrelated, both must be addressed separately.\n\n**Negative correlations** (rare, shown but not common) indicate potential trade-offs. Example: Explosiveness negatively correlating with Smoothness might suggest ballistic technique that sacrifices control for power. Requires careful interpretation.\n\nMinimum 5 sessions required for statistical validity. More sessions = more reliable correlation estimates.`,
+                callout: `Correlations can change across training phases. Early-phase correlations may differ from late-phase as technique consolidates and dimensions become more independent.`,
+            },
+        },
+    },
+
+    coachDiagnostics: {
+        title: 'Coach Diagnostics',
+        description: 'Detailed coaching insights with evidence and recommended actions',
+        levels: {
+            grom: {
+                heading: 'What your coach would notice',
+                body: `These are detailed observations about your performance — the kinds of things a coach would point out if they were watching.\n\nEach insight has three parts:\n• **What was noticed** — The main observation\n• **Evidence** — The specific data that shows this\n• **Next Steps** — What you might want to work on\n\nGreen insights (✓) are things you're doing well. Orange (○) are neutral observations. Red (⚠) are areas to focus on.`,
+                callout: `This is like having a coach review your session. Read through the Next Steps sections for specific things to try.`,
+            },
+            club: {
+                heading: 'Structured diagnostic feedback',
+                body: `Coach Diagnostics are generated by the performance engine's pattern recognition system. Each diagnostic includes:\n\n**Title & Summary** — The key observation in plain language\n**Evidence** — Specific data points supporting the observation (run numbers, metrics, thresholds)\n**Prescription** — Actionable next steps ranked by priority\n**Audience Level** — Whether this is beginner, intermediate, advanced, or coach-level detail\n\nTone indicates priority:\n**Positive (✓)** — Strengths to maintain or build on\n**Neutral (○)** — Observations without value judgment\n**Warning (⚠)** — Areas requiring attention\n\nDiagnostics are session-specific and adapt to your performance level. They're generated from physics analysis, technique scoring, and pattern matching against known performance profiles.`,
+            },
+            elite: {
+                heading: 'Performance engine diagnostic framework',
+                body: `Coach Diagnostics represent the intelligence layer output of the performance engine. Each diagnostic is generated through:\n\n**Phase 1: Pattern Detection** — Algorithmic analysis identifies performance characteristics (explosive start, late peak G, inconsistent drive phase, etc.)\n\n**Phase 2: Evidence Assembly** — Supporting data points are collected and formatted for clarity\n\n**Phase 3: Prescription Generation** — Recommendations are produced based on detected pattern severity and athlete context\n\n**Phase 4: Audience Adaptation** — Content is filtered and phrased for target audience (grom/rider/elite/coach)\n\n**For coaching workflow:**\n\nDiagnostics with evidence provide accountability — athletes can verify observations independently. Prescription items are deliberately non-prescriptive about specific drills (that requires coaching context), but specific about focus areas.\n\nRecurring diagnostics across sessions appear in the Diagnostic Patterns panel. One-off observations are session anomalies or noise.\n\nThe tone classification allows quick filtering: warnings = intervention targets, positive = strengths to leverage, neutral = monitoring points.`,
+                callout: `Compare Coach Diagnostics to the Strengths & Limiters section in the same session — they should align. Diagnostics provide the detail; Strengths & Limiters provide the summary.`,
+            },
+        },
+    },
+
+    impulseMetrics: {
+        title: 'Impulse Analysis',
+        description: 'Force application breakdown showing how power is distributed across the gate start',
+        levels: {
+            grom: {
+                heading: 'How your power is applied',
+                body: `Impulse is about how you apply your power across the start — not just how much, but when and how efficiently.\n\n**Total Impulse** (⚡) — The total amount of force you applied. More is generally better.\n\n**Time to 50%** (⏱️) — How quickly you reach half your total power. Faster means more explosive.\n\n**Front-Loaded** (🚀) — How much of your power comes early in the start. Higher is usually better for BMX.\n\n**Efficiency** (⚙️) — How effectively your power gets you moving. Higher means less wasted energy.`,
+                callout: `Good BMX starts are "front-loaded" — meaning you hit hard right away rather than building up slowly.`,
+            },
+            club: {
+                heading: 'Impulse metrics and force distribution',
+                body: `Impulse = Force × Time (measured in Newton-seconds). These metrics break down how force is applied across the gate start:\n\n**Total Impulse (N·s)** — Area under the force-time curve. Represents total momentum transfer. Higher total impulse = more energy put into the bike.\n\n**Time to Half-Impulse (s)** — Temporal midpoint of total impulse. Earlier midpoint = more front-loaded power application. Elite riders typically reach half-impulse in first 35–45% of elapsed time.\n\n**Front-Loaded Score (/100)** — Quantifies how much impulse occurs in first vs second half. Higher = more explosive ballistic start style. Lower = more sustained drive style.\n\n**Impulse Efficiency (%)** — Ratio of useful forward impulse to total impulse. Lower efficiency suggests force applied in non-forward directions (up, sideways) or wasted in bike deflection.\n\nThese metrics distinguish explosive (high front-loaded, early half-impulse) from sustained (lower front-loaded, later half-impulse) start styles.`,
+            },
+            elite: {
+                heading: 'Impulse analysis for biomechanical assessment',
+                body: `Impulse analysis decomposes the force-time integral across the gate start to characterize power application strategy.\n\n**Total Impulse** = ∫F(t)dt from movement onset to end of measurement window. Derived from IMU acceleration after bias correction and mass estimation. Represents total momentum transferred to bike+rider system.\n\n**Time to Half-Impulse** — Temporal centroid of impulse distribution. Calculated as time when cumulative impulse reaches 50% of total. Reveals whether athlete front-loads effort (centroid < 40% elapsed time) or applies sustained drive (centroid > 50%).\n\n**Front-Loaded Score** = (First-half impulse / Total impulse) × 100. Ballistic starts (explosive first stroke, rapid peak) show scores >65. Sustained starts (progressive force build) show scores 45–55.\n\n**Impulse Efficiency** = Forward impulse component / Total impulse magnitude × 100. Accounts for force vector direction. Lower efficiency (<70%) indicates off-axis force application, premature wheel lift, or technique inefficiencies.\n\n**Coaching applications:**\n\nCompare impulse metrics to phase timing data. Early time-to-peak-G with high front-loaded score confirms explosive technique. Late peak-G with lower front-loaded score suggests sustained drive that may be sub-optimal for BMX gate starts.\n\nLow impulse efficiency with high power output suggests technique refinement needed (positioning, bike setup, timing) rather than strength work.`,
+                callout: `Impulse metrics require profile completion (rider + bike mass) for accurate calculation. Values outside physiologically plausible ranges are flagged.`,
+            },
+        },
+    },
+
+    runComparison: {
+        title: 'Run Comparison Matrix',
+        description: 'Side-by-side technique scores for all runs showing best and worst in each dimension',
+        levels: {
+            grom: {
+                heading: 'Comparing all your runs',
+                body: `This table shows all your runs from a session lined up next to each other, with scores for different parts of your technique.\n\nYou can click any column header to sort by that score. The 🏆 icon shows your best run in each category. The ⬇️ icon shows your lowest.\n\nThis helps you see which runs were your strongest overall, and whether you're consistent across different areas or better in some than others.`,
+                callout: `If your best overall run is also your best in most categories, you had a "complete" run. If different runs are best in different areas, you haven't put it all together yet.`,
+            },
+            club: {
+                heading: 'Multi-dimensional run-level comparison',
+                body: `This matrix displays technique scores across all runs in six dimensions: Reaction, Explosiveness, Smoothness, Efficiency, and Overall.\n\nClick column headers to sort. The table identifies best (🏆) and worst (⬇️) values per dimension.\n\n**Analysis patterns:**\n\n**Best overall = best across dimensions** — This run represents your current ceiling. Study what made it work.\n\n**Different runs best per dimension** — You're capable of excellent performance in each area but haven't yet combined them. Focus on consistency.\n\n**Consistent colors across row** — That run had balanced technique. Most colors similar = consistent execution.\n\n**Mixed colors within run** — That run had uneven technique. Some aspects good, others weak.\n\nColor coding: Teal (80+) = excellent, Orange (60–79) = good, Red-orange (40–59) = developing, Red (<40) = needs work.`,
+            },
+            elite: {
+                heading: 'Run-level technique profiling for coaching intervention',
+                body: `This matrix provides run-level granularity for within-session technique analysis. Use cases:\n\n**Ceiling identification** — Sort by Overall to identify best run. If this run is also best (or near-best) across dimensions, it represents an achievable integrated performance ceiling. If best overall but not best per dimension, there's headroom in specific areas.\n\n**Fatigue profiling** — Sort by Run # to see temporal progression. Declining scores across runs indicates within-session fatigue affecting technique quality. Stable or improving scores indicates good arousal management and no significant fatigue impact.\n\n**Consistency assessment** — Look at score variance within each dimension column. Low variance (<10 points spread) = consistent delivery. High variance (>20 points) = unstable technique requiring focus.\n\n**Dimension correlation** — Look for patterns across rows. Do low Smoothness runs also show low Efficiency? Does high Explosiveness correlate with high Overall? Reveals biomechanical coupling.\n\n**Outlier identification** — Runs marked best in one dimension but poor in others are analytically interesting. Example: Best Reaction but worst Overall suggests reaction was achieved by compromising drive phase setup.\n\nFor periodisation: early-phase sessions should show increasing variance as athlete explores technique. Late-phase sessions should show low variance as technique consolidates.`,
+                callout: `Combine with the session-level Intelligence Panel to see how within-session patterns (this table) relate to session-level conclusions (drop-off, consistency, best-vs-avg).`,
+            },
+        },
+    },
+
+    benchmarkComparison: {
+        title: 'Benchmark Comparison Bars',
+        description: 'Visual positioning of your scores against performance level thresholds',
+        levels: {
+            grom: {
+                heading: 'Where you stand on each skill',
+                body: `These bars show where your scores sit across different performance levels for each part of your technique.\n\nThe bar is divided into four colored zones:\n• **Red** (0–40) = Needs Work\n• **Orange** (40–60) = Developing\n• **Yellow** (60–80) = Good\n• **Teal** (80–100) = Excellent\n\nYour score is shown as a vertical line on the bar. The goal is to move that line further right (higher score) over time.`,
+                callout: `Don't worry if you're not in "Excellent" for everything. Focus on moving from one zone to the next. Developing → Good is great progress!`,
+            },
+            club: {
+                heading: 'Benchmark positioning visualization',
+                body: `This visualizes where your technique scores sit relative to standard BMX performance benchmarks:\n\n**Excellent (80–100)** — Elite-level execution. Minimal technical compromise. National/international competitive standard.\n\n**Good (60–79)** — Strong club-level execution. Competitive at regional level. Technique fundamentals solid, refinement opportunities present.\n\n**Developing (40–59)** — Foundational technique present but inconsistent application or execution gaps. Typical for riders in first 1–2 years of serious training.\n\n**Needs Work (0–39)** — Significant technique gaps or execution failures. Priority focus area.\n\nThe vertical line shows your current score. The shaded background regions show benchmark zones. The badge (Excellent/Good/Developing) confirms your current level.\n\nUse this to identify where you're strongest (scores in teal zone) and where you have most opportunity (scores in orange/red zones).`,
+            },
+            elite: {
+                heading: 'Benchmarking against performance standards',
+                body: `This panel provides visual benchmarking against standardized performance thresholds derived from elite BMX gate start analysis.\n\nBenchmark thresholds are fixed across all athletes:\n**80+ = Excellent** — Top 10-15% of competitive BMX riders\n**60–79 = Good** — Top 35% of competitive riders\n**40–59 = Developing** — Middle 50% of training riders\n**<40 = Needs Work** — Bottom quartile, significant gaps\n\n**Coaching interpretation:**\n\n**All dimensions in excellent** — Athlete has consolidated at elite level across all aspects. Focus shifts to maintaining form and competition readiness.\n\n**Mixed excellent/good** — Athlete is transitioning to elite level. Good dimensions are improvement targets. Excellent dimensions are strengths to leverage.\n\n**Good/developing mix** — Athlete is in active skill development phase. Large improvement potential. Focus on moving developing → good first.\n\n**Any dimension in needs-work** — Priority intervention area regardless of other dimensions. Significant limiter that will constrain overall performance.\n\nNote these are absolute benchmarks, not relative to personal history. An athlete improving from 45 to 55 shows real progress even though both scores are "Developing". Use alongside Technique Score Trends to see relative improvement over time.`,
+                callout: `These benchmarks are calibrated for adult competitive BMX. Youth riders and beginners should focus on relative improvement rather than absolute benchmark achievement.`,
+            },
+        },
+    },
+
 };
 
 export const HELP_LEVELS: { id: HelpLevel; label: string; desc: string }[] = [

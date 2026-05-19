@@ -38,9 +38,22 @@ interface SuggestionContext {
 export function generateAdjustmentSuggestions(context: SuggestionContext): GoalAdjustmentSuggestion[] {
     const suggestions: GoalAdjustmentSuggestion[] = [];
 
-    // 1. Check if should pause due to health concerns
+    // 1. Check if should pause due to health concerns.
+    // Note: pause as an action is not yet implemented (no paused_at column in DB).
+    // Instead, surface a rest advisory as an informational low-priority suggestion
+    // so the rider sees the health concern without being offered a broken button.
     if (context.shouldRest) {
-        suggestions.push(generatePauseSuggestion(context));
+        suggestions.push({
+            type: 'extend_deadline',
+            priority: 'high',
+            title: '⚠️ Recovery recommended',
+            description: 'Your recent session data suggests fatigue. Consider extending your deadline to give yourself more time rather than pushing harder right now.',
+            currentValue: context.currentDeadline?.toLocaleDateString('en-GB') ?? 'No deadline',
+            suggestedValue: 'Extended deadline',
+            rationale: 'Continuing to chase the goal at pace when fatigued may slow overall progress.',
+            confidence: 0.8,
+            autoApply: false,
+        });
     }
 
     // 2. Check if goal is complete or nearly complete

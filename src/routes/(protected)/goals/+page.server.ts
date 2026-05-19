@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { predictGoalProgress } from '$lib/services/predictions';
 import { performHealthCheck } from '$lib/services/anomalyDetection';
 import { analyzeGoalAdaptation } from '$lib/services/goalAdaptation';
+import { shouldExcludeFromStats } from '$lib/types/runs';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
     const { profile } = await parent();
@@ -34,7 +35,9 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false });
 
-    // Load session data to compute current values
+    // Load session data to compute current values.
+    // tags is included so warmup and excluded runs can be filtered out —
+    // a warmup run with a fast reaction time shouldn't count as a personal best.
     const { data: sessions } = await supabase
         .from('sessions')
         .select(`
@@ -42,6 +45,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
             runs(
                 elapsed_time_ms,
                 distance_m,
+                tags,
                 gate_runs(
                     reaction_time_ms,
                     max_g,
@@ -67,18 +71,24 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     };
 
     const allGateRuns: GateRunRow[] = (sessions ?? []).flatMap(s =>
-        s.runs.flatMap(r => {
-            const gateRunsArr = Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []);
-            return gateRunsArr.map(g => ({
-                reaction_time_ms:      g.reaction_time_ms,
-                max_g:                 g.max_g,
-                analytics_valid:       g.analytics_valid,
-                time_to_peak_speed_ms: g.time_to_peak_speed_ms ?? null,
-                elapsed_time_ms:       r.elapsed_time_ms ?? null,
-                distance_m:            r.distance_m ?? null,
-            }));
-        })
+        s.runs
+            .filter(r => !shouldExcludeFromStats(r.tags as any))
+            .flatMap(r => {
+                const gateRunsArr = Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []);
+                return gateRunsArr.map(g => ({
+                    reaction_time_ms:      g.reaction_time_ms,
+                    max_g:                 g.max_g,
+                    analytics_valid:       g.analytics_valid,
+                    time_to_peak_speed_ms: g.time_to_peak_speed_ms ?? null,
+                    elapsed_time_ms:       r.elapsed_time_ms ?? null,
+                    distance_m:            r.distance_m ?? null,
+                }));
+            })
     );
+
+    // Also filter the last session's runs for consistency calculation
+    const lastSessionEligibleRuns = (sessions ?? [])[0]?.runs
+        ?.filter(r => !shouldExcludeFromStats(r.tags as any)) ?? [];
 
     const currentValues: Record<string, number | null> = {};
 
@@ -89,8 +99,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         const gs = allGateRuns.map(g => g.max_g).filter((v): v is number => v !== null);
         currentValues['maxG'] = gs.length > 0 ? Math.max(...gs) : null;
 
-        // Consistency CV from last session
-        const lastSessionRuns = (sessions ?? [])[0]?.runs?.flatMap(r => {
+        // Consistency CV from last session — stats-eligible runs only
+        const lastSessionRuns = lastSessionEligibleRuns.flatMap(r => {
             const arr = Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []);
             return arr;
         }) ?? [];
@@ -132,8 +142,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
         };
 
         const sessionHistory = sessions.map(s => {
-            const sessionRuns = s.runs || [];
-            const reactions = sessionRuns.flatMap(r => {
+            const eligibleRuns = (s.runs || []).filter(r => !shouldExcludeFromStats(r.tags as any));
+            const reactions = eligibleRuns.flatMap(r => {
                 const arr = Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []);
                 return arr.map(g => g.reaction_time_ms).filter((v): v is number => v !== null);
             });
@@ -144,7 +154,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
                 bestValue: reactions.length > 0 ? Math.min(...reactions) : 0,
                 avgValue: reactions.length > 0 ? reactions.reduce((a, b) => a + b, 0) / reactions.length : 0,
                 consistency: 0, // Simplified for now
-                runCount: sessionRuns.length
+                runCount: eligibleRuns.length
             };
         });
 
@@ -360,9 +370,10 @@ export const actions: Actions = {
                 break;
 
             case 'pause':
-                // For pause, we could add a paused flag or just notify the user
-                // For now, we'll just return success without changing the goal
-                return { adjustSuccess: true, message: 'Goal paused - take time to recover!' };
+                // Pause is not yet implemented — paused_at column does not exist
+                // in training_goals. Return an informative error rather than
+                // silently doing nothing and telling the user it worked.
+                return fail(501, { adjustError: 'Goal pause is not yet available. If you need a break, you can delete and recreate the goal when you\'re ready to resume.' });
 
             case 'cancel':
                 // Delete the goal

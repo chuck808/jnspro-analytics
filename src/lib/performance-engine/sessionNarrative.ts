@@ -9,6 +9,10 @@ import { HEADLINES, IMPACTS, WHY_MATTERS, ACTIONS, WATCH_FOR, runCountQualifier 
 
 export interface SessionNarrativeInput {
   runCount: number;
+  excludedRunCount?: number;
+  excludedReasons?: string[];
+  sessionFocus?: string | null;
+  trackSurface?: string | null;
   consistencyScore?: number | null;
   reactionCvPercent?: number | null;
   dataQualityRating?: 'excellent' | 'good' | 'fair' | 'calibrate' | 'unknown' | null;
@@ -49,10 +53,25 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
   const trust: TrustContext = {
     confidence,
     basedOnRuns: input.runCount,
+    excludedRuns: input.excludedRunCount ?? 0,
+    excludedReasons: input.excludedReasons ?? [],
     trustedMetrics,
     cautionMetrics,
     blockedMetrics
   };
+
+  // Session context modifiers — applied before the priority chain so they
+  // can influence which message fires and what appears in warnings.
+  const isTesting = input.sessionFocus === 'testing' || input.sessionFocus === 'technique';
+
+  if (isTesting) {
+    warnings.push('Testing or technique session — consistency and repeatability metrics reflect intentional variation, not a baseline problem');
+  }
+
+  if (input.trackSurface === 'wet' || input.trackSurface === 'muddy') {
+    warnings.push(`Surface was ${input.trackSurface} — speed and traction-dependent metrics should be compared against other ${input.trackSurface} sessions only`);
+    cautionMetrics.push('speed', 'explosiveness');
+  }
   
   // Determine primary message
   let message: CoachMessage;

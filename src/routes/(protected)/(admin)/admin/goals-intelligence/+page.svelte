@@ -159,18 +159,20 @@
 		<h3 class="text-sm font-semibold text-[#f0ece4] mb-4">
 			📊 Prediction Model Usage (Phase 5)
 		</h3>
+		{#if data.modelStats}
+		{@const ms = data.modelStats as any}
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 			{#each [
-				{ model: 'Linear', count: data.modelStats.linear, color: '#3de8c8', desc: 'Steady progress' },
+				{ model: 'Linear', count: ms.linear, color: '#3de8c8', desc: 'Steady progress' },
 				{
 					model: 'Polynomial',
-					count: data.modelStats.polynomial,
+					count: ms.polynomial,
 					color: '#f5a623',
 					desc: 'Non-linear patterns'
 				},
 				{
 					model: 'Exponential',
-					count: data.modelStats.exponential,
+					count: ms.exponential,
 					color: '#ff6b3d',
 					desc: 'Breakthrough/plateau'
 				}
@@ -190,6 +192,9 @@
 				</div>
 			{/each}
 		</div>
+		{:else}
+			<p class="text-sm text-[#4a4038]">Model usage tracking not yet implemented — data will appear here in a future update.</p>
+		{/if}
 	</div>
 
 	<!-- Users At Risk & Recent Activity -->

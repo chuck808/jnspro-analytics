@@ -3,9 +3,8 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { validateSDFile, transformSDFile } from '$lib/services/ingest';
 import type { SDCardFile } from '$lib/services/ingest';
-import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_SERVICE_ROLE_KEY, DEVICE_INGEST_SECRET } from '$env/static/private';
-import { PUBLIC_SUPABASE_URL } from '$env/static/public';
+import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { DEVICE_INGEST_SECRET } from '$env/static/private';
 
 export const POST: RequestHandler = async ({ request }) => {
     // Authenticate via shared secret
@@ -37,8 +36,8 @@ export const POST: RequestHandler = async ({ request }) => {
         }, { status: 422 });
     }
 
-    // Use service role client — bypasses RLS for device inserts
-    const supabase = createClient(PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Use admin client — bypasses RLS for device inserts, consistent with rest of codebase
+    const supabase = createSupabaseAdminClient();
 
     const sdFile = fileData as SDCardFile;
     const ingestData = transformSDFile(sdFile);
@@ -92,15 +91,17 @@ export const POST: RequestHandler = async ({ request }) => {
 
             const runId = runRecord.id;
 
+            // reaction_time_ms and the G fields are always present (required by ingest schema).
+            // speed_ms / peak_speed_ms are null when analytics_valid=false — store as null,
+            // not 0, so downstream queries can distinguish "unknown" from "zero speed".
             const { error: gateError } = await supabase
 				.from('gate_runs')
 				.insert({
 					run_id:                runId,
-					reaction_time_ms:      run.reaction_time_ms ?? 0,    // NOT NULL in DB
+					reaction_time_ms:      run.reaction_time_ms ?? 0,
 					max_g:                 run.max_g ?? 0,
 					avg_g:                 run.avg_g ?? 0,
-					speed_ms:              run.speed_ms ?? 0,             // NOT NULL in DB
-					time_ms:               run.elapsed_time_ms ?? null,   // column exists in DB
+					speed_ms:              run.speed_ms ?? null,          // null when analytics invalid
 					peak_speed_ms:         run.peak_speed_ms ?? null,
 					avg_speed_ms_calc:     run.avg_speed_ms_calc ?? null,
 					time_to_peak_speed_ms: run.time_to_peak_speed_ms ?? null,

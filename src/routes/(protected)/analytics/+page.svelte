@@ -331,14 +331,21 @@
 
             // 5. Goal context (if goals available in data)
             const goalContext = progressIncludeGoals && data.goalTargets && Object.keys(data.goalTargets).length > 0
-                ? Object.entries(data.goalTargets).map(([metric, goal]: [string, any]) => ({
-                    metric,
-                    targetValue: goal.target,
-                    currentValue: goal.current,
-                    percentToGoal: goal.current && goal.target
-                        ? Math.round((goal.current / goal.target) * 100)
-                        : null,
-                }))
+                ? Object.entries(data.goalTargets).map(([metric, goal]: [string, any]) => {
+                    const lowerIsBetter = ['reactionTime', 'elapsedTime', 'accelerationPhase'].includes(metric);
+                    const start   = goal.start ?? goal.current;
+                    const target  = goal.target;
+                    const current = goal.current;
+                    let percentToGoal: number | null = null;
+                    if (current != null && target != null && start != null && start !== target) {
+                        percentToGoal = Math.round(Math.min(100, Math.max(0,
+                            lowerIsBetter
+                                ? ((start - current) / (start - target)) * 100
+                                : ((current - start) / (target - start)) * 100
+                        )));
+                    }
+                    return { metric, targetValue: target, currentValue: current, percentToGoal };
+                })
                 : null;
 
             // 6. Build input

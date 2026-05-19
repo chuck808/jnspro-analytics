@@ -110,6 +110,41 @@ export function classifyCorrelationStrength(r: number): CorrelationResult['stren
 }
 
 /**
+ * Map correlation strength and sample size to appropriately cautious language.
+ * Avoids causal phrasing — associations are not causes.
+ */
+export function correlationLanguage(
+    strength: CorrelationResult['strength'],
+    sampleSize: number
+): { verb: string; qualifier: string } {
+    // Small samples get extra caution regardless of r value
+    const smallSample = sampleSize < 15;
+
+    const verbs: Record<CorrelationResult['strength'], string> = {
+        'very strong': smallSample ? 'may be linked to' : 'shows a strong association with',
+        'strong':      smallSample ? 'may be linked to' : 'appears associated with',
+        'moderate':    'appears associated with',
+        'weak':        'shows a possible pattern with',
+        'very weak':   'shows an interesting pattern with',
+    };
+
+    const qualifiers: Record<CorrelationResult['strength'], string> = {
+        'very strong': smallSample ? 'worth watching across more sessions' : 'consistent across sessions',
+        'strong':      smallSample ? 'worth watching across more sessions' : 'emerging pattern',
+        'moderate':    'possible association — more sessions will confirm',
+        'weak':        'early signal only — not enough to conclude',
+        'very weak':   'too early to draw conclusions',
+    };
+
+    return { verb: verbs[strength], qualifier: qualifiers[strength] };
+}
+
+/**
+ * Enforce a hard floor on minimum sessions for insight generation.
+ */
+const MIN_SESSIONS_FLOOR = 5;
+
+/**
  * Analyze correlation between two variables
  */
 export function analyzeCorrelation(
@@ -169,7 +204,8 @@ export function analyzeCategoricalCorrelation(
         const category = point[categoryKey];
         const value = point[metricKey];
 
-        if (category && typeof value === 'number' && !isNaN(value)) {
+        if (category && category !== 'unknown' && typeof category === 'string' && category.trim() !== ''
+            && typeof value === 'number' && !isNaN(value)) {
             const key = String(category);
             if (!groups.has(key)) {
                 groups.set(key, []);
@@ -311,7 +347,7 @@ function synthesizeMultiVariableInsights(
         const conditions = context.tempMaxG.direction === 'positive' ? 'warmer' : 'colder';
 
         const narrative = [
-            `Temperature affects both your reaction speed and explosive power.`,
+            `Temperature appears associated with both reaction speed and explosive output — worth watching across more sessions.`,
             `In ${conditions} conditions, your reaction time is ${tempReactionDirection} (${Math.abs(context.tempReaction.correlation * 100).toFixed(0)}% correlation) and your peak G-force is ${tempPowerDirection} (${Math.abs(context.tempMaxG.correlation * 100).toFixed(0)}% correlation).`,
         ];
 
@@ -352,7 +388,8 @@ export function generateCorrelationInsights(
     data: SessionDataPoint[],
     minSessions: number = 10
 ): CorrelationInsight[] {
-    if (data.length < minSessions) {
+    const effectiveMin = Math.max(MIN_SESSIONS_FLOOR, minSessions);
+    if (data.length < effectiveMin) {
         return [];
     }
 
@@ -375,8 +412,8 @@ export function generateCorrelationInsights(
 
         insights.push({
             id: `insight-${insightId++}`,
-            title: `Temperature affects your reaction time`,
-            description: `You tend to be ${direction} in ${tempThreshold} conditions. ${improvementPct}% correlation detected across ${tempReaction.sampleSize} sessions.`,
+            title: `Temperature ${correlationLanguage(tempReaction.strength, tempReaction.sampleSize).verb} reaction time`,
+            description: `You tend to be ${direction} in ${tempThreshold} conditions — ${correlationLanguage(tempReaction.strength, tempReaction.sampleSize).qualifier} (${tempReaction.sampleSize} sessions).`,
             correlation: tempReaction,
             actionable: true,
             priority: Math.abs(tempReaction.correlation) > 0.6 ? 'high' : 'medium',
@@ -405,8 +442,8 @@ export function generateCorrelationInsights(
 
             insights.push({
                 id: `insight-${insightId++}`,
-                title: `Track condition impacts consistency`,
-                description: `Your consistency is ${diffPct}% better on ${best.category} vs ${worst.category} surface. ${best.category}: ${best.mean.toFixed(1)}% CV (n=${best.count}), ${worst.category}: ${worst.mean.toFixed(1)}% CV (n=${worst.count}).`,
+                title: `Consistency varies across track conditions`,
+                description: `Your starts show ${diffPct}% lower variability on ${best.category} vs ${worst.category} surface (${best.mean.toFixed(1)}% vs ${worst.mean.toFixed(1)}% CV). Worth watching if this repeats.`,
                 correlation: {
                     variable1: 'Track Surface',
                     variable2: 'Consistency',
@@ -439,8 +476,8 @@ export function generateCorrelationInsights(
 
         insights.push({
             id: `insight-${insightId++}`,
-            title: `Session length affects your consistency`,
-            description: `Consistency ${trend} with ${optimal} runs per session (${runCountConsistency.strength} ${runCountConsistency.direction} correlation, r=${runCountConsistency.correlation.toFixed(2)}).`,
+            title: `Session length ${correlationLanguage(runCountConsistency.strength, runCountConsistency.sampleSize).verb} consistency`,
+            description: `Consistency ${trend} with ${optimal} runs per session — ${correlationLanguage(runCountConsistency.strength, runCountConsistency.sampleSize).qualifier} (r=${runCountConsistency.correlation.toFixed(2)}, ${runCountConsistency.sampleSize} sessions).`,
             correlation: runCountConsistency,
             actionable: true,
             priority: 'medium',
@@ -504,8 +541,8 @@ export function generateCorrelationInsights(
 
         insights.push({
             id: `insight-${insightId++}`,
-            title: `Explosive power varies with temperature`,
-            description: `Peak G-force is ${direction} in ${conditions} conditions (${tempMaxG.strength} correlation, r=${tempMaxG.correlation.toFixed(2)}).`,
+            title: `Temperature ${correlationLanguage(tempMaxG.strength, tempMaxG.sampleSize).verb} explosive output`,
+            description: `Peak G-force is ${direction} in ${conditions} conditions — ${correlationLanguage(tempMaxG.strength, tempMaxG.sampleSize).qualifier} (r=${tempMaxG.correlation.toFixed(2)}, ${tempMaxG.sampleSize} sessions).`,
             correlation: tempMaxG,
             actionable: true,
             priority: 'low',

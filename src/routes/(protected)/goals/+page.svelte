@@ -565,7 +565,12 @@
                                     Start: <span class="text-[#f0ece4]">{fmtValue(metric, goal.start_value)}</span>
                                 </span>
                                 <span class="text-[#6b5f4d]">
-                                    Current: <span class="font-bold" style="color:{progressColor}">{fmtValue(metric, current)}</span>
+                                    Current: 
+                                    {#if current === null && goal.metric === 'peakSpeed'}
+                                        <span class="text-[#6b5f4d] italic">not available — check device calibration</span>
+                                    {:else}
+                                        <span class="font-bold" style="color:{progressColor}">{fmtValue(metric, current)}</span>
+                                    {/if}
                                 </span>
                                 <span class="text-[#6b5f4d]">
                                     Target: <span class="text-[#f0ece4]">{fmtValue(metric, goal.target_value)}</span>

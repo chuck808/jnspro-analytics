@@ -108,7 +108,12 @@ export interface SessionNarrative {
   };
   insights?: NarrativeInsight[];
   trust?: {
-    confidence?: number;
+    confidence?: number | string;
+    basedOnRuns?: number;
+    excludedRuns?: number;
+    excludedReasons?: string[];
+    cautionMetrics?: string[];
+    blockedMetrics?: string[];
   };
 }
 
@@ -126,6 +131,10 @@ export interface CoachSessionReportInput {
   sessionTitle?: string;
   sessionDate?: string;
   runCount: number;
+  excludedRunCount?: number;
+  excludedReasons?: string[];
+  sessionFocus?: string | null;
+  trackSurface?: string | null;
   sessionReport?: any;
   sessionNarrative?: SessionNarrative;
   techniqueSummary?: any;

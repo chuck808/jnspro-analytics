@@ -49,6 +49,12 @@ export function buildCoachSessionReport(
     const dataQuality    = input.dataQuality;
     const technique      = input.techniqueSummary;
 
+    // Session context — affects how we frame findings
+    const isTesting      = input.sessionFocus === 'testing' || input.sessionFocus === 'technique';
+    const isWetSurface   = input.trackSurface === 'wet' || input.trackSurface === 'muddy';
+    const excludedRuns   = input.excludedRunCount ?? narrative?.trust?.excludedRuns ?? 0;
+    const excludedReasons = input.excludedReasons ?? narrative?.trust?.excludedReasons ?? [];
+
     // ── Headline ──────────────────────────────────────────────────────────────
 
     const headline = sessionQualityHeadline({
@@ -177,6 +183,10 @@ export function buildCoachSessionReport(
         blocksSpeed:    dataQuality?.blocksSpeed    ?? dataQuality?.blocksDistanceConfidence ?? false,
     };
 
+    // Surface caution metrics from trust context into data quality section
+    const cautionMetrics = narrative?.trust?.cautionMetrics ?? [];
+    const blockedMetrics = narrative?.trust?.blockedMetrics ?? [];
+
     // ── Executive summary (using analysis view coaching language) ────────────
     const execLines = sessionExecutiveSummary({
         headline:         finalHeadline,
@@ -198,6 +208,35 @@ export function buildCoachSessionReport(
     }
     if (narrative?.message?.whyThisMatters) {
         execLines.push(narrative.message.whyThisMatters);
+    }
+
+    // Session context notes — these qualify the findings before the reader
+    // draws any conclusions. A testing session's consistency numbers mean
+    // something different from a normal session's.
+    if (isTesting) {
+        execLines.push(
+            `Context: this was logged as a ${input.sessionFocus} session. ` +
+            `Variability in consistency and repeatability is expected — the rider was deliberately introducing change. ` +
+            `Compare against a standard session before drawing conclusions.`
+        );
+    }
+
+    if (isWetSurface) {
+        execLines.push(
+            `Surface: ${input.trackSurface}. Speed and explosiveness metrics should be compared against other ${input.trackSurface} sessions only — ` +
+            `traction conditions affect these outputs independently of technique.`
+        );
+    }
+
+    // Evidence basis — how many runs the analysis is based on
+    if (excludedRuns > 0) {
+        const totalRuns = input.runCount + excludedRuns;
+        const reasonText = excludedReasons.length > 0
+            ? ` (${[...new Set(excludedReasons)].join(', ')})`
+            : '';
+        execLines.push(
+            `Analysis based on ${input.runCount} of ${totalRuns} runs — ${excludedRuns} excluded${reasonText}.`
+        );
     }
 
     // Conflict check
@@ -427,13 +466,23 @@ export function buildCoachSessionReport(
             detailLevel === 'technical' ||
             !dqInput.analyticsValid ||
             dqInput.blocksPower ||
-            dqInput.blocksSpeed)
+            dqInput.blocksSpeed ||
+            cautionMetrics.length > 0 ||
+            blockedMetrics.length > 0)
             ? [createSection({
                 id:       'data-quality',
                 type:     'data-quality',
                 title:    'Data Quality',
                 priority: 'low',
-                content:  dataQualitySection(dqInput, detailLevel),
+                content:  [
+                    ...dataQualitySection(dqInput, detailLevel),
+                    ...(cautionMetrics.length > 0
+                        ? [`Use with caution: ${cautionMetrics.join(', ')} — conditions may affect these values.`]
+                        : []),
+                    ...(blockedMetrics.length > 0
+                        ? [`Not available this session: ${blockedMetrics.join(', ')}.`]
+                        : []),
+                ],
             })]
             : []),
     ].filter((s): s is NonNullable<typeof s> => s !== null);

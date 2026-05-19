@@ -51,9 +51,9 @@ export function analyseSession(session: SessionLike, rider: RiderContext = {}, o
   } as Pick<SessionAnalysis, 'summary' | 'selectedRun'>;
 
   const diagnostics = analysedRuns.flatMap(r => r.diagnostics ?? []);
-  const weaknesses = identifyWeaknesses(provisional);
+  const weaknesses = identifyWeaknesses(provisional, rider);
   const profileComplete = !!(rider.riderWeightKg && rider.bikeWeightKg);
-  const recommendations = generateRecommendations({ ...provisional, profileComplete }, weaknesses);
+  const recommendations = generateRecommendations({ ...provisional, profileComplete }, weaknesses, rider);
   const hasCalibrationWarning = hasBlockingCalibrationIssue(diagnostics);
 
   // Session Intelligence - use the full intelligence analysis
