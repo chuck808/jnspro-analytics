@@ -232,17 +232,24 @@ const supabaseHandle: Handle = async ({ event, resolve }) => {
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 
 const authGuard: Handle = async ({ event, resolve }) => {
-    const { data: { session } } = await event.locals.supabase.auth.getSession();
-    const user = session?.user ?? null;
+    const { session, user } = await event.locals.safeGetSession();
 
     event.locals.session = session;
     event.locals.user = user;
 
     const { pathname } = event.url;
-    const isProtected = pathname.startsWith('/sessions') ||
-                        pathname.startsWith('/dashboard')   || pathname.startsWith('/analytics') ||
-                        pathname.startsWith('/goals')       || pathname.startsWith('/profile')   ||
-                        pathname.startsWith('/admin')       || pathname.startsWith('/upload');
+
+    const isProtected =
+        pathname.startsWith('/sessions') ||
+        pathname.startsWith('/dashboard') ||
+        pathname.startsWith('/analytics') ||
+        pathname.startsWith('/goals') ||
+        pathname.startsWith('/profile') ||
+        pathname.startsWith('/admin') ||
+        pathname.startsWith('/upload') ||
+        pathname.startsWith('/settings') ||
+        pathname.startsWith('/leaderboard') ||
+        pathname.startsWith('/help');
 
     if (isProtected && !session) {
         throw redirect(303, '/auth/sign-in');

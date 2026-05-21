@@ -130,8 +130,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         let timeseriesFailedCount = 0;
         const timeseriesErrors: string[] = [];
 
-        // Insert runs one by one (to capture run IDs for typed tables)
-        for (const run of ingestData.runs) {
+        // Wrap run insertion in try-catch to ensure atomicity
+        // If any run fails, delete the session to avoid partial state
+        try {
+            // Insert runs one by one (to capture run IDs for typed tables)
+            for (const run of ingestData.runs) {
             // Insert base run
             const { data: runRecord, error: runError } = await locals.supabase
                 .from('runs')
@@ -205,6 +208,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                     timeseriesCount++;
                 }
             }
+            }
+        } catch (runInsertError) {
+            // Run insertion failed — delete the session to maintain atomicity
+            console.error('[Upload] Run insertion failed, rolling back session:', runInsertError);
+            await locals.supabase
+                .from('sessions')
+                .delete()
+                .eq('id', sessionId);
+            
+            // Re-throw the error to return failure to client
+            throw runInsertError;
         }
 
         // Add timeseries failures to warnings if any occurred

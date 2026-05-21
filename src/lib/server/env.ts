@@ -2,13 +2,18 @@
  * src/lib/server/env.ts
  *
  * Environment variable validation — called once at startup from hooks.server.ts.
- * Uses SvelteKit's $env/static/public rather than process.env.
+ * Uses SvelteKit's $env/static/public and $env/static/private.
  */
 
 import {
     PUBLIC_SUPABASE_URL,
     PUBLIC_SUPABASE_ANON_KEY,
 } from '$env/static/public';
+
+import {
+    SUPABASE_SERVICE_ROLE_KEY,
+    DEVICE_INGEST_SECRET,
+} from '$env/static/private';
 
 let validated = false;
 
@@ -51,6 +56,38 @@ export function validateEnv(): void {
         errors.push(
             'PUBLIC_SUPABASE_ANON_KEY does not look like a valid Supabase key\n' +
             '  Expected a key starting with eyJ... or sb_publishable_...'
+        );
+    }
+
+    // SUPABASE_SERVICE_ROLE_KEY (private — needed for admin operations)
+    // Supabase supports both legacy JWT keys (eyJ...) and newer sb_secret_ keys
+    if (!SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_KEY.trim() === '') {
+        errors.push(
+            'Missing: SUPABASE_SERVICE_ROLE_KEY\n' +
+            '  Add your Supabase service role key to .env.local\n' +
+            '  Required for: admin Supabase client operations'
+        );
+    } else if (
+        !SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ') &&
+        !SUPABASE_SERVICE_ROLE_KEY.startsWith('sb_secret_')
+    ) {
+        errors.push(
+            'SUPABASE_SERVICE_ROLE_KEY does not look like a valid Supabase service role key\n' +
+            '  Expected a key starting with eyJ... or sb_secret_...'
+        );
+    }
+
+    // DEVICE_INGEST_SECRET (private — needed for device data ingestion)
+    if (!DEVICE_INGEST_SECRET || DEVICE_INGEST_SECRET.trim() === '') {
+        errors.push(
+            'Missing: DEVICE_INGEST_SECRET\n' +
+            '  Add a secure secret for device ingest endpoint to .env.local\n' +
+            '  Required for: /api/device-ingest authentication'
+        );
+    } else if (DEVICE_INGEST_SECRET.length < 32) {
+        errors.push(
+            'DEVICE_INGEST_SECRET is too short (must be at least 32 characters)\n' +
+            '  Generate a secure random string for production safety'
         );
     }
 

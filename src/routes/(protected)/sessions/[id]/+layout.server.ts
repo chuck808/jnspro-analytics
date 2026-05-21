@@ -40,6 +40,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
             weather_conditions,
             track_surface,
             session_focus,
+            ride_feel,
             bikes(
                 id,
                 name,
