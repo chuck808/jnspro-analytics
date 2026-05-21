@@ -66,15 +66,19 @@ export function buildCoachSessionReport(
         runCount:         input.runCount,
     });
 
-    // Add context from narrative only if it's not a UI label
-    // (UI labels contain "view" — coaching headlines don't)
+    // Prefer the narrative headline when it was produced by buildSessionNarrative,
+    // identified by the isCoachingHeadline flag on CoachMessage. Fall back to the
+    // sessionQualityHeadline generated above when the narrative is absent or was
+    // constructed ad-hoc (e.g. in tests or report preview code that builds a
+    // CoachMessage directly without going through buildSessionNarrative).
+    // The old approach checked for the absence of the word "view" in the string,
+    // which was fragile and would silently break if a coaching headline ever
+    // legitimately contained that word.
     const narrativeHeadline = narrative?.message?.headline;
-    const headlineIsCoaching = narrativeHeadline &&
-        !narrativeHeadline.toLowerCase().includes('view') &&
-        !narrativeHeadline.toLowerCase().includes('diagnostic');
+    const headlineIsCoaching = narrative?.message?.isCoachingHeadline === true;
 
-    // Final headline: use narrative if it's genuine coaching language, otherwise use generated
-    const finalHeadline = headlineIsCoaching ? narrativeHeadline : headline;
+    // Final headline: use narrative if it carries the coaching flag, otherwise use generated
+    const finalHeadline = headlineIsCoaching && narrativeHeadline ? narrativeHeadline : headline;
 
     const confidence =
         narrative?.trust?.confidence ??
@@ -208,6 +212,15 @@ export function buildCoachSessionReport(
     }
     if (narrative?.message?.whyThisMatters) {
         execLines.push(narrative.message.whyThisMatters);
+    }
+
+    // Context notes from v8.4 narrative (rideFeel dissonance, focus alignment,
+    // conditions, correlation hints). These are pre-assembled by buildSessionNarrative
+    // so the report doesn't need to re-derive them — just include them.
+    if (narrative?.contextNotes && narrative.contextNotes.length > 0) {
+        for (const note of narrative.contextNotes) {
+            if (!execLines.includes(note)) execLines.push(note);
+        }
     }
 
     // Session context notes — these qualify the findings before the reader

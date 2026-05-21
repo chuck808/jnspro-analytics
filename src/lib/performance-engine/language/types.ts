@@ -16,6 +16,12 @@ export interface CoachMessage {
   watchFor: string | null;
   confidence: ConfidenceLevel;
   priority: Priority;
+  // Explicit marker so the report engine can prefer this headline over the
+  // sessionQualityHeadline fallback without resorting to a word-in-string check.
+  // Always true for messages produced by buildSessionNarrative — never set it
+  // on ad-hoc CoachMessage objects constructed in UI/report code where the
+  // caller controls the headline directly.
+  isCoachingHeadline: true;
 }
 
 export interface TrustContext {
@@ -32,6 +38,10 @@ export interface SessionNarrative {
   message: CoachMessage;
   trust: TrustContext;
   warnings: string[];
+  // Context notes assembled from rideFeel, sessionFocus, conditions, and
+  // correlation hints. Rendered as a second paragraph after the primary
+  // message. Empty when no context was set or nothing meaningful to say.
+  contextNotes?: string[];
 }
 
 export interface PhraseOptions {

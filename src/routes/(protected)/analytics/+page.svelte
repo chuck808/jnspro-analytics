@@ -157,17 +157,47 @@
         if (data.sessions.length === 0 || !latestSessionReport) return null;
         const latest = data.sessions[data.sessions.length - 1];
         
+        // Build correlation hints from insights for context-aware narrative
+        const hints = (data.correlationInsights ?? [])
+            .filter((i: any) => i.correlation?.sampleSize >= 8)
+            .map((i: any) => {
+                // Map correlation insight back to a hint the narrative can use
+                const v1 = i.correlation?.variable1?.toLowerCase() ?? '';
+                const variable =
+                    v1.includes('surface') ? 'track_surface' :
+                    v1.includes('weather') || v1.includes('temperature') ? 'weather_condition' :
+                    null;
+                if (!variable) return null;
+                return {
+                    variable,
+                    value:        latest.track_surface ?? latest.weather_conditions ?? '',
+                    metric:       i.correlation?.variable2?.toLowerCase() ?? 'performance',
+                    direction:    (i.correlation?.direction === 'negative' && v1.includes('reaction')) ? 'better' :
+                                  (i.correlation?.direction === 'positive') ? 'better' : 'worse',
+                    strength:     i.correlation?.strength === 'very strong' || i.correlation?.strength === 'strong'
+                                    ? 'strong' : i.correlation?.strength === 'moderate' ? 'moderate' : 'weak',
+                    sessionCount: i.correlation?.sampleSize ?? 0,
+                } as any;
+            })
+            .filter(Boolean);
+
         return buildSessionNarrative({
-            runCount: latest.run_count,
-            consistencyScore: latestSessionReport.repeatability.overall,
-            reactionCvPercent: latest.reaction_cv,
-            dataQualityRating: null,
-            speedBlocked: false,
-            powerBlocked: false,
+            runCount:               latest.run_count,
+            consistencyScore:       latestSessionReport.repeatability.overall,
+            reactionCvPercent:      latest.reaction_cv,
+            dataQualityRating:      null,
+            speedBlocked:           false,
+            powerBlocked:           false,
             hasCalibrationWarnings: false,
-            fatigueDetected: latestSessionReport.fatigue.trend === 'declining',
-            dropOffRun: latestSessionReport.dropOff?.dropOffRun ?? null,
-            bestVsAvgGapPercent: latestSessionReport.bestVsAvg?.gapPercent ?? null
+            fatigueDetected:        latestSessionReport.fatigue.trend === 'declining',
+            dropOffRun:             latestSessionReport.dropOff?.dropOffRun ?? null,
+            bestVsAvgGapPercent:    latestSessionReport.bestVsAvg?.gapPercent ?? null,
+            // Session context — v8.4
+            sessionFocus:           (latest as any).session_focus     ?? null,
+            trackSurface:           (latest as any).track_surface     ?? null,
+            weatherCondition:       (latest as any).weather_conditions ?? null,
+            rideFeel:               (latest as any).ride_feel         ?? null,
+            correlationHints:       hints,
         });
     });
 

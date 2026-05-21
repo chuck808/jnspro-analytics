@@ -59,11 +59,15 @@ export function analyseSession(session: SessionLike, rider: RiderContext = {}, o
   // Session Intelligence - use the full intelligence analysis
   let intelligence: SessionAnalysis['intelligence'] = null;
   if (reactionTimes.length > 0) {
+    // Field names must match the RunData interface in repeatability.ts:
+    // { reactionTime, peakSpeed, peakG } — not reactionMs/maxG.
+    // Using the wrong names caused reaction time to be silently dropped from
+    // repeatability scoring (the .filter Boolean pass left an empty array).
     const runData = analysedRuns.map(r => ({
-      reactionMs: r.reactionMs,
+      reactionTime: r.reactionMs,
       peakSpeed: r.physics?.speedKmh.length ? Math.max(...r.physics.speedKmh) : null,
-      maxG: r.maxG
-    })).filter(r => r.reactionMs !== null);
+      peakG: r.maxG
+    })).filter(r => r.reactionTime !== null);
 
     if (runData.length > 0) {
       // Store the full SessionIntelligenceReport directly

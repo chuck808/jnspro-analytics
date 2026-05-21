@@ -5,6 +5,8 @@ import type { SDCardFile } from '$lib/services/ingest';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import { processGoalImprovements, isSignificantImprovement } from '$lib/server/goalMilestones';
 import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
+import { upsertSnapshot } from '$lib/services/benchmarking';
+import { determineAgeGroup } from '$lib/services/benchmarking/peerComparison';
 
 /**
  * Calculate SHA-256 hash of file content for duplicate detection
@@ -305,6 +307,106 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         } catch (goalErr) {
             // Goal milestone failures should not fail the upload — log and continue
             console.warn('[Upload] Goal milestone processing failed:', goalErr);
+        }
+
+        // ── Upsert performance snapshot and refresh aggregates ──────────────
+        // Non-fatal: snapshot failures must not fail the upload response.
+        try {
+            // Fetch the data we need to build the snapshot
+            const [snapSessionCount, snapPrefs, snapProfile] = await Promise.all([
+                locals.supabase
+                    .from('sessions')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('archived', false)
+                    .eq('session_type', 'gate')
+                    .then(r => r.count ?? 0),
+                locals.supabase
+                    .from('user_preferences')
+                    .select('show_on_leaderboard, leaderboard_display_name')
+                    .eq('user_id', userId)
+                    .maybeSingle()
+                    .then(r => r.data),
+                locals.supabase
+                    .from('rider_profiles')
+                    .select('date_of_birth, weight_kg')
+                    .eq('user_id', userId)
+                    .order('effective_from', { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+                    .then(r => r.data),
+            ]);
+
+            // Compute all-time personal bests across stats-eligible runs
+            const { data: allRunsData } = await locals.supabase
+                .from('runs')
+                .select('tags, gate_runs(reaction_time_ms, peak_speed_ms, max_g, analytics_valid)')
+                .in('session_id', (await locals.supabase
+                    .from('sessions')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('archived', false)
+                    .eq('session_type', 'gate')
+                    .then(r => (r.data ?? []).map((s: any) => s.id))));
+
+            const { shouldExcludeFromStats } = await import('$lib/types/runs');
+            const eligRuns = (allRunsData ?? []).filter((r: any) => !shouldExcludeFromStats(r.tags));
+            const allGate  = eligRuns.flatMap((r: any) => Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []));
+            const validGate = allGate.filter((g: any) => g.analytics_valid);
+
+            const reactions = allGate.map((g: any) => g.reaction_time_ms).filter((v: any): v is number => v != null);
+            const speeds    = validGate.map((g: any) => g.peak_speed_ms).filter((v: any): v is number => v != null);
+            const gForces   = allGate.map((g: any) => g.max_g).filter((v: any): v is number => v != null);
+
+            let consistency: number | null = null;
+            if (reactions.length >= 3) {
+                const mean = reactions.reduce((a: number, b: number) => a + b, 0) / reactions.length;
+                const std  = Math.sqrt(reactions.map((v: number) => (v - mean) ** 2).reduce((a: number, b: number) => a + b, 0) / reactions.length);
+                consistency = Math.max(0, 100 - ((std / mean) * 100));
+            }
+
+            // Derive age group and UCI category from date_of_birth if available
+            let ageGroup: any = 'unknown';
+            let uciCategory: string | null = null;
+            if (snapProfile?.date_of_birth) {
+                const dob = new Date(snapProfile.date_of_birth);
+                const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                ageGroup = determineAgeGroup(age);
+                const { getUCICategory } = await import('$lib/utils/uciCategories');
+                const uciCat = getUCICategory(snapProfile.date_of_birth);
+                uciCategory = uciCat?.shortName ?? null;
+            }
+
+            // Experience level: simple session-count-based estimate until real
+            // distribution data exists. Will self-correct as aggregates build up.
+            const { estimateExperienceLevel } = await import('$lib/services/benchmarking/peerComparison');
+            const experienceLevel = estimateExperienceLevel(snapSessionCount, 50);
+
+            // Participation type from profile
+            const { data: profileData } = await locals.supabase
+                .from('profiles')
+                .select('participation_type')
+                .eq('id', userId)
+                .maybeSingle();
+
+            const adminClient = createSupabaseAdminClient();
+            await upsertSnapshot(adminClient, {
+                userId,
+                bestReactionMs:    reactions.length ? Math.min(...reactions) : null,
+                bestPeakSpeedMs:   speeds.length    ? Math.max(...speeds)    : null,
+                bestMaxG:          gForces.length   ? Math.max(...gForces)   : null,
+                bestConsistency:   consistency,
+                sessionCount:      snapSessionCount,
+                totalRuns:         allGate.length,
+                ageGroup,
+                uciCategory,
+                experienceLevel,
+                participationType: profileData?.participation_type ?? null,
+                showOnLeaderboard: snapPrefs?.show_on_leaderboard ?? false,
+                displayName:       snapPrefs?.leaderboard_display_name ?? null,
+            });
+        } catch (snapErr) {
+            console.warn('[Upload] Snapshot upsert failed:', snapErr);
         }
 
         return json({

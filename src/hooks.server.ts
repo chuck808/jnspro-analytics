@@ -19,6 +19,7 @@ import {
     PUBLIC_SUPABASE_ANON_KEY,
 } from '$env/static/public';
 import { validateEnv } from '$lib/server/env';
+import { createSupabaseAdminClient } from '$lib/server/supabase';
 
 // Validate environment on startup
 validateEnv();
@@ -34,8 +35,100 @@ import type { Session, User } from '@supabase/supabase-js';
  * CSP is report-only during development — tighten to enforce in production
  * once you've confirmed no violations.
  */
+// ─── Analytics event writer ──────────────────────────────────────────────────
+//
+// Writes page_view_events and error_events to Supabase on every request.
+// Uses the admin client (service role) so no RLS policy is needed on those
+// tables for writes. Fire-and-forget with void — analytics failures must never
+// affect the user-facing response.
+//
+// Route normalisation: replaces UUIDs and numeric IDs in pathnames with their
+// SvelteKit parameter placeholders so the admin page groups by route pattern
+// rather than one row per session/user ID.
+//   /sessions/abc-123-def  →  /sessions/[id]
+//   /admin/users/456        →  /admin/users/[id]
+
+const UUID_RE   = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+const NUMERIC_RE = /\/\d+(\/|$)/g;
+
+function normaliseRoute(pathname: string): string {
+    return pathname
+        .replace(UUID_RE, '[id]')
+        .replace(NUMERIC_RE, (m) => m.replace(/\d+/, '[id]'));
+}
+
+async function trackPageView(
+    route: string,
+    userId: string | null | undefined,
+    durationMs: number | null
+): Promise<void> {
+    const admin = createSupabaseAdminClient();
+    void admin.from('page_view_events').insert({
+        route,
+        user_id:     userId ?? null,
+        duration_ms: durationMs,
+    });
+}
+
+async function trackError(
+    route: string,
+    statusCode: number,
+    message: string,
+    detail: string | null,
+    userId: string | null | undefined
+): Promise<void> {
+    const severity =
+        statusCode >= 500 ? 'error' :
+        statusCode === 429 ? 'warning' :
+        statusCode >= 400 ? 'info' : 'info';
+
+    const admin = createSupabaseAdminClient();
+    void admin.from('error_events').insert({
+        route,
+        status_code: statusCode,
+        severity,
+        message,
+        detail:      detail ?? null,
+        user_id:     userId ?? null,
+    });
+}
+
 const securityHeaders: Handle = async ({ event, resolve }) => {
-    const response = await resolve(event);
+    const start = Date.now();
+    const route = normaliseRoute(event.url.pathname);
+    const userId = event.locals.user?.id;
+
+    // Resolve the response, catching SvelteKit errors so we can log them
+    // before re-throwing.
+    let response: Response;
+    try {
+        response = await resolve(event);
+    } catch (err: unknown) {
+        const status = (err as { status?: number })?.status ?? 500;
+        const body   = (err as { body?: { message?: string } })?.body;
+        const msg    = body?.message ?? (err instanceof Error ? err.message : 'Unknown error');
+        void trackError(route, status, msg, null, userId);
+        throw err;
+    }
+
+    const durationMs = Date.now() - start;
+
+    // Track the page view. Skip API routes and static assets — those are
+    // high-volume and not useful for the admin analytics overview.
+    if (
+        !building &&
+        !route.startsWith('/api/') &&
+        !route.startsWith('/_app/') &&
+        !route.startsWith('/favicon') &&
+        response.status < 400
+    ) {
+        void trackPageView(route, userId, durationMs);
+    }
+
+    // Log non-2xx/3xx responses that weren't thrown as SvelteKit errors.
+    if (!building && response.status >= 400) {
+        void trackError(route, response.status, `HTTP ${response.status}`, null, userId);
+    }
 
     // Prevent clickjacking
     response.headers.set('X-Frame-Options', 'DENY');
@@ -89,6 +182,15 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
  * Simple in-memory rate limiter for the upload endpoint.
  * Resets on server restart — sufficient for beta with known users.
  * Replace with Redis/Upstash if you need persistence across deploys.
+ *
+ * Vercel serverless caveat: each cold start is a fresh process with an empty Map.
+ * On Vercel's edge/serverless runtime, multiple concurrent instances can run in
+ * parallel and each maintains its own Map independently. This means the effective
+ * limit is per-process-instance, not per-user globally. A determined actor could
+ * bypass the limit by triggering enough cold starts or hitting different instances.
+ * At current scale (invite-only beta, known users) this is acceptable. If abuse
+ * becomes a concern, replace uploadLimits/authLimits with Upstash Redis:
+ *   https://docs.upstash.com/redis — the @upstash/ratelimit package drops in cleanly.
  *
  * Limits:
  *   - Upload endpoint: max 20 requests per user per hour

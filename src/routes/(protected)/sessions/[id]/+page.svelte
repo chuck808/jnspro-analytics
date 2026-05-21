@@ -90,6 +90,7 @@
     // ── Session narrative ──────────────────────────────────────────────────────
     let sessionIntelligence = $derived(performanceAnalysis.intelligence);
     let quality = $derived(performanceAnalysis.selectedRun?.physics?.dataQuality);
+    let techniqueScoreBreakdown = $derived(performanceAnalysis.selectedRun?.technique);
     let totalMassKg = $derived(
         ((data.riderWeight ?? 0) + (data.bikeWeight ?? 0)) > 0
             ? (data.riderWeight ?? 0) + (data.bikeWeight ?? 0) : null
@@ -98,17 +99,31 @@
     let sessionNarrative = $derived.by(() => {
         if (!sessionIntelligence) return null;
         const qualityRating = quality?.badge as any;
+        const techniqueScoreBreakdownForNarrative = techniqueScoreBreakdown;
         return buildSessionNarrative({
-            runCount:              data.runs.length,
-            consistencyScore:      sessionIntelligence.repeatability.overall,
-            reactionCvPercent:     consistency?.cv ?? null,
-            dataQualityRating:     qualityRating ?? null,
-            speedBlocked:          !data.sessionStats.has_valid_speed,
-            powerBlocked:          !totalMassKg,
+            runCount:               data.runs.length,
+            consistencyScore:       sessionIntelligence.repeatability.overall,
+            reactionCvPercent:      consistency?.cv ?? null,
+            dataQualityRating:      qualityRating ?? null,
+            speedBlocked:           !data.sessionStats.has_valid_speed,
+            powerBlocked:           !totalMassKg,
             hasCalibrationWarnings: false,
-            fatigueDetected:       sessionIntelligence.fatigue.trend === 'declining',
-            dropOffRun:            sessionIntelligence.dropOff?.dropOffRun ?? null,
-            bestVsAvgGapPercent:   sessionIntelligence.bestVsAvg?.gapPercent ?? null,
+            fatigueDetected:        sessionIntelligence.fatigue.trend === 'declining',
+            dropOffRun:             sessionIntelligence.dropOff?.dropOffRun ?? null,
+            bestVsAvgGapPercent:    sessionIntelligence.bestVsAvg?.gapPercent ?? null,
+            // Session context — v8.4: these now modulate the narrative output
+            sessionFocus:           (data.session as any).session_focus   ?? null,
+            trackSurface:           (data.session as any).track_surface   ?? null,
+            weatherCondition:       (data.session as any).weather_conditions ?? null,
+            rideFeel:               (data.session as any).ride_feel       ?? null,
+            // Technique scores for focus alignment
+            techniqueScores: techniqueScoreBreakdownForNarrative ? {
+                launchQuality: techniqueScoreBreakdownForNarrative.launchQuality,
+                explosiveness: techniqueScoreBreakdownForNarrative.explosiveness,
+                speedCarry:    techniqueScoreBreakdownForNarrative.speedCarry,
+                smoothness:    techniqueScoreBreakdownForNarrative.smoothness,
+                repeatability: techniqueScoreBreakdownForNarrative.repeatability,
+            } : null,
         });
     });
 

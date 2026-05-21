@@ -80,15 +80,20 @@ export const actions: Actions = {
         const date_of_birth = (form.get('date_of_birth') as string) || null;
         const sex          = (form.get('sex') as string) || null;
 
+        const years_racing  = form.get('years_racing')  ? parseInt(form.get('years_racing') as string)   : null;
+        const dominant_leg  = (form.get('dominant_leg') as string) || null;
+
         const { error } = await supabase
             .from('rider_profiles')
             .insert({
-                user_id:      claimsData.claims.sub,
+                user_id:        claimsData.claims.sub,
                 height_cm,
                 weight_kg,
-                rider_level:  rider_level as 'novice' | 'intermediate' | 'expert' | 'elite' | null,
+                rider_level:    rider_level as 'novice' | 'intermediate' | 'expert' | 'elite' | null,
                 date_of_birth,
-                sex:          sex as 'male' | 'female' | 'prefer_not_to_say' | null,
+                sex:            sex as 'male' | 'female' | 'prefer_not_to_say' | null,
+                years_racing:   years_racing,
+                dominant_leg:   dominant_leg as 'left' | 'right' | 'prefer_not_to_say' | null,
                 effective_from: new Date().toISOString()
             });
 
@@ -156,6 +161,33 @@ export const actions: Actions = {
         }
 
         return { bikeSuccess: true };
+    },
+
+    // Save research consent and participation type
+    saveResearch: async ({ request, locals: { supabase } }) => {
+        const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+        if (claimsError || !claimsData?.claims) return fail(401, { error: 'Not authenticated' });
+
+        const form = await request.formData();
+        const research_consent    = form.get('research_consent') === 'true';
+        const participation_type  = (form.get('participation_type') as string) || null;
+        const races_competitively = form.get('races_competitively') === 'true';
+
+        // Only set consent timestamp when toggling ON; clear it when withdrawing
+        const research_consent_at = research_consent ? new Date().toISOString() : null;
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                participation_type,
+                races_competitively,
+                research_consent,
+                research_consent_at,
+            } as any)
+            .eq('id', claimsData.claims.sub);
+
+        if (error) return fail(500, { researchError: error.message });
+        return { researchSuccess: true };
     },
 
     // Save preferences

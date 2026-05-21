@@ -119,6 +119,15 @@
         </div>
     {/if}
 
+    <!-- Context notes (rideFeel dissonance, focus alignment, conditions, correlation) -->
+    {#if narrative.contextNotes && narrative.contextNotes.length > 0}
+        <div class="space-y-2 border-t border-[color:var(--color-border-tertiary)] pt-3">
+            {#each narrative.contextNotes as note}
+                <p class="text-sm themed-text-secondary leading-relaxed">{note}</p>
+            {/each}
+        </div>
+    {/if}
+
     <!-- Blocked/Caution Metrics -->
     {#if detailLevel === 'coach' && (narrative.trust.blockedMetrics.length > 0 || narrative.trust.cautionMetrics.length > 0)}
         <div class="text-xs space-y-1.5">

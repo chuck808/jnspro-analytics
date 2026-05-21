@@ -325,6 +325,35 @@
                                 {/each}
                             </select>
                         </div>
+
+                        <!-- Years racing -->
+                        <div>
+                            <label for="years_racing" class="block text-xs font-medium text-[#9a8f7a] mb-1.5">
+                                Years racing BMX
+                            </label>
+                            <input id="years_racing" name="years_racing" type="number"
+                                   min="0" max="50" step="1"
+                                   value={data.riderProfile?.years_racing ?? ''}
+                                   placeholder="e.g. 3"
+                                   class="input-field w-full" />
+                            <p class="text-xs text-[#4a4038] mt-1">
+                                Independent of skill level — used for research stratification
+                            </p>
+                        </div>
+
+                        <!-- Dominant leg -->
+                        <div>
+                            <label for="dominant_leg" class="block text-xs font-medium text-[#9a8f7a] mb-1.5">
+                                Lead leg at the gate
+                                <span class="text-[#4a4038] font-normal ml-1">— which leg is forward</span>
+                            </label>
+                            <select id="dominant_leg" name="dominant_leg" class="input-field w-full">
+                                <option value="" disabled selected={!data.riderProfile?.dominant_leg}>Select...</option>
+                                <option value="left"              selected={data.riderProfile?.dominant_leg === 'left'}>Left leg forward</option>
+                                <option value="right"             selected={data.riderProfile?.dominant_leg === 'right'}>Right leg forward</option>
+                                <option value="prefer_not_to_say" selected={data.riderProfile?.dominant_leg === 'prefer_not_to_say'}>Prefer not to say</option>
+                            </select>
+                        </div>
                     </div>
 
                     <button type="submit" disabled={profileSaving} class="btn-primary">
@@ -496,6 +525,70 @@
                     <button type="submit" disabled={bikeSaving} class="btn-primary">
                         {bikeSaving ? 'Saving...' : 'Save bike setup'}
                     </button>
+                </form>
+            </div>
+
+            <!-- Participation type -->
+            <div class="bg-[#131010] border border-[#221c18] rounded-xl p-6">
+                <h3 class="text-base font-semibold text-[#f0ece4] mb-1">Competition & Research</h3>
+                <p class="text-xs text-[#9a8f7a] mb-5">
+                    How you use BMX, and whether your anonymised data can contribute to research.
+                </p>
+
+                <form method="POST" action="?/saveResearch" class="space-y-5">
+
+                    <!-- Participation type -->
+                    <div>
+                        <label for="participation_type" class="block text-xs font-medium text-[#9a8f7a] mb-1.5">
+                            How do you participate in BMX?
+                        </label>
+                        <select id="participation_type" name="participation_type" class="input-field w-full">
+                            <option value="" disabled selected={!data.profile?.participation_type}>Select...</option>
+                            {#each [
+                                { value: 'training_only',  label: 'Training only — not racing competitively' },
+                                { value: 'club_racing',    label: 'Club racing — local club events' },
+                                { value: 'regional',       label: 'Regional — regional or county level' },
+                                { value: 'national',       label: 'National — national series or championships' },
+                                { value: 'international',  label: 'International — UCI World Cups / World Championships' },
+                            ] as opt}
+                                <option value={opt.value} selected={data.profile?.participation_type === opt.value}>
+                                    {opt.label}
+                                </option>
+                            {/each}
+                        </select>
+                        <p class="text-xs text-[#4a4038] mt-1">
+                            Used to group performance thresholds by actual competition level
+                        </p>
+                    </div>
+
+                    <!-- Research consent -->
+                    <div class="border border-[#221c18] rounded-lg p-4 space-y-3">
+                        <div class="flex items-start gap-3">
+                            <input type="checkbox" id="research_consent"
+                                   name="research_consent" value="true"
+                                   checked={data.profile?.research_consent}
+                                   class="mt-0.5 accent-[#f5a623]" />
+                            <div>
+                                <label for="research_consent" class="text-sm font-medium text-[#f0ece4] cursor-pointer">
+                                    Contribute to BMX performance research
+                                </label>
+                                <p class="text-xs text-[#9a8f7a] mt-1 leading-relaxed">
+                                    Allow your anonymised session data — including age category, sex, height,
+                                    weight, bike setup, and performance metrics — to be made available to
+                                    academic researchers studying BMX gate start mechanics and performance.
+                                    Your name and contact details are <strong class="text-[#f0ece4]">never</strong> shared.
+                                    You can withdraw consent at any time.
+                                </p>
+                                {#if data.profile?.research_consent_at}
+                                    <p class="text-xs text-[#4a4038] mt-1">
+                                        Consent given: {new Date(data.profile.research_consent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                    </p>
+                                {/if}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Save</button>
                 </form>
             </div>
 

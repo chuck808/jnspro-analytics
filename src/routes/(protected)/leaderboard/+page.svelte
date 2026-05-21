@@ -59,6 +59,24 @@
         </div>
     </div>
 
+    <!-- Beta notice — leaderboard rankings use live personal bests but cross-rider
+         comparison data is not yet populated. Remove this block once real peer
+         data is flowing and the generateLeaderboard mock is replaced with a DB query. -->
+    <div class="rounded-xl border border-[#f5a623]/40 bg-[#f5a623]/8 px-5 py-4 flex items-start gap-3">
+        <svg class="w-5 h-5 text-[#f5a623] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+            <p class="text-sm font-semibold text-[#f5a623]">Leaderboard in early access</p>
+            <p class="text-sm text-[#9a8f7a] mt-0.5">
+                Your own personal bests and session stats are accurate. Cross-rider rankings will
+                populate as the wider release builds a real comparison pool. Numbers shown against
+                other riders are placeholder data only.
+            </p>
+        </div>
+    </div>
+
     <!-- Opt-in Banner (if not opted in) -->
     {#if !pageData.userOptedIn}
         <div class="bg-gradient-to-r from-[#f5a623]/10 to-[#f5a623]/5 border border-[#f5a623]/30 rounded-xl p-6">

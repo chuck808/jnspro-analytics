@@ -105,6 +105,7 @@ export interface SessionNarrative {
     impact?: string;
     whyThisMatters?: string;
     watchFor?: string;
+    isCoachingHeadline?: true;
   };
   insights?: NarrativeInsight[];
   trust?: {
@@ -115,6 +116,7 @@ export interface SessionNarrative {
     cautionMetrics?: string[];
     blockedMetrics?: string[];
   };
+  contextNotes?: string[];
 }
 
 export interface ProgressRecommendation {

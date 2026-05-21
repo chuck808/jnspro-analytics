@@ -52,17 +52,17 @@
         {#each [
             {
                 label: 'Avg Page Load',
-                value: `${data.performanceMetrics.avgPageLoad}s`,
-                sub: `p95: ${data.performanceMetrics.p95PageLoad}s`,
+                value: data.performanceMetrics.avgPageLoad != null ? `${data.performanceMetrics.avgPageLoad.toFixed(2)}s` : '—',
+                sub: data.performanceMetrics.p95PageLoad != null ? `p95: ${data.performanceMetrics.p95PageLoad.toFixed(2)}s` : 'p95: —',
                 icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-                color: data.performanceMetrics.avgPageLoad < 2 ? '#3de8c8' : '#f5a623'
+                color: data.performanceMetrics.avgPageLoad != null && data.performanceMetrics.avgPageLoad < 2 ? '#3de8c8' : '#f5a623'
             },
             {
-                label: 'API Response',
-                value: `${data.performanceMetrics.avgApiResponse}ms`,
-                sub: `p95: ${data.performanceMetrics.p95ApiResponse}ms`,
+                label: 'Requests (24h)',
+                value: data.performanceMetrics.requestCount,
+                sub: data.performanceMetrics.p50PageLoad != null ? `p50: ${data.performanceMetrics.p50PageLoad.toFixed(2)}s` : 'p50: —',
                 icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-                color: data.performanceMetrics.avgApiResponse < 300 ? '#3de8c8' : '#f5a623'
+                color: '#f5a623'
             },
             {
                 label: 'Total Users',
