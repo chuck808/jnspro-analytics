@@ -18,6 +18,7 @@
  */
 
 import type { SessionNarrative, CoachMessage, TrustContext, ConfidenceLevel } from './language/types';
+import type { SessionIntelligenceReport } from './sessionIntelligence';
 import {
   HEADLINES, IMPACTS, WHY_MATTERS, ACTIONS, WATCH_FOR,
   buildRideFeelNote, buildFocusAlignmentNote, buildConditionsNote,
@@ -60,6 +61,11 @@ export interface SessionNarrativeInput {
   // ── Correlation hints from analytics engine ───────────────────────────────
   // Passed when the analytics page has established patterns across sessions.
   // Empty array or absent = no correlation note generated.
+  // ── Session intelligence report ──────────────────────────────────────────────
+  // When provided, fatigueDetected / dropOffRun / bestVsAvgGapPercent are
+  // resolved from the report directly. The flat fields are kept as fallbacks.
+  intelligenceReport?: import('./sessionIntelligence').SessionIntelligenceReport | null;
+
   correlationHints?:  CorrelationHint[];
 }
 
@@ -67,6 +73,12 @@ export interface SessionNarrativeInput {
  * Build a session narrative from session data and context.
  */
 export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarrative {
+  // Resolve intelligence fields — prefer the report when provided
+  const intel = input.intelligenceReport ?? null;
+  const fatigueDetected = input.fatigueDetected ?? (intel?.fatigue.trend === 'declining');
+  const dropOffRun      = input.dropOffRun      ?? intel?.dropOff?.dropOffRun   ?? null;
+  const bestVsAvgGapPct = input.bestVsAvgGapPercent ?? intel?.bestVsAvg?.gapPercent ?? null;
+
   const warnings:        string[] = [];
   const trustedMetrics:  string[] = ['reaction time'];
   const cautionMetrics:  string[] = [];
@@ -163,7 +175,7 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
     };
   }
   // Priority 3: Fatigue detected
-  else if (input.fatigueDetected && input.dropOffRun) {
+  else if (fatigueDetected && dropOffRun) {
     message = {
       headline:           HEADLINES.fatigue,
       impact:             IMPACTS.fatigueDetected,
@@ -174,7 +186,7 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
       priority:           'important',
       isCoachingHeadline: true,
     };
-    warnings.push(`Quality dropped at run ${input.dropOffRun}`);
+    warnings.push(`Quality dropped at run ${dropOffRun}`);
   }
   // Priority 4: Poor consistency
   // CV threshold of 12% is the trigger, but requires confirmation from
@@ -216,7 +228,7 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
     }
   }
   // Priority 5: Wide best-vs-avg gap
-  else if (input.bestVsAvgGapPercent && input.bestVsAvgGapPercent > 15) {
+  else if (bestVsAvgGapPct && bestVsAvgGapPct > 15) {
     message = {
       headline:           HEADLINES.peaksWithoutRepeatability,
       impact:             IMPACTS.gapWide,
@@ -276,7 +288,7 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
     const feelNote = buildRideFeelNote({
       feel:            input.rideFeel as RideFeel,
       consistency:     band,
-      fatigueDetected: input.fatigueDetected ?? false,
+      fatigueDetected: fatigueDetected,
     });
     if (feelNote) contextNotes.push(feelNote);
   }
@@ -333,10 +345,82 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
     if (correlationNote) contextNotes.push(correlationNote);
   }
 
+  // ── Recommendations ──────────────────────────────────────────────────────────
+  // Single unified list derived from the primary message and intelligence report.
+  // Replaces the string[] that sessionIntelligence.ts used to produce separately.
+  const recommendations = buildRecommendations(message, intel, input.consistencyScore);
+
   return {
     message,
     trust,
     warnings,
     contextNotes,
+    recommendations,
   };
+}
+
+function buildRecommendations(
+  message: CoachMessage,
+  intel:   SessionIntelligenceReport | null,
+  consistencyScore: number | null | undefined
+): Array<{ id: string; title: string; body: string; priority: 'high' | 'medium' | 'low' }> {
+  const recs: Array<{ id: string; title: string; body: string; priority: 'high' | 'medium' | 'low' }> = [];
+
+  // Primary recommendation always comes from the message action
+  if (message.action) {
+    recs.push({
+      id:       'primary',
+      title:    message.priority === 'critical' ? 'Calibration required' :
+                message.priority === 'important' ? 'Address fatigue'    :
+                message.priority === 'watch'     ? 'Focus area'         : 'Session focus',
+      body:     message.action,
+      priority: message.priority === 'critical' || message.priority === 'important' ? 'high' : 'medium',
+    });
+  }
+
+  // Intelligence-derived recommendations
+  if (intel) {
+    if (intel.bestVsAvg?.consistencyType === 'inconsistent') {
+      recs.push({
+        id:       'repeatability',
+        title:    'Build repeatability',
+        body:     'You are producing occasional standout runs but not consistently. Focus on repeatable execution rather than chasing peaks.',
+        priority: 'medium',
+      });
+    }
+
+    if (intel.dropOff?.dropOffRun) {
+      recs.push({
+        id:       'set-length',
+        title:    'Manage set length',
+        body:     `Quality dropped at run ${intel.dropOff.dropOffRun}. Consider stopping sets at run ${intel.dropOff.dropOffRun - 1} to avoid reinforcing degraded patterns.`,
+        priority: 'medium',
+      });
+    }
+
+    if (intel.fatigue.trend === 'improving') {
+      recs.push({
+        id:       'warm-up',
+        title:    'Warm-up progression working',
+        body:     'Performance improved through the session — your warm-up approach is effective. Keep the same structure next time.',
+        priority: 'low',
+      });
+    }
+
+    if (intel.repeatability.overall > 80 && intel.fatigue.trend === 'stable' && !intel.dropOff) {
+      recs.push({
+        id:       'maintain',
+        title:    'Maintain current approach',
+        body:     'Session quality was high and consistent throughout. No changes needed — repeat this structure.',
+        priority: 'low',
+      });
+    }
+  }
+
+  // Deduplicate and cap at 4
+  const seen = new Set<string>();
+  return recs
+    .filter(r => { const k = r.title.toLowerCase().slice(0, 25); if (seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0, 4)
+    .map((r, i) => ({ ...r, id: `rec-${i}` }));
 }

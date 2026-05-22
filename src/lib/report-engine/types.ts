@@ -117,6 +117,7 @@ export interface SessionNarrative {
     blockedMetrics?: string[];
   };
   contextNotes?: string[];
+  recommendations?: Array<{ id: string; title: string; body: string; priority: 'high' | 'medium' | 'low' }>;
 }
 
 export interface ProgressRecommendation {

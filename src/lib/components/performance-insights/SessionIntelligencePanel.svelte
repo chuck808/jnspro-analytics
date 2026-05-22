@@ -1,14 +1,34 @@
 <script lang="ts">
   import type { SessionIntelligenceReport } from '$lib/performance-engine/sessionIntelligence';
+  import type { SessionNarrative } from '$lib/performance-engine/language/types';
   import { submitInsightFeedback } from '$lib/utils/submitInsightFeedback';
 
   interface Props {
-    report: SessionIntelligenceReport;
+    report:      SessionIntelligenceReport;
+    narrative?:  SessionNarrative | null;
     detailLevel?: 'grom' | 'rider' | 'elite' | 'coach';
-    sessionId?: string;
+    sessionId?:  string;
   }
 
-  let { report, detailLevel = 'rider', sessionId }: Props = $props();
+  let { report, narrative = null, detailLevel = 'rider', sessionId }: Props = $props();
+
+  // v8.5: headline and recommendations come from the narrative when available.
+  // Falls back to generic strings derived from the intelligence report so the
+  // panel still renders sensibly when narrative is not passed.
+  const displayHeadline = $derived(
+    narrative?.message?.headline ??
+    (report.dropOff
+      ? `Quality drops at run ${report.dropOff.dropOffRun}`
+      : report.fatigue.trend === 'declining'
+        ? 'Performance drops across the set'
+        : report.repeatability.overall > 80
+          ? 'Consistent session'
+          : 'Mixed session quality')
+  );
+
+  const displayRecommendations = $derived(
+    narrative?.recommendations ?? []
+  );
 
   // Feedback state
   let feedbackSubmitted = $state(false);
@@ -21,7 +41,7 @@
 
     const result = await submitInsightFeedback({
       insightType: 'session-intelligence',
-      content: report.headline,
+      content: displayHeadline,
       response,
       detailLevel,
       sessionId,
@@ -66,7 +86,7 @@
 <section class="intelligence-panel">
   <div class="panel-header">
     <h3>Session Intelligence</h3>
-    <p>{report.headline}</p>
+    <p>{displayHeadline}</p>
   </div>
 
   <div class="metrics-grid">
@@ -121,12 +141,17 @@
     </div>
   {/if}
 
-  {#if report.recommendations.length > 0}
+  {#if displayRecommendations.length > 0}
     <div class="recommendations">
-      <h4>Recommendations</h4>
+      <h4>Focus areas</h4>
       <ul>
-        {#each report.recommendations as recommendation}
-          <li>{recommendation}</li>
+        {#each displayRecommendations as rec}
+          <li>
+            <strong>{rec.title}</strong>
+            {#if rec.body !== rec.title}
+              — {rec.body}
+            {/if}
+          </li>
         {/each}
       </ul>
     </div>

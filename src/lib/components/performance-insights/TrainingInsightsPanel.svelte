@@ -28,21 +28,25 @@
    * - technique → outcome links
    */
 
+  import type { SessionNarrative } from '$lib/performance-engine/language/types';
+
   interface Props {
-    sessionReport: any;
+    sessionReport:       any;
+    narrative?:          SessionNarrative | null;
     crossSessionReport?: any | null;
-    runs?: any[];
-    detailLevel?: 'grom' | 'rider' | 'elite' | 'coach';
+    runs?:               any[];
+    detailLevel?:        'grom' | 'rider' | 'elite' | 'coach';
     showSessionSection?: boolean;
     showProgressSection?: boolean;
     showTechniqueSection?: boolean;
-    showCoachDetail?: boolean;
-    sessionTitle?: string;
-    progressTitle?: string;
+    showCoachDetail?:    boolean;
+    sessionTitle?:       string;
+    progressTitle?:      string;
   }
 
   let {
     sessionReport,
+    narrative = null,
     crossSessionReport = null,
     runs = [],
     detailLevel = 'rider',
@@ -91,7 +95,7 @@
         </span>
       </div>
 
-      <SessionIntelligencePanel report={sessionReport} />
+      <SessionIntelligencePanel report={sessionReport} {narrative} />
     </section>
   {/if}
 

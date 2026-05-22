@@ -1,8 +1,7 @@
 <script lang="ts">
     import { getContext } from 'svelte';
     import type { LayoutData } from './$types';
-    import SessionContextEditor from '$lib/components/SessionContextEditor.svelte';
-    import type { WeatherCondition, TrackSurface, SessionFocus, RideFeel } from '$lib/types/sessionContext';
+    import SessionSetupStrip from '$lib/components/SessionSetupStrip.svelte';
     import CrossRunProgression from '$lib/components/CrossRunProgression.svelte';
     import SessionNarrativeCard from '$lib/components/performance-insights/SessionNarrativeCard.svelte';
     import StrengthsLimiters from '$lib/components/session/StrengthsLimiters.svelte';
@@ -18,7 +17,8 @@
     let uciCategory        = $derived(ctx.uciCategory);
     let performanceAnalysis = $derived(ctx.performanceAnalysis);
     let consistency        = $derived(ctx.consistency);
-    let insightPack        = $derived(ctx.insightPack);
+    let insightPack             = $derived(ctx.insightPack);
+    let techniqueScoreBreakdown = $derived(ctx.techniqueScoreBreakdown);
 
     // ── Formatting helpers ─────────────────────────────────────────────────────
     function fmt(n: number | null | undefined, dec = 2, suf = '') {
@@ -90,7 +90,6 @@
     // ── Session narrative ──────────────────────────────────────────────────────
     let sessionIntelligence = $derived(performanceAnalysis.intelligence);
     let quality = $derived(performanceAnalysis.selectedRun?.physics?.dataQuality);
-    let techniqueScoreBreakdown = $derived(performanceAnalysis.selectedRun?.technique);
     let totalMassKg = $derived(
         ((data.riderWeight ?? 0) + (data.bikeWeight ?? 0)) > 0
             ? (data.riderWeight ?? 0) + (data.bikeWeight ?? 0) : null
@@ -99,7 +98,6 @@
     let sessionNarrative = $derived.by(() => {
         if (!sessionIntelligence) return null;
         const qualityRating = quality?.badge as any;
-        const techniqueScoreBreakdownForNarrative = techniqueScoreBreakdown;
         return buildSessionNarrative({
             runCount:               data.runs.length,
             consistencyScore:       sessionIntelligence.repeatability.overall,
@@ -108,21 +106,20 @@
             speedBlocked:           !data.sessionStats.has_valid_speed,
             powerBlocked:           !totalMassKg,
             hasCalibrationWarnings: false,
-            fatigueDetected:        sessionIntelligence.fatigue.trend === 'declining',
-            dropOffRun:             sessionIntelligence.dropOff?.dropOffRun ?? null,
-            bestVsAvgGapPercent:    sessionIntelligence.bestVsAvg?.gapPercent ?? null,
-            // Session context — v8.4: these now modulate the narrative output
-            sessionFocus:           (data.session as any).session_focus   ?? null,
-            trackSurface:           (data.session as any).track_surface   ?? null,
+            // v8.5: pass the full intelligence report — narrative resolves
+            // fatigueDetected, dropOffRun, bestVsAvgGapPercent from it directly
+            intelligenceReport:     sessionIntelligence,
+            // Session context
+            sessionFocus:           (data.session as any).session_focus      ?? null,
+            trackSurface:           (data.session as any).track_surface      ?? null,
             weatherCondition:       (data.session as any).weather_conditions ?? null,
-            rideFeel:               (data.session as any).ride_feel       ?? null,
-            // Technique scores for focus alignment
-            techniqueScores: techniqueScoreBreakdownForNarrative ? {
-                launchQuality: techniqueScoreBreakdownForNarrative.launchQuality,
-                explosiveness: techniqueScoreBreakdownForNarrative.explosiveness,
-                speedCarry:    techniqueScoreBreakdownForNarrative.speedCarry,
-                smoothness:    techniqueScoreBreakdownForNarrative.smoothness,
-                repeatability: techniqueScoreBreakdownForNarrative.repeatability,
+            rideFeel:               (data.session as any).ride_feel          ?? null,
+            techniqueScores: techniqueScoreBreakdown ? {
+                launchQuality: techniqueScoreBreakdown.launchQuality,
+                explosiveness: techniqueScoreBreakdown.explosiveness,
+                speedCarry:    techniqueScoreBreakdown.speedCarry,
+                smoothness:    techniqueScoreBreakdown.smoothness,
+                repeatability: techniqueScoreBreakdown.repeatability,
             } : null,
         });
     });
@@ -175,14 +172,20 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════
-         SESSION CONTEXT
+         SESSION SETUP — context + run tags + nudge
          ══════════════════════════════════════════════════════ -->
-    <SessionContextEditor
+    <SessionSetupStrip
         sessionId={data.session.id}
-        initialWeather={(data.session as any).weather_conditions as WeatherCondition | null}
-        initialSurface={(data.session as any).track_surface as TrackSurface | null}
-        initialFocus={(data.session as any).session_focus as SessionFocus | null}
-        initialFeel={(data.session as any).ride_feel as RideFeel | null}
+        runs={data.runs.map((r: any) => ({
+            id:         r.id,
+            run_number: r.run_number,
+            tags:       r.tags ?? null,
+            gate_runs:  Array.isArray(r.gate_runs) ? r.gate_runs[0] : r.gate_runs,
+        }))}
+        initialWeather={(data.session as any).weather_conditions ?? null}
+        initialSurface={(data.session as any).track_surface ?? null}
+        initialFocus={(data.session as any).session_focus ?? null}
+        initialFeel={(data.session as any).ride_feel ?? null}
     />
 
     <!-- ══════════════════════════════════════════════════════

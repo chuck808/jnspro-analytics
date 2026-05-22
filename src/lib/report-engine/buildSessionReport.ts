@@ -143,8 +143,14 @@ export function buildCoachSessionReport(
 
     // ── Recommendations ───────────────────────────────────────────────────────
 
+    // v8.5: prefer narrative.recommendations (unified output from buildSessionNarrative).
+    // buildSessionRecommendations() is kept as fallback for call sites that don't
+    // pass a narrative, but the narrative path is now the primary route.
+    const narrativeRecs = narrative?.recommendations ?? [];
     const recommendations = includeRecs
-        ? buildSessionRecommendations(input, detailLevel)
+        ? (narrativeRecs.length > 0
+            ? narrativeRecs
+            : buildSessionRecommendations(input, detailLevel))
         : [];
 
     // ── Charts ────────────────────────────────────────────────────────────────

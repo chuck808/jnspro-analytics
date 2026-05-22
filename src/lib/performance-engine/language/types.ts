@@ -34,6 +34,13 @@ export interface TrustContext {
   blockedMetrics: string[];
 }
 
+export interface SessionNarrativeRecommendation {
+  id:       string;
+  title:    string;
+  body:     string;
+  priority: 'high' | 'medium' | 'low';
+}
+
 export interface SessionNarrative {
   message: CoachMessage;
   trust: TrustContext;
@@ -42,6 +49,9 @@ export interface SessionNarrative {
   // correlation hints. Rendered as a second paragraph after the primary
   // message. Empty when no context was set or nothing meaningful to say.
   contextNotes?: string[];
+  // Unified recommendations — replaces sessionIntelligence.recommendations.
+  // Always produced by buildSessionNarrative; empty array when nothing to say.
+  recommendations: SessionNarrativeRecommendation[];
 }
 
 export interface PhraseOptions {

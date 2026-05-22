@@ -15,6 +15,7 @@
     import { getChartOptions } from '$lib/utils/chartConfig';
     import { gaugeArcPath } from '$lib/utils/svgHelpers';
     import DataQualityBadge from '$lib/components/DataQualityBadge.svelte';
+    import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
 
     let { data }: { data: LayoutData } = $props();
 
@@ -61,7 +62,23 @@
     });
 
     let sessionIntelligence = $derived(performanceAnalysis.intelligence);
-    let crossSessionReport = $derived(ctx.crossSessionReport);
+    let crossSessionReport  = $derived(ctx.crossSessionReport);
+
+    // v8.5: build narrative in analysis page so TrainingInsightsPanel gets
+    // the unified headline and recommendations
+    let sessionNarrative = $derived.by(() => {
+        if (!sessionIntelligence) return null;
+        return buildSessionNarrative({
+            runCount:           data.runs?.length ?? 0,
+            consistencyScore:   sessionIntelligence.repeatability.overall,
+            dataQualityRating:  null,
+            intelligenceReport: sessionIntelligence,
+            sessionFocus:       (data.session as any)?.session_focus      ?? null,
+            trackSurface:       (data.session as any)?.track_surface      ?? null,
+            weatherCondition:   (data.session as any)?.weather_conditions ?? null,
+            rideFeel:           (data.session as any)?.ride_feel          ?? null,
+        });
+    });
 
     // ── Chart canvas refs ──────────────────────────────────────────────────────
     let gChartEl:    HTMLCanvasElement | null = $state(null);
@@ -537,6 +554,7 @@
     {#if sessionIntelligence}
         <TrainingInsightsPanel
             sessionReport={sessionIntelligence}
+            narrative={sessionNarrative}
             crossSessionReport={crossSessionReport}
             runs={data.runs.map((r: any) => ({
                 id: r.id,
