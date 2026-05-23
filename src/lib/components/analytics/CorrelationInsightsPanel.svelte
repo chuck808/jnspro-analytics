@@ -98,7 +98,7 @@
                 <div class="px-5 py-4 hover:bg-[#171210] transition-colors">
                     <button
                         onclick={() => toggleInsight(insight.id)}
-                        class="w-full text-left focus:outline-none focus:ring-2 focus:ring-[#3de8c8] focus:ring-offset-2 focus:ring-offset-[#131010] rounded">
+                        class="w-full text-left focus:outline-none focus:ring-2 focus:ring-[#3de8c8] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)] rounded">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex items-start gap-3 flex-1">
                                 <!-- Priority Icon -->

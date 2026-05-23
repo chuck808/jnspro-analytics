@@ -81,7 +81,7 @@
             <button
                 onclick={() => { selectedIdx = i; onSelect(i); }}
                 class="min-w-[44px] min-h-[44px] flex items-center justify-center
-                    focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#0a0809] rounded"
+                    focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)] rounded"
                 aria-label="Go to run {i + 1}"
                 aria-current={i === selectedIdx ? 'true' : undefined}
             >

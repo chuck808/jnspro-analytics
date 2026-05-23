@@ -429,6 +429,17 @@
     let currentPath = $derived($page.url.pathname);
     let sessionBase = $derived(`/sessions/${data.session.id}`);
 
+    // Top tab bar — underline style inside rounded card
+    function tabClass(path: string) {
+        const active = path === sessionBase
+            ? currentPath === sessionBase
+            : currentPath.startsWith(path);
+        return active
+            ? 'px-4 py-3 text-sm font-semibold themed-accent border-b-2 border-[color:var(--color-jns-amber)] transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[color:var(--color-jns-amber)]/40'
+            : 'px-4 py-3 text-sm font-medium themed-text-secondary hover:themed-text-primary border-b-2 border-transparent transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[color:var(--color-jns-amber)]/40';
+    }
+
+    // Sticky footer pills (compact, used once scrolled)
     function navClass(path: string) {
         const active = path === sessionBase
             ? currentPath === sessionBase
@@ -439,15 +450,26 @@
     }
 </script>
 
+<!-- ══════════════════════════════════════════════════════
+     OPTION A: UNDERLINE TAB BAR — always visible below header
+     ══════════════════════════════════════════════════════ -->
+<div class="bg-[color:var(--theme-surface)] border border-[color:var(--theme-border)] rounded-xl mb-5">
+    <nav class="flex items-center px-1" aria-label="Session sections">
+        <a href="{sessionBase}"          class="{tabClass(sessionBase)}">Overview</a>
+        <a href="{sessionBase}/analysis" class="{tabClass(`${sessionBase}/analysis`)}">Analysis</a>
+        <a href="{sessionBase}/detail"   class="{tabClass(`${sessionBase}/detail`)}">Deep Dive</a>
+    </nav>
+</div>
+
 <div class="pb-20">
     {@render children()}
 </div>
 
 <!-- ══════════════════════════════════════════════════════
-     STICKY FOOTER
+     STICKY FOOTER — always visible, gives run context + report shortcut
      ══════════════════════════════════════════════════════ -->
 {#if scrolled}
-    <div class="fixed bottom-0 left-0 right-0 z-40 bg-[color:var(--card)]/95 backdrop-blur-sm border-t border-[color:var(--border)] shadow-lg">
+    <div class="fixed bottom-0 left-0 right-0 z-40 bg-[color:var(--theme-surface)]/95 backdrop-blur-sm border-t border-[color:var(--theme-border)] shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
             <div class="flex items-center justify-between gap-4">
 

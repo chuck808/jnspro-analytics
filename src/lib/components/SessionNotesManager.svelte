@@ -136,7 +136,7 @@
                        focus:outline-none focus:ring-2 focus:ring-[#f5a623]
                        {activeTab === noteType
                            ? 'bg-[#131010] text-[#f0ece4] border border-[#221c18]'
-                           : 'text-[#9a8f7a] hover:text-[#f0ece4] hover:bg-[#131010]/50'}">
+                           : 'text-[#9a8f7a] hover:text-[#f0ece4] hover:bg-[color:var(--theme-surface)]/50'}">
                 <span>{config.icon}</span>
                 <span>{config.label}</span>
                 {#if count > 0}
@@ -263,7 +263,7 @@
                             <div class="flex items-center gap-1">
                                 <button
                                     onclick={() => startEdit(note)}
-                                    class="p-1.5 rounded text-[#9a8f7a] hover:text-[#f0ece4] hover:bg-[#131010]
+                                    class="p-1.5 rounded text-[#9a8f7a] hover:text-[#f0ece4] hover:bg-[color:var(--theme-surface)]
                                            transition-colors focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
                                     title="Edit note">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,7 +280,7 @@
                                                 e.preventDefault();
                                             }
                                         }}
-                                        class="p-1.5 rounded text-[#9a8f7a] hover:text-[#ff4444] hover:bg-[#131010]
+                                        class="p-1.5 rounded text-[#9a8f7a] hover:text-[#ff4444] hover:bg-[color:var(--theme-surface)]
                                                transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff4444]"
                                         title="Delete note">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

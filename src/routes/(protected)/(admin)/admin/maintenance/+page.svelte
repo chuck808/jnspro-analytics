@@ -221,7 +221,7 @@
                         <div class="flex gap-2">
                             <button
                                 onclick={() => toggleSchedule(schedule.id, schedule.is_active ?? false)}
-                                class="px-3 py-1.5 text-xs bg-[#0a0809] hover:bg-[#131010] border border-[#221c18]
+                                class="px-3 py-1.5 text-xs bg-[#0a0809] hover:bg-[color:var(--theme-surface)] border border-[#221c18]
                                        text-[#f0ece4] rounded-lg transition-colors"
                                 title={schedule.is_active ? 'Disable' : 'Enable'}
                             >
@@ -276,7 +276,7 @@
                 <a
                     href="/maintenance"
                     target="_blank"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-[#0a0809] hover:bg-[#131010] border border-[#221c18]
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-[#0a0809] hover:bg-[color:var(--theme-surface)] border border-[#221c18]
                            text-[#f0ece4] text-sm rounded-lg transition-colors"
                 >
                     Preview Maintenance Page

@@ -17,7 +17,7 @@
     class="inline-flex items-center justify-center w-6 h-6 rounded-full
            text-[#6b5f4d] hover:text-[#f5a623] hover:bg-[#f5a623]/10
            transition-colors focus:outline-none focus:ring-2 focus:ring-[#f5a623]
-           focus:ring-offset-1 focus:ring-offset-[#131010] {extraClass}"
+           focus:ring-offset-1 focus:ring-offset-[color:var(--theme-surface)] {extraClass}"
 >
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

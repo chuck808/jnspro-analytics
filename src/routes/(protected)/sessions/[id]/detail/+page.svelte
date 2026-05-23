@@ -274,7 +274,7 @@
             onclick={() => showComparison = true}
             class="w-full bg-[#131010] border border-[#221c18] hover:border-[#3de8c8]/40 rounded-xl p-5
                    transition-colors text-left group
-                   focus:outline-none focus:ring-2 focus:ring-[#3de8c8] focus:ring-offset-2 focus:ring-offset-[#0a0809]">
+                   focus:outline-none focus:ring-2 focus:ring-[#3de8c8] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-[#3de8c8]/10 flex items-center justify-center group-hover:bg-[#3de8c8]/20 transition-colors">
@@ -309,7 +309,7 @@
         onclick={() => ctx.openReport()}
         class="w-full bg-[#131010] border border-[#221c18] hover:border-[#f5a623]/40 rounded-xl p-5
                transition-colors text-left group
-               focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#0a0809]">
+               focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]">
         <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-[#f5a623]/10 flex items-center justify-center group-hover:bg-[#f5a623]/20 transition-colors">

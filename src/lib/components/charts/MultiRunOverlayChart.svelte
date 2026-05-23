@@ -67,6 +67,13 @@
     });
 
     async function renderChart() {
+        const cssVars     = getComputedStyle(document.documentElement);
+        const themeGrid   = cssVars.getPropertyValue('--theme-border').trim()         || '#221c18';
+        const themeTick   = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
+        const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim()    || '#6b5f4d';
+        const themeBg     = cssVars.getPropertyValue('--theme-bg').trim()             || '#0a0809';
+        const themeSurface = cssVars.getPropertyValue('--theme-surface').trim()       || '#131010';
+        const themeText   = cssVars.getPropertyValue('--theme-text-primary').trim()   || '#f0ece4';
         if (!chartCanvas || runs.length === 0) return;
 
         // Destroy existing chart
@@ -121,7 +128,7 @@
                         display: true,
                         position: 'top',
                         labels: {
-                            color: '#9a8f7a',
+                            color: themeTick,
                             font: {
                                 size: 11,
                                 family: 'Inter, system-ui, sans-serif',
@@ -132,10 +139,10 @@
                         },
                     },
                     tooltip: {
-                        backgroundColor: '#131010',
-                        titleColor: '#f0ece4',
-                        bodyColor: '#9a8f7a',
-                        borderColor: '#221c18',
+                        backgroundColor: themeSurface,
+                        titleColor: themeText,
+                        bodyColor: themeTick,
+                        borderColor: themeGrid,
                         borderWidth: 1,
                         padding: 10,
                         displayColors: true,
@@ -153,17 +160,17 @@
                         title: {
                             display: true,
                             text: 'Time (s)',
-                            color: '#9a8f7a',
+                            color: themeTick,
                             font: {
                                 size: 11,
                                 family: 'Inter, system-ui, sans-serif',
                             },
                         },
                         grid: {
-                            color: '#221c18',
+                            color: themeGrid,
                         },
                         ticks: {
-                            color: '#9a8f7a',
+                            color: themeTick,
                             font: {
                                 size: 10,
                             },
@@ -174,17 +181,17 @@
                         title: {
                             display: true,
                             text: `${metricConfig[metric].label} (${metricConfig[metric].unit})`,
-                            color: '#9a8f7a',
+                            color: themeTick,
                             font: {
                                 size: 11,
                                 family: 'Inter, system-ui, sans-serif',
                             },
                         },
                         grid: {
-                            color: '#221c18',
+                            color: themeGrid,
                         },
                         ticks: {
-                            color: '#9a8f7a',
+                            color: themeTick,
                             font: {
                                 size: 10,
                             },

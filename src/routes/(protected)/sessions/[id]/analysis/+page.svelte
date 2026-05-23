@@ -95,8 +95,13 @@
         const amber    = '#f5a623';
         const speed    = '#ff6b3d';
         const teal     = '#3de8c8';
-        const darkGrid = '#221c18';
-        const darkTick = '#9a8f7a';
+        const cssVars    = getComputedStyle(document.documentElement);
+        const themeGrid  = cssVars.getPropertyValue('--theme-border').trim()         || '#221c18';
+        const themeTick  = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
+        const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim()   || '#6b5f4d';
+        const themeBg    = cssVars.getPropertyValue('--theme-bg').trim()             || '#0a0809';
+        const themeSurface = cssVars.getPropertyValue('--theme-surface').trim()      || '#131010';
+        const themeText  = cssVars.getPropertyValue('--theme-text-primary').trim()   || '#f0ece4';
         const baseOpts = getChartOptions(isMobile);
         const labels   = curve.times.map((t: number) => t.toFixed(2));
 
@@ -107,8 +112,8 @@
                     borderColor: amber, backgroundColor: `${amber}15`,
                     borderWidth: 1.5, fill: true, tension: 0.3, pointRadius: 0 }] },
                 options: { ...baseOpts, scales: { ...baseOpts.scales,
-                    x: { ...baseOpts.scales?.x, title: { display: !isMobile, text: 'Time (s)', color: darkTick } },
-                    y: { ...baseOpts.scales?.y, title: { display: !isMobile, text: 'G-force', color: darkTick } }
+                    x: { ...baseOpts.scales?.x, title: { display: !isMobile, text: 'Time (s)', color: themeTick } },
+                    y: { ...baseOpts.scales?.y, title: { display: !isMobile, text: 'G-force', color: themeTick } }
                 }} as any
             });
             chartInstances.push(c);
@@ -122,10 +127,10 @@
                     { label: 'Accel (G)',    data: chartData,    borderColor: `${amber}80`, borderWidth: 1, fill: false, tension: 0.3, pointRadius: 0, yAxisID: 'y-accel' }
                 ]},
                 options: { ...baseOpts,
-                    plugins: { ...baseOpts.plugins, legend: { display: !isMobile, labels: { color: darkTick, boxWidth: 12, font: { size: 11 } } } },
+                    plugins: { ...baseOpts.plugins, legend: { display: !isMobile, labels: { color: themeTick, boxWidth: 12, font: { size: 11 } } } },
                     scales: {
-                        x:         { ...baseOpts.scales?.x, title: { display: !isMobile, text: 'Time (s)', color: darkTick } },
-                        'y-speed': { type: 'linear', position: 'left',  grid: { color: darkGrid }, ticks: { color: speed }, title: { display: !isMobile, text: 'Speed (km/h)', color: speed } },
+                        x:         { ...baseOpts.scales?.x, title: { display: !isMobile, text: 'Time (s)', color: themeTick } },
+                        'y-speed': { type: 'linear', position: 'left',  grid: { color: themeGrid }, ticks: { color: speed }, title: { display: !isMobile, text: 'Speed (km/h)', color: speed } },
                         'y-accel': { type: 'linear', position: 'right', grid: { display: false },  ticks: { color: amber }, title: { display: !isMobile, text: 'Accel (G)',    color: amber } }
                     }
                 } as any
@@ -141,8 +146,8 @@
                     borderColor: teal, backgroundColor: `${teal}10`,
                     borderWidth: 1.5, fill: true, tension: 0.2, pointRadius: 0 }] },
                 options: { ...baseOpts, scales: { ...baseOpts.scales,
-                    x: { ...baseOpts.scales?.x, title: { display: !isMobile, text: 'Time (s)', color: darkTick } },
-                    y: { ...baseOpts.scales?.y, title: { display: !isMobile, text: 'Jerk (m/s³)', color: darkTick } }
+                    x: { ...baseOpts.scales?.x, title: { display: !isMobile, text: 'Time (s)', color: themeTick } },
+                    y: { ...baseOpts.scales?.y, title: { display: !isMobile, text: 'Jerk (m/s³)', color: themeTick } }
                 }} as any
             });
             chartInstances.push(c);

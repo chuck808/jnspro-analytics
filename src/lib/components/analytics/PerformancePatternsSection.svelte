@@ -30,6 +30,13 @@
     }
 
     async function renderCharts() {
+        const cssVars     = getComputedStyle(document.documentElement);
+        const themeGrid   = cssVars.getPropertyValue('--theme-border').trim()         || '#221c18';
+        const themeTick   = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
+        const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim()    || '#6b5f4d';
+        const themeBg     = cssVars.getPropertyValue('--theme-bg').trim()             || '#0a0809';
+        const themeSurface = cssVars.getPropertyValue('--theme-surface').trim()       || '#131010';
+        const themeText   = cssVars.getPropertyValue('--theme-text-primary').trim()   || '#f0ece4';
         if (sessions.length < 3) return;
         
         const { Chart, registerables } = await import('chart.js');
@@ -38,7 +45,6 @@
         chartInstances.forEach(c => c.destroy());
         chartInstances = [];
 
-        const darkTick = '#9a8f7a';
         const amber = '#f5a623';
         const teal = '#3de8c8';
         const red = '#ff4444';
@@ -52,18 +58,18 @@
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: '#0a0809',
-                    titleColor: '#f0ece4',
-                    bodyColor: '#9a8f7a',
-                    borderColor: '#221c18',
+                    backgroundColor: themeSurface,
+                    titleColor: themeText,
+                    bodyColor: themeTick,
+                    borderColor: themeGrid,
                     borderWidth: 1,
                     padding: 12,
                     displayColors: true
                 }
             },
             scales: {
-                x: { ticks: { color: darkTick, font: { size: isMobile ? 9 : 11 } }, grid: { color: '#221c1840' } },
-                y: { ticks: { color: darkTick, font: { size: isMobile ? 9 : 11 } }, grid: { color: '#221c1840' } }
+                x: { ticks: { color: themeTick, font: { size: isMobile ? 9 : 11 } }, grid: { color: `${themeGrid}40` } },
+                y: { ticks: { color: themeTick, font: { size: isMobile ? 9 : 11 } }, grid: { color: `${themeGrid}40` } }
             }
         };
 
@@ -84,7 +90,7 @@
                         tension: 0.3,
                         pointRadius: isMobile ? 3 : 5,
                         pointBackgroundColor: gapData.map(v => {
-                            if (v === null) return darkTick;
+                            if (v === null) return themeTick;
                             if (v < 5) return teal;
                             if (v < 15) return amber;
                             return red;
@@ -100,7 +106,7 @@
                         y: {
                             ...baseOpts.scales.y,
                             reverse: true, // Lower gap is better
-                            title: { display: !isMobile, text: 'Gap % (lower = better)', color: darkTick }
+                            title: { display: !isMobile, text: 'Gap % (lower = better)', color: themeTick }
                         }
                     }
                 } as any
@@ -119,7 +125,7 @@
                         label: 'Optimal Set Length (runs)',
                         data: setLengthData,
                         backgroundColor: setLengthData.map(v => {
-                            if (v === null) return `${darkTick}60`;
+                            if (v === null) return `${themeTick}60`;
                             if (v >= 8) return `${teal}CC`;
                             if (v >= 5) return `${amber}CC`;
                             return `${red}90`;
@@ -135,7 +141,7 @@
                         y: {
                             ...baseOpts.scales.y,
                             beginAtZero: true,
-                            title: { display: !isMobile, text: 'Runs before fatigue', color: darkTick }
+                            title: { display: !isMobile, text: 'Runs before fatigue', color: themeTick }
                         }
                     }
                 } as any
@@ -160,7 +166,7 @@
                         tension: 0.3,
                         pointRadius: isMobile ? 3 : 5,
                         pointBackgroundColor: dropOffData.map(v => {
-                            if (v === null) return darkTick;
+                            if (v === null) return themeTick;
                             if (v > 8) return teal; // Later is better
                             if (v > 5) return amber;
                             return red;
@@ -176,7 +182,7 @@
                         y: {
                             ...baseOpts.scales.y,
                             beginAtZero: true,
-                            title: { display: !isMobile, text: 'Run number', color: darkTick }
+                            title: { display: !isMobile, text: 'Run number', color: themeTick }
                         }
                     }
                 } as any
@@ -227,7 +233,7 @@
                         ...baseOpts.plugins,
                         legend: {
                             display: !isMobile,
-                            labels: { color: darkTick, boxWidth: 12, font: { size: 11 } }
+                            labels: { color: themeTick, boxWidth: 12, font: { size: 11 } }
                         }
                     },
                     scales: {
@@ -236,7 +242,7 @@
                             type: 'linear' as const,
                             position: 'left' as const,
                             ticks: { color: speed, font: { size: isMobile ? 9 : 11 } },
-                            grid: { color: '#221c1840' },
+                            grid: { color: `${themeGrid}40` },
                             title: { display: !isMobile, text: 'Speed (km/h)', color: speed }
                         },
                         y1: {

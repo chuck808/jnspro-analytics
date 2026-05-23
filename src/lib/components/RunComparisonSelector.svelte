@@ -152,12 +152,12 @@
                 disabled={isDisabled}
                 class="flex flex-col items-center px-3 py-2.5 rounded-lg border text-xs
                        transition-all min-h-[60px] justify-center
-                       focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]
+                       focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]
                        {isSelected
                            ? 'border-[2px]'
                            : isDisabled
                            ? 'bg-[#0a0809] border-[#221c18] text-[#6b5f4d] opacity-50 cursor-not-allowed'
-                           : 'bg-[#0a0809] border-[#221c18] text-[#9a8f7a] hover:border-[#f5a623]/20 hover:bg-[#131010]'}"
+                           : 'bg-[#0a0809] border-[#221c18] text-[#9a8f7a] hover:border-[#f5a623]/20 hover:bg-[color:var(--theme-surface)]'}"
                 style={isSelected && color ? `border-color: ${color}; background: ${color}15; color: ${color}` : ''}>
                 
                 {#if isSelected && color}

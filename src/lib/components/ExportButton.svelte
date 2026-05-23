@@ -32,7 +32,7 @@
     class="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm
            transition-colors disabled:opacity-50 disabled:cursor-not-allowed
            focus:outline-none focus:ring-2 focus:ring-[#f5a623]
-           focus:ring-offset-2 focus:ring-offset-[#0a0809]
+           focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]
            {styles[variant]}"
 >
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

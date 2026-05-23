@@ -111,7 +111,7 @@
                 <button
                     onclick={toggleTable}
                     class="flex items-center gap-2 px-3 py-2 text-xs rounded-lg border transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]
+                           focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]
                            {showTable
                                ? 'bg-[#f5a623]/10 border-[#f5a623]/40 text-[#f5a623]'
                                : 'bg-[#0a0809] border-[#221c18] text-[#9a8f7a] hover:border-[#f5a623]/20'}"
@@ -126,7 +126,7 @@
                     onclick={exportToCSV}
                     class="flex items-center gap-2 px-3 py-2 text-xs rounded-lg border transition-colors
                            bg-[#0a0809] border-[#221c18] text-[#9a8f7a] hover:border-[#f5a623]/20
-                           focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]"
+                           focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>

@@ -80,7 +80,7 @@
                     class="px-4 py-2 text-sm bg-[#0a0809] text-[#9a8f7a] rounded-lg
                            hover:bg-[#171210] hover:text-[#f0ece4] transition-colors
                            focus:outline-none focus:ring-2 focus:ring-[#9a8f7a]
-                           focus:ring-offset-2 focus:ring-offset-[#131010]"
+                           focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]"
                 >
                     {cancelText}
                 </button>
@@ -88,7 +88,7 @@
                     onclick={handleConfirm}
                     class="px-4 py-2 text-sm text-[#0a0809] font-semibold rounded-lg
                            transition-colors focus:outline-none focus:ring-2 
-                           focus:ring-offset-2 focus:ring-offset-[#131010]
+                           focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]
                            {style.bg} {style.hover} {style.ring}"
                 >
                     {confirmText}

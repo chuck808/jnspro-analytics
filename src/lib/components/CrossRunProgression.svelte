@@ -52,8 +52,13 @@
             return typeof val === 'number' ? val / currentMetric.divisor : null;
         });
 
-        const darkGrid = '#221c18';
-        const darkTick = '#9a8f7a';
+        // Read current theme colours from CSS variables so chart responds to light/dark
+        const style       = getComputedStyle(document.documentElement);
+        const themeGrid   = style.getPropertyValue('--theme-border').trim()   || '#221c18';
+        const themeTick   = style.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
+        const themeSurface = style.getPropertyValue('--theme-surface').trim() || '#131010';
+        const themeText   = style.getPropertyValue('--theme-text-primary').trim()   || '#f0ece4';
+        const themeBg     = style.getPropertyValue('--theme-bg').trim()       || '#0a0809';
 
         chartInstance = new Chart(chartEl, {
             type: 'line',
@@ -70,7 +75,7 @@
                     pointRadius: 4,
                     pointHoverRadius: 6,
                     pointBackgroundColor: currentMetric.color,
-                    pointBorderColor: '#0a0809',
+                    pointBorderColor: themeBg,
                     pointBorderWidth: 2,
                 }],
             },
@@ -88,10 +93,10 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#131010',
-                        titleColor: '#f0ece4',
-                        bodyColor: '#9a8f7a',
-                        borderColor: '#221c18',
+                        backgroundColor: themeSurface,
+                        titleColor: themeText,
+                        bodyColor: themeTick,
+                        borderColor: themeGrid,
                         borderWidth: 1,
                         padding: 12,
                         displayColors: false,
@@ -107,19 +112,19 @@
                 },
                 scales: {
                     x: {
-                        grid: { color: darkGrid },
+                        grid: { color: themeGrid },
                         ticks: { 
-                            color: darkTick,
+                            color: themeTick,
                             font: { size: isMobile ? 10 : 11 }
                         },
                         title: { 
                             display: !isMobile, 
                             text: 'Run Number', 
-                            color: darkTick 
+                            color: themeTick 
                         },
                     },
                     y: {
-                        grid: { color: darkGrid },
+                        grid: { color: themeGrid },
                         ticks: { 
                             color: currentMetric.color,
                             font: { size: isMobile ? 10 : 11 },
@@ -175,11 +180,11 @@
     });
 </script>
 
-<div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
+<div class="themed-card rounded-xl p-5">
     <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-            <h3 class="text-sm font-semibold text-[#f0ece4] mb-1">📊 Cross-Run Progression</h3>
-            <p class="text-xs text-[#6b5f4d]">Track performance trends across all runs in this session</p>
+            <h3 class="text-sm font-semibold themed-text-primary mb-1">📊 Cross-Run Progression</h3>
+            <p class="text-xs themed-text-subtle">Track performance trends across all runs in this session</p>
         </div>
         
         <!-- Metric Selector -->
@@ -188,10 +193,10 @@
                 <button
                     onclick={() => selectedMetric = metric.key}
                     class="px-3 py-1.5 text-xs rounded-lg border transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]
+                           focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]
                            {selectedMetric === metric.key
                                ? 'bg-[#f5a623]/10 border-[#f5a623]/40 text-[#f5a623]'
-                               : 'bg-[#0a0809] border-[#221c18] text-[#9a8f7a] hover:border-[#f5a623]/20'}"
+                               : 'themed-nested-card border-[color:var(--theme-border)] themed-text-secondary hover:border-[#f5a623]/20'}"
                 >
                     {metric.label}
                 </button>
@@ -206,7 +211,7 @@
 
     <!-- Trend Insight -->
     {#if trend}
-        <div class="mt-4 flex items-start gap-3 p-3 bg-[#0a0809] rounded-lg border border-[#221c18]">
+        <div class="mt-4 flex items-start gap-3 p-3 themed-nested-card rounded-lg border border-[color:var(--theme-border)]">
             <svg class="w-4 h-4 flex-shrink-0 mt-0.5 {trend.improving ? 'text-[#3de8c8]' : 'text-[#f5a623]'}" 
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {#if trend.improving}
@@ -219,7 +224,7 @@
                 <p class="text-xs font-semibold {trend.improving ? 'text-[#3de8c8]' : 'text-[#f5a623]'} mb-0.5">
                     {trend.improving ? '✓ Improving' : '⚠ Degrading'}
                 </p>
-                <p class="text-xs text-[#9a8f7a]">
+                <p class="text-xs themed-text-secondary">
                     {currentMetric.label} {trend.improving ? 'improved' : 'degraded'} by {trend.percentChange.toFixed(1)}% from first to last run
                     {#if !trend.improving && selectedMetric !== 'techniqueScore'}
                         — possible fatigue detected

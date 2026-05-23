@@ -131,7 +131,7 @@
                class="flex items-center gap-2 px-4 py-2.5 bg-[#f5a623] hover:bg-[#c97e0a]
                       text-[#0a0809] font-semibold text-sm rounded-lg transition-colors
                       min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#f5a623]
-                      focus:ring-offset-2 focus:ring-offset-[#0a0809]">
+                      focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -232,7 +232,7 @@
                class="inline-flex items-center gap-2 px-6 py-3 bg-[#f5a623] hover:bg-[#c97e0a]
                       text-[#0a0809] font-semibold rounded-lg transition-colors text-sm
                       min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#f5a623]
-                      focus:ring-offset-2 focus:ring-offset-[#0a0809]">
+                      focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]">
                 Upload first session
             </a>
         </div>
@@ -281,7 +281,7 @@
                 <div class="relative bg-[#131010] border border-[#221c18] rounded-xl p-5 hover:border-[#f5a623]/30 hover:bg-[#171210] transition-colors group">
                     <a
                         href="/sessions/{session.id}"
-                        class="block focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010] rounded"
+                        class="block focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)] rounded"
                     >
                         <div class="flex items-start justify-between gap-4">
 

@@ -74,7 +74,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <p class="text-[#9a8f7a] leading-snug">
+            <p class="themed-text-secondary leading-snug">
                 <span class="text-[#f5a623] font-medium">Get more accurate analysis</span>
                 — add session context below and tag any warmup runs before reading the summary.
             </p>
@@ -92,17 +92,17 @@
 
     <!-- ── Run tagging strip ─────────────────────────────────────────────── -->
     {#if runs.length > 0}
-        <div class="bg-[#131010] border border-[#221c18] rounded-xl">
+        <div class="themed-card rounded-xl">
 
             <button
                 onclick={() => tagsExpanded = !tagsExpanded}
                 class="w-full flex items-center justify-between px-4 py-3 text-left
-                       hover:bg-[#171210] transition-colors
+                       hover:bg-[color:var(--theme-surface-hover)] transition-colors
                        focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#f5a623]/40"
                 aria-expanded={tagsExpanded}
             >
                 <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-[#9a8f7a]">Tag runs</span>
+                    <span class="text-sm font-medium themed-text-secondary">Tag runs</span>
 
                     <!-- Compact tag summary badges when collapsed -->
                     {#if !tagsExpanded}
@@ -118,17 +118,17 @@
                                 {/if}
                             {/each}
                             {#if !runs.some(r => r.tags && r.tags.length > 0)}
-                                <span class="text-xs text-[#4a4038]">None tagged</span>
+                                <span class="text-xs themed-text-faint">None tagged</span>
                             {/if}
                         </div>
                     {/if}
                 </div>
 
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="text-xs text-[#4a4038]">
+                    <span class="text-xs themed-text-faint">
                         {tagsExpanded ? 'Collapse' : 'Expand'}
                     </span>
-                    <svg class="w-4 h-4 text-[#4a4038] transition-transform duration-200
+                    <svg class="w-4 h-4 themed-text-faint transition-transform duration-200
                                 {tagsExpanded ? 'rotate-180' : ''}"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -138,21 +138,21 @@
             </button>
 
             {#if tagsExpanded}
-                <div class="border-t border-[#221c18] px-4 py-3 space-y-1">
-                    <p class="text-xs text-[#4a4038] mb-3">
+                <div class="border-t border-[color:var(--theme-border)] px-4 py-3 space-y-1">
+                    <p class="text-xs themed-text-faint mb-3">
                         Warmup and excluded runs are removed from session averages, consistency scores,
                         and personal best calculations.
                     </p>
                     <div class="flex flex-wrap gap-2">
                         {#each runs as run}
                             {@const statsTag = getStatsTagLabel(run.tags ?? null)}
-                            <div class="flex items-center gap-2 bg-[#0a0809] border border-[#221c18]
+                            <div class="flex items-center gap-2 themed-nested-card border border-[color:var(--theme-border)]
                                         rounded-lg px-3 py-2 min-w-[80px]">
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-xs font-semibold text-[#f0ece4] leading-none">
+                                    <p class="text-xs font-semibold themed-text-primary leading-none">
                                         Run {run.run_number}
                                     </p>
-                                    <p class="text-[10px] text-[#4a4038] mt-0.5">
+                                    <p class="text-[10px] themed-text-faint mt-0.5">
                                         {fmtReaction(run.gate_runs?.reaction_time_ms)}
                                     </p>
                                     {#if statsTag}

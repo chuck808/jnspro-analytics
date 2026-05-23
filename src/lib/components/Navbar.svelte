@@ -44,7 +44,7 @@
         aria-controls="sidebar"
         class="md:hidden p-2 rounded-lg text-[#9a8f7a] hover:bg-[#221c18]
                hover:text-[#f0ece4] transition-colors
-               focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#0a0809]"
+               focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]"
     >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -67,7 +67,7 @@
             class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#f5a623]
                    hover:bg-[#c97e0a] text-[#0a0809] text-xs font-semibold
                    rounded-lg transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#0a0809]"
+                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]"
         >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -92,7 +92,7 @@
                    border-[#221c18] bg-[#131010] text-[#9a8f7a] text-xs font-medium
                    hover:border-[#ff4444]/40 hover:text-[#ff4444] hover:bg-[#ff4444]/5
                    transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#0a0809]"
+                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]"
         >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

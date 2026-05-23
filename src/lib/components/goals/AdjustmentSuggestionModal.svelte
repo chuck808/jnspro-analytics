@@ -156,7 +156,7 @@
                         <button
                             onclick={() => onApply(suggestion)}
                             class="w-full py-3 px-4 rounded-lg font-medium transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#131010]
+                                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]
                                    {suggestion.priority === 'high' 
                                        ? 'bg-[#ff6b3d] hover:bg-[#ff6b3d]/80 text-white focus:ring-[#ff6b3d]' 
                                        : 'bg-[#f5a623] hover:bg-[#f5a623]/80 text-[#0a0809] focus:ring-[#f5a623]'}"

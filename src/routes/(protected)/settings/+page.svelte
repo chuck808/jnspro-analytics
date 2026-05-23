@@ -372,7 +372,7 @@
         <a href="/goals"
            class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#221c18] hover:bg-[#2a221d]
                   text-[#f0ece4] text-sm font-medium rounded-lg transition-colors min-h-[44px]
-                  focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]">
+                  focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]">
             <svg class="w-4 h-4 text-[#f5a623]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -450,7 +450,7 @@
                 class="px-4 py-2.5 bg-red-900/20 hover:bg-red-900/30 text-red-400
                        border border-red-800/40 rounded-lg text-sm font-medium
                        transition-colors min-h-[44px]
-                       focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#131010]">
+                       focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]">
                 Delete my account
             </button>
         {:else}

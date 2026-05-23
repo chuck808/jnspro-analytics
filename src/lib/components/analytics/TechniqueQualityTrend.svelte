@@ -43,6 +43,13 @@
   });
 
   async function renderChart() {
+    const cssVars     = getComputedStyle(document.documentElement);
+    const themeGrid   = cssVars.getPropertyValue('--theme-border').trim()         || '#221c18';
+    const themeTick   = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
+    const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim()    || '#6b5f4d';
+    const themeBg     = cssVars.getPropertyValue('--theme-bg').trim()             || '#0a0809';
+    const themeSurface = cssVars.getPropertyValue('--theme-surface').trim()       || '#131010';
+    const themeText   = cssVars.getPropertyValue('--theme-text-primary').trim()   || '#f0ece4';
     if (!chartCanvas || data.length === 0) return;
 
     const { Chart, registerables } = await import('chart.js');
@@ -74,7 +81,7 @@
         plugins: {
           legend: {
             display: !isMobile,
-            labels: { color: '#9a8f7a', font: { size: 11 } }
+            labels: { color: themeTick, font: { size: 11 } }
           },
           tooltip: {
             mode: 'index',
@@ -83,13 +90,13 @@
         },
         scales: {
           x: {
-            ticks: { color: '#6b5f4d', maxRotation: 45, font: { size: isMobile ? 9 : 10 } }
+            ticks: { color: themeSubtle, maxRotation: 45, font: { size: isMobile ? 9 : 10 } }
           },
           y: {
             min: 0,
             max: 100,
-            ticks: { color: '#9a8f7a', font: { size: isMobile ? 9 : 10 } },
-            title: { display: !isMobile, text: 'Score / 100', color: '#9a8f7a' }
+            ticks: { color: themeTick, font: { size: isMobile ? 9 : 10 } },
+            title: { display: !isMobile, text: 'Score / 100', color: themeTick }
           }
         }
       }

@@ -150,7 +150,7 @@
             class="w-full py-3 rounded-xl text-sm font-bold transition-all
                    bg-[#f5a623] text-[#0a0809] hover:bg-[#c97e0a]
                    disabled:opacity-50 disabled:cursor-not-allowed
-                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]"
+                   focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)]"
         >
             {generating ? 'Generating…' : 'Generate Report'}
         </button>

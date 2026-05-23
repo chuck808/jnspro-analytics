@@ -205,24 +205,24 @@
                             <div class="flex items-center justify-between gap-4 flex-wrap">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2">
-                                        <p class="text-sm text-[#f0ece4] font-medium">{progress.metricLabel}</p>
+                                        <p class="text-sm themed-text-primary font-medium">{progress.metricLabel}</p>
                                         {#if progress.isSignificant}
                                             <span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#f5a623]/20 text-[#f5a623] border border-[#f5a623]/40">⭐ MILESTONE</span>
                                         {/if}
                                     </div>
-                                    <p class="text-xs text-[#9a8f7a]">
+                                    <p class="text-xs themed-text-secondary">
                                         {progress.improvement} improvement → <span class="text-[#3de8c8] font-semibold">{progress.percentToGoal}%</span> to target
                                     </p>
                                 </div>
                                 <div class="w-24 flex-shrink-0">
-                                    <div class="w-full bg-[#221c18] rounded-full h-2">
+                                    <div class="w-full themed-nested-card rounded-full h-2">
                                         <div class="h-2 rounded-full transition-all bg-[#3de8c8]" style="width:{progress.percentToGoal}%"></div>
                                     </div>
                                 </div>
                             </div>
                         {/each}
                     </div>
-                    <a href="/goals" class="inline-flex items-center gap-1 text-xs text-[#3de8c8] hover:text-[#f0ece4] transition-colors mt-3
+                    <a href="/goals" class="inline-flex items-center gap-1 text-xs text-[#3de8c8] hover:themed-text-primary transition-colors mt-3
                               focus:outline-none focus:ring-2 focus:ring-[#3de8c8] rounded">
                         View all goals
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,10 +241,10 @@
                 </svg>
                 <div>
                     <p class="text-sm font-medium text-[#f5a623] mb-1">Set training goals to track your progress</p>
-                    <p class="text-xs text-[#9a8f7a] mb-2">Create performance targets and automatically track improvements from your sessions.</p>
+                    <p class="text-xs themed-text-secondary mb-2">Create performance targets and automatically track improvements from your sessions.</p>
                     <a href="/goals" class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f5a623] hover:bg-[#c97e0a]
-                              text-[#0a0809] text-xs font-semibold rounded-lg transition-colors
-                              focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#131010]">
+                              text-[color:var(--theme-bg)] text-xs font-semibold rounded-lg transition-colors
+                              focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-bg)]">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
