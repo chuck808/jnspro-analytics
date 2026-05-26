@@ -57,9 +57,9 @@ export const actions: Actions = {
         const { error } = await supabase
             .from('user_preferences')
             .update({
-                email_alerts:     form.get('email_alerts')     === 'true',
-                progress_reports: form.get('progress_reports') === 'true',
-            })
+                show_on_leaderboard: !!form.get('show_on_leaderboard'),
+                share_stats:         !!form.get('share_stats')
+            } as any)
             .eq('user_id', session.user.id);
 
         if (error) {

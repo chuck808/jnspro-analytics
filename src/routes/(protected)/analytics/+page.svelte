@@ -387,42 +387,80 @@
 
                 // Cross-session intelligence — the heart of this report
                 crossSessionReport: crossSessionReport ? {
-                    headline: crossSessionReport.headline ?? null,
-                    summary: null,
-                    overallTrend: crossSessionReport.overallTrend ?? null,
-                    confidence: crossSessionReport.confidence ?? 'medium',
+                    status: crossSessionReport.status ?? 'ready',
+                    sessionCount: crossSessionReport.sessionCount ?? data.sessionCount,
+                    lookbackSessions: crossSessionReport.lookbackSessions ?? data.sessionCount,
+                    headline: crossSessionReport.headline ?? '',
+                    overallTrend: crossSessionReport.overallTrend ?? 'unknown',
+                    confidence: crossSessionReport.confidence ?? 'moderate',
                     warnings: crossSessionReport.warnings ?? [],
                     recommendations: crossSessionReport.recommendations ?? [],
 
                     performance: {
                         reactionTrend: {
-                            direction: crossSessionReport.performance?.reactionTrend?.direction ?? null,
+                            direction: crossSessionReport.performance?.reactionTrend?.direction ?? 'unknown',
                             change: crossSessionReport.performance?.reactionTrend?.change ?? null,
+                            changePercent: crossSessionReport.performance?.reactionTrend?.changePercent ?? null,
+                            recent: crossSessionReport.performance?.reactionTrend?.recent ?? null,
+                            historical: crossSessionReport.performance?.reactionTrend?.historical ?? null,
+                            improving: crossSessionReport.performance?.reactionTrend?.improving ?? false,
                         },
                         speedTrend: {
-                            direction: crossSessionReport.performance?.speedTrend?.direction ?? null,
+                            direction: crossSessionReport.performance?.speedTrend?.direction ?? 'unknown',
                             change: crossSessionReport.performance?.speedTrend?.change ?? null,
+                            changePercent: crossSessionReport.performance?.speedTrend?.changePercent ?? null,
+                            recent: crossSessionReport.performance?.speedTrend?.recent ?? null,
+                            historical: crossSessionReport.performance?.speedTrend?.historical ?? null,
+                            improving: crossSessionReport.performance?.speedTrend?.improving ?? false,
+                        },
+                        peakGTrend: {
+                            direction: crossSessionReport.performance?.peakGTrend?.direction ?? 'unknown',
+                            change: crossSessionReport.performance?.peakGTrend?.change ?? null,
+                            changePercent: crossSessionReport.performance?.peakGTrend?.changePercent ?? null,
+                            recent: crossSessionReport.performance?.peakGTrend?.recent ?? null,
+                            historical: crossSessionReport.performance?.peakGTrend?.historical ?? null,
+                            improving: crossSessionReport.performance?.peakGTrend?.improving ?? false,
                         },
                     },
 
                     consistency: {
                         repeatabilityTrend: {
-                            direction: crossSessionReport.consistency?.repeatabilityTrend?.direction ?? null,
+                            direction: crossSessionReport.consistency?.repeatabilityTrend?.direction ?? 'unknown',
+                            change: crossSessionReport.consistency?.repeatabilityTrend?.change ?? null,
+                            changePercent: crossSessionReport.consistency?.repeatabilityTrend?.changePercent ?? null,
+                            recent: crossSessionReport.consistency?.repeatabilityTrend?.recent ?? null,
+                            historical: crossSessionReport.consistency?.repeatabilityTrend?.historical ?? null,
+                            improving: crossSessionReport.consistency?.repeatabilityTrend?.improving ?? false,
                         },
-                        bestVsAvgGapTrend: {
-                            direction: crossSessionReport.consistency?.bestVsAverageGapTrend?.direction ?? null,
+                        bestVsAverageGapTrend: {
+                            direction: crossSessionReport.consistency?.bestVsAverageGapTrend?.direction ?? 'unknown',
+                            change: crossSessionReport.consistency?.bestVsAverageGapTrend?.change ?? null,
+                            changePercent: crossSessionReport.consistency?.bestVsAverageGapTrend?.changePercent ?? null,
+                            recent: crossSessionReport.consistency?.bestVsAverageGapTrend?.recent ?? null,
+                            historical: crossSessionReport.consistency?.bestVsAverageGapTrend?.historical ?? null,
+                            improving: crossSessionReport.consistency?.bestVsAverageGapTrend?.improving ?? false,
                         },
                     },
 
                     fatigue: {
                         optimalSetLengthTrend: {
-                            direction: crossSessionReport.fatigue?.optimalSetLengthTrend?.direction ?? null,
+                            direction: crossSessionReport.fatigue?.optimalSetLengthTrend?.direction ?? 'unknown',
+                            change: crossSessionReport.fatigue?.optimalSetLengthTrend?.change ?? null,
+                            changePercent: crossSessionReport.fatigue?.optimalSetLengthTrend?.changePercent ?? null,
+                            recent: crossSessionReport.fatigue?.optimalSetLengthTrend?.recent ?? null,
+                            historical: crossSessionReport.fatigue?.optimalSetLengthTrend?.historical ?? null,
+                            improving: crossSessionReport.fatigue?.optimalSetLengthTrend?.improving ?? false,
                         },
                         dropOffTrend: {
-                            direction: crossSessionReport.fatigue?.dropOffTrend?.direction ?? null,
+                            direction: crossSessionReport.fatigue?.dropOffTrend?.direction ?? 'unknown',
+                            change: crossSessionReport.fatigue?.dropOffTrend?.change ?? null,
+                            changePercent: crossSessionReport.fatigue?.dropOffTrend?.changePercent ?? null,
+                            recent: crossSessionReport.fatigue?.dropOffTrend?.recent ?? null,
+                            historical: crossSessionReport.fatigue?.dropOffTrend?.historical ?? null,
+                            improving: crossSessionReport.fatigue?.dropOffTrend?.improving ?? false,
                         },
                     },
-                } : null,
+                } : undefined,
 
                 // Trend percentages from server
                 reactionTrendPercent: reactionTrendPct,

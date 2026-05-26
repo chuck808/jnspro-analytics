@@ -200,10 +200,12 @@ export const actions: Actions = {
         const { error } = await supabase
             .from('user_preferences')
             .update({
-                measurement_unit:    (form.get('measurement_unit') as string) || 'metric',
-                show_on_leaderboard: form.get('show_on_leaderboard') === 'true',
-                share_stats:         form.get('share_stats') === 'true',
-            })
+                measurement_unit:      (form.get('measurement_unit') as string) || 'metric',
+                show_on_leaderboard:   form.get('show_on_leaderboard') === 'true',
+                share_stats:           form.get('share_stats') === 'true',
+                show_profile_icon:     form.get('show_profile_icon') !== 'false',
+                show_background_image: form.get('show_background_image') !== 'false'
+            } as any)
             .eq('user_id', claimsData.claims.sub);
 
         if (error) return fail(500, { prefsError: error.message });

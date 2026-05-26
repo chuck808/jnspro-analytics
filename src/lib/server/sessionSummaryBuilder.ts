@@ -5,6 +5,21 @@
  * Used by both the session detail layout server and the analytics page server
  * so both surfaces always produce identical summary values from the same data.
  *
+ * ── INVARIANT ────────────────────────────────────────────────────────────────
+ * This file is the single source of truth for per-session metric aggregation.
+ * Both routes that consume session summaries MUST call buildSessionSummaries()
+ * from here rather than computing metrics independently:
+ *
+ *   - src/routes/(protected)/analytics/+page.server.ts
+ *   - src/routes/(protected)/sessions/[id]/+layout.server.ts
+ *
+ * If you need a new aggregate metric on the analytics or session detail pages,
+ * add it to SessionSummary and buildSessionSummary() here first. Do NOT
+ * compute session-level aggregates client-side from raw run data — the
+ * cross-session engine consumes these summaries and must receive consistent
+ * values from both call sites.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * Callers are responsible for passing data in the expected shape — the function
  * does no DB access and applies no tag filtering (filter before calling).
  */

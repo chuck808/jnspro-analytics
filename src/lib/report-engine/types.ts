@@ -162,7 +162,7 @@ export interface ProgressReportInput {
     bestPeakSpeedKmh?: number | null;
     bestMaxG?: number | null;
   };
-  crossSessionReport?: any;
+  crossSessionReport?: import('$lib/performance-engine/crossSession/types').CrossSessionReport;
   reactionTrendPercent?: number | null;
   speedTrendPercent?: number | null;
   recommendations?: ReportRecommendation[];

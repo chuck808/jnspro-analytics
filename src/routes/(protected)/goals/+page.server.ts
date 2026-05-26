@@ -129,8 +129,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
     }));
 
     // PHASE 5: Health check (needs to be before goal intelligence for shouldRest flag)
+    // Gated behind 10 sessions — below that, the fatigue and injury risk models have
+    // insufficient data to be meaningful, and false positives get surfaced to riders.
     let healthCheck: ReturnType<typeof performHealthCheck> | null = null;
-    if (sessions && sessions.length >= 3) {
+    if (sessions && sessions.length >= 10) {
         const performanceData = {
             metric: 'reactionTime',
             lowerIsBetter: true,
@@ -154,7 +156,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
                 bestValue: reactions.length > 0 ? Math.min(...reactions) : 0,
                 avgValue: reactions.length > 0 ? reactions.reduce((a, b) => a + b, 0) / reactions.length : 0,
                 consistency: 0, // Simplified for now
-                runCount: eligibleRuns.length
+                runCount: eligibleRuns.length,
+                // Pass sessionFocus so fatigueAnalysis can exclude technique/testing sessions
+                // from consistency-based fatigue detection (mirrors sessionNarrative.ts isTesting guard).
+                sessionFocus: (s as any).session_focus ?? null,
             };
         });
 

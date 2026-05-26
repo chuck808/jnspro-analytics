@@ -29,6 +29,9 @@ interface SessionData {
     avgValue: number;        // Average performance
     consistency: number;     // CV or similar metric
     sessionDuration?: number; // Optional
+    // Optional — when provided, technique/testing sessions are excluded from
+    // consistency-based fatigue detection (intentional variation, not fatigue).
+    sessionFocus?: string | null;
 }
 
 /**
@@ -63,8 +66,15 @@ export function analyzeFatigue(
                         trendIndicator.severity === 'warning' ? 25 : 10;
     }
 
-    // 2. Check for reduced consistency
-    const consistencyIndicator = detectReducedConsistency(sessions, metric);
+    // 2. Check for reduced consistency — exclude technique/testing sessions because
+    //    intentional variation in those sessions is not a fatigue signal. This mirrors
+    //    the same exclusion in sessionNarrative.ts (isTesting guard).
+    const baselineSessions = sessions.filter(s =>
+        s.sessionFocus !== 'testing' && s.sessionFocus !== 'technique'
+    );
+    const consistencyIndicator = baselineSessions.length >= 5
+        ? detectReducedConsistency(baselineSessions, metric)
+        : null;
     if (consistencyIndicator) {
         indicators.push(consistencyIndicator);
         fatigueScore += consistencyIndicator.severity === 'warning' ? 20 : 10;

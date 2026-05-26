@@ -387,6 +387,14 @@
         <HealthStatusDashboard 
             healthCheck={data.healthCheck}
         />
+    {:else if data.sessionCount > 0 && data.sessionCount < 10}
+        <div class="themed-card rounded-xl p-4 text-sm">
+            <p class="themed-text-primary font-medium mb-1">Training health — available at 10 sessions</p>
+            <p class="themed-text-secondary">
+                Fatigue and training load analysis needs enough sessions to distinguish real patterns from normal variation.
+                {10 - data.sessionCount} more session{10 - data.sessionCount === 1 ? '' : 's'} to unlock.
+            </p>
+        </div>
     {/if}
 
     {#if data.sessionCount === 0}

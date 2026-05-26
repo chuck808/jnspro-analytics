@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { PageData, ActionData } from './$types';
     import { getUCICategory, calculateAge } from '$lib/utils/uciCategories';
+    import ImageUpload from '$lib/components/ImageUpload.svelte';
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -56,6 +57,16 @@
     let profileSaving  = $state(false);
     let bikeSaving     = $state(false);
     let prefsSaving    = $state(false);
+    
+    // Image URLs (reactive binding)
+    let profileIconUrl = $state<string | null>(null);
+    let backgroundImageUrl = $state<string | null>(null);
+    
+    // Sync with data when it changes
+    $effect(() => {
+        profileIconUrl = data.profile?.profile_icon_url ?? null;
+        backgroundImageUrl = data.profile?.background_image_url ?? null;
+    });
 
     // Section helpers
     function successFor(key: string) {
@@ -89,6 +100,50 @@
 </svelte:head>
 
 <div class="space-y-6">
+
+    <!-- User Images Section -->
+    <div class="bg-[#131010] border border-[#221c18] rounded-xl p-6">
+        <h3 class="text-base font-semibold text-[#f0ece4] mb-1">Profile Images</h3>
+        <p class="text-xs text-[#9a8f7a] mb-5">
+            Customize your profile with a profile icon and background image
+        </p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Profile Icon -->
+            <ImageUpload
+                type="profile_icon"
+                bind:currentUrl={profileIconUrl}
+                title="Profile Icon"
+                description="Displayed as a circle throughout the app"
+                circular={true}
+                maxSizeMB={5}
+                on:uploaded={() => {
+                    // Refresh the page data after successful upload
+                    window.location.reload();
+                }}
+                on:error={(e: CustomEvent<{ message: string }>) => {
+                    console.error('Profile icon upload error:', e.detail.message);
+                }}
+            />
+            
+            <!-- Background Image -->
+            <ImageUpload
+                type="background_image"
+                bind:currentUrl={backgroundImageUrl}
+                title="Background Image"
+                description="Banner image for your profile header"
+                aspectRatio="16/9"
+                maxSizeMB={5}
+                on:uploaded={() => {
+                    // Refresh the page data after successful upload
+                    window.location.reload();
+                }}
+                on:error={(e: CustomEvent<{ message: string }>) => {
+                    console.error('Background image upload error:', e.detail.message);
+                }}
+            />
+        </div>
+    </div>
 
     <!-- Completeness banner -->
     <div class="themed-card rounded-xl p-5">
@@ -596,7 +651,7 @@
             <div class="bg-[#131010] border border-[#221c18] rounded-xl p-6">
                 <h3 class="text-base font-semibold text-[#f0ece4] mb-1">Privacy & Sharing</h3>
                 <p class="text-xs text-[#9a8f7a] mb-5">
-                    Control what's visible publicly. Leaderboard features are coming soon.
+                    Control what's visible publicly including your profile images.
                 </p>
 
                 {#if successFor('prefsSuccess')}
@@ -657,6 +712,38 @@
                             <p class="text-xs text-[#4a4038] mt-0.5">
                                 Contribute anonymised performance data to help improve
                                 benchmark values for all riders.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Profile icon visibility -->
+                    <div class="flex items-start gap-3 p-4 bg-[#0a0809] border border-[#221c18] rounded-lg">
+                        <input type="checkbox" id="show_profile_icon"
+                               name="show_profile_icon" value="true"
+                               checked={data.prefs?.show_profile_icon ?? true}
+                               class="mt-0.5 accent-[#f5a623]" />
+                        <div>
+                            <label for="show_profile_icon" class="text-sm font-medium text-[#f0ece4] cursor-pointer">
+                                Show profile icon publicly
+                            </label>
+                            <p class="text-xs text-[#4a4038] mt-0.5">
+                                Allow other users to see your profile icon on leaderboards and in shared contexts.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Background image visibility -->
+                    <div class="flex items-start gap-3 p-4 bg-[#0a0809] border border-[#221c18] rounded-lg">
+                        <input type="checkbox" id="show_background_image"
+                               name="show_background_image" value="true"
+                               checked={data.prefs?.show_background_image ?? true}
+                               class="mt-0.5 accent-[#f5a623]" />
+                        <div>
+                            <label for="show_background_image" class="text-sm font-medium text-[#f0ece4] cursor-pointer">
+                                Show background image publicly
+                            </label>
+                            <p class="text-xs text-[#4a4038] mt-0.5">
+                                Allow other users to see your background image when viewing your public profile.
                             </p>
                         </div>
                     </div>

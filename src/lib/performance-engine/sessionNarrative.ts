@@ -148,18 +148,20 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
   }
   // Priority 1b: Unknown data quality
   else if (input.dataQualityRating === 'unknown') {
-    cautionMetrics.push('derived metrics');
+    // List the specific derived metrics that are unreliable, not a vague category label.
+    // These match what the UI renders under "Use with caution:" in SessionNarrativeCard.
+    cautionMetrics.push('speed', 'power', 'peak G');
     message = {
-      headline:           'Data quality unknown — interpret trends with caution',
-      impact:             'Some metrics may not be fully reliable due to unknown calibration state.',
+      headline:           'Data quality unknown — interpret derived metrics with caution',
+      impact:             'Speed, power, and peak G are sensor-estimated values. Without a confirmed calibration state, these may be inaccurate. Reaction time and G-force trigger readings are direct measurements and are still reliable.',
       whyThisMatters:     WHY_MATTERS.calibration,
-      action:             'Use this session for reaction time and technique review. Check sensor placement and calibration.',
+      action:             'Use this session for reaction time and technique review. Check sensor placement and run a calibration session before drawing conclusions from speed or power figures.',
       watchFor:           WATCH_FOR.calibrationImprovement,
       confidence:         'low',
       priority:           'watch',
       isCoachingHeadline: true,
     };
-    warnings.push('Data quality unknown — exercise caution with derived metrics');
+    warnings.push('Data quality unknown — speed, power, and peak G may be unreliable. Reaction time is not affected.');
   }
   // Priority 2: Low run count
   else if (input.runCount < 3) {

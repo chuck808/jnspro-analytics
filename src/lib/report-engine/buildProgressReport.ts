@@ -201,7 +201,7 @@ function buildOneLinerSummary(input: ProgressReportInput): string | null {
         parts.push(`speed ${dir} ${Math.abs(spdChange).toFixed(1)} km/h`);
     }
 
-    if (parts.length === 0) return report.summary ?? null;
+    if (parts.length === 0) return report.recommendations?.[0] ?? null;
     return parts.join(', ') + ' across the analysis period.';
 }
 
@@ -353,7 +353,7 @@ function buildTrendNarrative(input: ProgressReportInput, level: ReportDetailLeve
     }
 
     // Consistency / best vs average gap
-    const gapTrend = report.consistency?.bestVsAvgGapTrend;
+    const gapTrend = report.consistency?.bestVsAverageGapTrend;
     if (gapTrend?.direction) {
         const tightening = gapTrend.direction.toLowerCase().includes('improv') ||
                            gapTrend.direction.toLowerCase().includes('tighten') ||

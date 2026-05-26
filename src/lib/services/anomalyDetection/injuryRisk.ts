@@ -159,14 +159,14 @@ function determineRiskLevel(
     if (riskScore >= 70 || hasCritical) {
         return {
             riskLevel: 'critical',
-            immediateAction: 'STOP TRAINING IMMEDIATELY. Take 3-5 days complete rest. Consider medical evaluation if symptoms persist.'
+            immediateAction: 'Rest is strongly advised before your next session. Take 3–5 days of complete rest and speak with your coach. If you\'re experiencing pain or persistent fatigue, seek a medical review.'
         };
     }
 
     if (riskScore >= 50) {
         return {
             riskLevel: 'high',
-            immediateAction: 'Take 2-3 rest days before next session. Monitor for any pain or unusual fatigue.'
+            immediateAction: 'Take 2–3 rest days before your next session. Monitor for unusual fatigue or soreness and flag it with your coach.'
         };
     }
 
@@ -271,14 +271,16 @@ export function analyzeTrainingPattern(sessions: Array<{
         recentIntensitySpike = increase > 0.30; // 30% increase
     }
 
-    // Inadequate recovery (less than 24 hours between sessions)
+    // Inadequate recovery: flag only when sessions are less than 6 hours apart.
+    // BMX riders commonly train morning and evening — that's not an overtraining
+    // signal. < 6 hours between sessions is genuinely compressed and worth noting.
     let inadequateRecovery = false;
     for (let i = 1; i < sessions.length; i++) {
         const prev = new Date(sessions[i - 1].timestamp);
         const curr = new Date(sessions[i].timestamp);
         const hoursDiff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60);
         
-        if (hoursDiff < 24) {
+        if (hoursDiff < 6) {
             inadequateRecovery = true;
             break;
         }
