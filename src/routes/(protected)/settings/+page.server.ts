@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { containsProfanity } from '$lib/utils/profanityFilter';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
     const { profile } = await parent();
@@ -95,8 +96,14 @@ export const actions: Actions = {
         const showOnLeaderboard = form.get('show_on_leaderboard') === 'true';
         const displayName = form.get('leaderboard_display_name') as string;
 
-        // Auto-generate display name if not provided
-        const finalDisplayName = displayName?.trim() || null;
+        // Validate user-provided display name before saving.
+        // Null/empty falls through to the auto-generated anonymous name at display time.
+        const trimmed = displayName?.trim() || null;
+        if (trimmed && containsProfanity(trimmed)) {
+            return fail(400, { leaderboardError: 'Display name contains inappropriate content. Please choose a different name.' });
+        }
+
+        const finalDisplayName = trimmed;
 
         const { error } = await supabase
             .from('user_preferences')

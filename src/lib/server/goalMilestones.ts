@@ -125,11 +125,6 @@ export async function processGoalImprovements(
                 improvement.goalId,
                 improvement.newValue
             );
-
-            console.log(
-                `[Goal Milestones] Created milestone for goal ${improvement.goalId}: ` +
-                `${improvement.metric} improved from ${improvement.previousValue} to ${improvement.newValue}`
-            );
         }
     }
 

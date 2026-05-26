@@ -32,8 +32,6 @@ export const POST: RequestHandler = async ({ locals }) => {
             console.error('Script stderr:', stderr);
         }
 
-        console.log('Script output:', stdout);
-
         return json({ 
             success: true,
             message: 'Documentation regenerated successfully',

@@ -128,6 +128,71 @@ export interface ProgressRecommendation {
   watchFor?: string;
 }
 
+export interface SessionReportData {
+  sessionQuality: number | null;
+  headline?: string;
+  confidence?: number | string;
+  repeatability?: {
+    overall: number | null;
+    cvPercent: number | null;
+    label: string | null;
+  } | null;
+  bestVsAvg?: {
+    gapPercent: number | null;
+  } | null;
+  setLength?: {
+    optimal: number | null;
+    message?: string | null;
+  };
+  dropOff?: {
+    dropOffRun: number | null;
+  };
+  phaseAnalysis?: {
+    driveEfficiency: number;
+    transitionEfficiency: number;
+    maintenanceScore: number;
+    technicalAssessment?: string;
+  } | null;
+  impulseAnalysis?: {
+    totalImpulseNs: number;
+    timeToHalfImpulseS: number;
+    frontLoadedScore: number;
+    impulseEfficiency: number;
+  } | null;
+  runSummaries?: Array<{
+    runNumber: number;
+    reactionMs: number | null;
+    maxG: number | null;
+    peakSpeedKmh: number | null;
+    techniqueOverall: number | null;
+    analyticsValid: boolean;
+  }>;
+  recommendations?: ReportRecommendation[];
+}
+
+export interface TechniqueSummaryData {
+  overall: number | null;
+  reaction: number | null;
+  explosiveness: number | null;
+  smoothness: number | null;
+  efficiency: number | null;
+  wheelieRunCount?: number;
+  controlledLiftCount?: number;
+  excessiveLiftCount?: number;
+  lateLiftCount?: number;
+  summary?: string | null;
+}
+
+export interface DataQualityData {
+  label: string | null;
+  rating?: string;
+  biasCorrection: number | null;
+  analyticsValid: boolean;
+  blocksPower: boolean;
+  blocksSpeed: boolean;
+  blocksDistanceConfidence?: boolean;
+}
+
 export interface CoachSessionReportInput {
   riderName?: string;
   sessionId: string;
@@ -144,10 +209,10 @@ export interface CoachSessionReportInput {
     author_role?: string | null;
     created_at?: string;
   }>;
-  sessionReport?: any;
-  sessionNarrative?: SessionNarrative;
-  techniqueSummary?: any;
-  dataQuality?: any;
+  sessionReport?: SessionReportData | null;
+  sessionNarrative?: SessionNarrative | null;
+  techniqueSummary?: TechniqueSummaryData | null;
+  dataQuality?: DataQualityData | null;
   recommendations?: ReportRecommendation[];
   charts?: ReportChart[];
   riderLevel?: string | null;

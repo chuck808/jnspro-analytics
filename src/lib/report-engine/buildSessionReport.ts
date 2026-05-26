@@ -91,8 +91,10 @@ export function buildCoachSessionReport(
 
     const speedImproving      = false; // session-level: not applicable
     const consistencyBad      = sessionReport?.repeatability?.overall !== undefined &&
+                                sessionReport?.repeatability?.overall !== null &&
                                 sessionReport.repeatability.overall < 50;
     const fatigueDetected     = sessionReport?.dropOff?.dropOffRun !== undefined &&
+                                sessionReport?.dropOff?.dropOffRun !== null &&
                                 sessionReport.dropOff.dropOffRun <= Math.ceil(input.runCount * 0.5);
 
     const conflict = conflictWarning(speedImproving, consistencyBad, fatigueDetected, detailLevel);
@@ -104,7 +106,7 @@ export function buildCoachSessionReport(
             label: 'Session quality',
             value: formatNumber(sessionReport?.sessionQuality, 0),
             unit: '/100',
-            note: sessionReport?.sessionQuality !== undefined
+            note: sessionReport?.sessionQuality !== undefined && sessionReport?.sessionQuality !== null
                 ? sessionReport.sessionQuality >= 70 ? 'Good' : sessionReport.sessionQuality >= 50 ? 'Fair' : 'Variable'
                 : undefined,
         },
@@ -112,7 +114,7 @@ export function buildCoachSessionReport(
             label: 'Repeatability',
             value: formatNumber(sessionReport?.repeatability?.overall, 0),
             unit: '/100',
-            note: sessionReport?.repeatability?.cvPercent !== undefined
+            note: sessionReport?.repeatability?.cvPercent !== undefined && sessionReport?.repeatability?.cvPercent !== null
                 ? sessionReport.repeatability.cvPercent < 5  ? 'Excellent'
                 : sessionReport.repeatability.cvPercent < 10 ? 'Good'
                 : sessionReport.repeatability.cvPercent < 15 ? 'Moderate'
@@ -122,7 +124,7 @@ export function buildCoachSessionReport(
         {
             label: 'Best vs average gap',
             value: formatPercent(sessionReport?.bestVsAvg?.gapPercent),
-            note: sessionReport?.bestVsAvg?.gapPercent !== undefined
+            note: sessionReport?.bestVsAvg?.gapPercent !== undefined && sessionReport?.bestVsAvg?.gapPercent !== null
                 ? sessionReport.bestVsAvg.gapPercent < 5 ? 'Excellent' : sessionReport.bestVsAvg.gapPercent < 12 ? 'Moderate' : 'Wide'
                 : undefined,
         },
@@ -537,7 +539,9 @@ export function buildCoachSessionReport(
         },
         summary: {
             headline: finalHeadline,
-            confidence,
+            confidence: typeof confidence === 'string' && ['low', 'medium', 'moderate', 'high'].includes(confidence)
+                ? confidence as 'low' | 'medium' | 'moderate' | 'high'
+                : undefined,
             body: summaryBody,
         },
         sections,
@@ -577,7 +581,7 @@ function buildSessionRecommendations(
                 id:       `session-rec-${index + 1}`,
                 priority: rec.priority ?? (index === 0 ? 'high' : 'medium'),
                 title:    rec.title ?? `Focus ${index + 1}`,
-                body:     rec.body ?? rec.text ?? String(rec),
+                body:     rec.body ?? String(rec),
                 watchFor: rec.watchFor,
             });
         });
@@ -648,7 +652,7 @@ function buildTechnicalAppendix(input: CoachSessionReportInput): string[] {
         lines.push('--- Session Intelligence ---');
         if (s.sessionQuality !== undefined)            lines.push(`Session quality: ${s.sessionQuality}/100`);
         if (s.repeatability?.overall !== undefined)    lines.push(`Repeatability: ${s.repeatability.overall}/100`);
-        if (s.bestVsAvg?.gapPercent !== undefined)     lines.push(`Best-vs-avg gap: ${s.bestVsAvg.gapPercent.toFixed(1)}%`);
+        if (s.bestVsAvg?.gapPercent !== undefined && s.bestVsAvg?.gapPercent !== null)     lines.push(`Best-vs-avg gap: ${s.bestVsAvg.gapPercent.toFixed(1)}%`);
         if (s.setLength?.optimal !== undefined)        lines.push(`Optimal set length: ${s.setLength.optimal} runs`);
         if (s.dropOff?.dropOffRun !== undefined)       lines.push(`Drop-off at: run ${s.dropOff.dropOffRun}`);
     }

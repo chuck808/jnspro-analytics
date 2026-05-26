@@ -250,8 +250,6 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
             improvements,
             session.timestamp
         );
-        
-        console.log(`[Session ${params.id}] Created ${milestonesCreated} goal milestones`);
     }
 
     // ── ALL-TIME PERSONAL BESTS ──
