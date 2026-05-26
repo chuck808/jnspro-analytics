@@ -85,6 +85,7 @@ export function analyseSession(session: SessionLike, rider: RiderContext = {}, o
     diagnostics,
     hasCalibrationWarning,
     intelligence,
+    context: rider,
     units: {
       acceleration: 'g',
       speed: 'km/h',

@@ -71,7 +71,12 @@ export const RUN_TAG_OPTIONS: RunTagMeta[] = [
  */
 export function shouldExcludeFromStats(tags: RunTag[] | null): boolean {
   if (!tags || tags.length === 0) return false;
-  return tags.includes('exclude-from-stats') || tags.includes('warmup');
+  return (
+    tags.includes('exclude-from-stats') ||
+    tags.includes('warmup') ||
+    tags.includes('experimental') ||
+    tags.includes('competition')
+  );
 }
 
 /**
@@ -81,7 +86,12 @@ export function shouldExcludeFromStats(tags: RunTag[] | null): boolean {
 export function getExclusionReasons(tags: RunTag[] | null): string[] {
   if (!tags || tags.length === 0) return [];
   return tags
-    .filter(t => t === 'warmup' || t === 'exclude-from-stats')
+    .filter(t =>
+      t === 'warmup' ||
+      t === 'exclude-from-stats' ||
+      t === 'experimental' ||
+      t === 'competition'
+    )
     .map(t => getTagMeta(t)?.label ?? t);
 }
 
@@ -90,4 +100,13 @@ export function getExclusionReasons(tags: RunTag[] | null): string[] {
  */
 export function getTagMeta(tag: RunTag): RunTagMeta | undefined {
   return RUN_TAG_OPTIONS.find(opt => opt.value === tag);
+}
+
+/**
+ * Returns true if the run is a competition or best-effort outlier
+ * that should be surfaced separately rather than silently discarded.
+ */
+export function isOutlierRun(tags: RunTag[] | null): boolean {
+  if (!tags || tags.length === 0) return false;
+  return tags.includes('competition') || tags.includes('best-effort');
 }

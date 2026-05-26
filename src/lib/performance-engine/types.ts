@@ -144,6 +144,7 @@ export interface SessionAnalysis {
   diagnostics: import('./diagnostics').PerformanceDiagnostic[];
   hasCalibrationWarning: boolean;
   intelligence?: import('./sessionIntelligence').SessionIntelligenceReport | null;
+  context: RiderContext;
   units: {
     acceleration: 'g';
     speed: 'km/h';

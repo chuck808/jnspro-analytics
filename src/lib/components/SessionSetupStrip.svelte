@@ -53,7 +53,12 @@
     // Tag display for compact strip
     function getStatsTagLabel(tags: RunTag[] | null): { icon: string; color: string } | null {
         if (!tags) return null;
-        const excluded = tags.find(t => t === 'warmup' || t === 'exclude-from-stats');
+        const excluded = tags.find(t => 
+            t === 'warmup' || 
+            t === 'exclude-from-stats' || 
+            t === 'experimental' || 
+            t === 'competition'
+        );
         if (!excluded) return null;
         const meta = getTagMeta(excluded);
         return meta ? { icon: meta.icon, color: meta.color } : null;
