@@ -233,8 +233,10 @@
                 excludedRunCount: data.sessionStats.excluded_run_count ?? 0,
                 excludedReasons: data.runs
                     .flatMap((r: any) => getExclusionReasons(r.tags)),
-                sessionFocus:    (data.session as any).session_focus ?? null,
-                trackSurface:    (data.session as any).track_surface ?? null,
+                sessionFocus:        (data.session as any).session_focus     ?? null,
+                trackSurface:        (data.session as any).track_surface     ?? null,
+                weatherCondition:    (data.session as any).weather_conditions ?? null,
+                rideFeel:            (data.session as any).ride_feel          ?? null,
                 sessionNotes:    (data.sessionNotes ?? []).map((n: any) => ({
                     note_type:   n.note_type,
                     content:     n.content,
@@ -293,6 +295,17 @@
                     blocksSpeed:    performanceAnalysis.hasCalibrationWarning ?? false,
                 },
                 recommendations: mergedRecs,
+                // Goal progress this session — surfaces in report context
+                goalProgress: (data as any).goalProgress?.length > 0
+                    ? (data as any).goalProgress.map((g: any) => ({
+                        goalId:        g.goalId,
+                        metric:        g.metric,
+                        metricLabel:   g.metricLabel,
+                        improvement:   g.improvement,
+                        percentToGoal: g.percentToGoal,
+                        isSignificant: g.isSignificant ?? false,
+                    }))
+                    : null,
                 // Build actual chart data from performance analysis
                 charts: includeCharts ? [
                     // Acceleration/G-Force chart

@@ -203,6 +203,8 @@ export interface CoachSessionReportInput {
   excludedReasons?: string[];
   sessionFocus?: string | null;
   trackSurface?: string | null;
+  weatherCondition?: string | null;
+  rideFeel?: string | null;
   sessionNotes?: Array<{
     note_type: 'pre' | 'during' | 'post' | 'coach';
     content: string;
@@ -216,6 +218,15 @@ export interface CoachSessionReportInput {
   recommendations?: ReportRecommendation[];
   charts?: ReportChart[];
   riderLevel?: string | null;
+  // Goals hit or progressed during this session — surfaces in report context
+  goalProgress?: Array<{
+    goalId: string;
+    metric: string;
+    metricLabel: string;
+    improvement: string;
+    percentToGoal: number;
+    isSignificant: boolean;
+  }> | null;
 }
 
 export interface ProgressReportInput {

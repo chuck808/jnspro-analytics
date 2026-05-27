@@ -51,7 +51,22 @@ export function buildCoachSessionReport(
 
     // Session context — affects how we frame findings
     const isTesting      = input.sessionFocus === 'testing' || input.sessionFocus === 'technique';
+    const isRecovery     = input.sessionFocus === 'recovery';
     const isWetSurface   = input.trackSurface === 'wet' || input.trackSurface === 'muddy';
+    const isDampSurface  = input.trackSurface === 'damp';
+    const rideFeel       = input.rideFeel ?? null;
+    const weatherCondition = input.weatherCondition ?? null;
+    const isChallengingConditions =
+        isWetSurface || isDampSurface ||
+        weatherCondition === 'rain' || weatherCondition === 'light-rain' ||
+        weatherCondition === 'windy' || weatherCondition === 'cold';
+
+    // Outlier run context — competition and best-effort runs excluded from stats
+    // but should modulate report framing (not silently dropped)
+    const hasCompetitionRuns = (input.excludedReasons ?? []).includes('Competition');
+    const hasBestEffortRuns  = (input.excludedReasons ?? []).includes('Best Effort');
+    const hasOutlierRuns     = hasCompetitionRuns || hasBestEffortRuns;
+
     const excludedRuns   = input.excludedRunCount ?? narrative?.trust?.excludedRuns ?? 0;
     const excludedReasons = input.excludedReasons ?? narrative?.trust?.excludedReasons ?? [];
 
@@ -232,8 +247,9 @@ export function buildCoachSessionReport(
     }
 
     // Session context notes — these qualify the findings before the reader
-    // draws any conclusions. A testing session's consistency numbers mean
-    // something different from a normal session's.
+    // draws any conclusions. Order matters: focus → conditions → feel → outlier runs.
+
+    // 1. Session focus framing
     if (isTesting) {
         execLines.push(
             `Context: this was logged as a ${input.sessionFocus} session. ` +
@@ -242,10 +258,84 @@ export function buildCoachSessionReport(
         );
     }
 
+    if (isRecovery) {
+        execLines.push(
+            `This was logged as a recovery session. ` +
+            `Performance metrics should not be benchmarked against best-effort sessions — ` +
+            `the goal here was movement quality at low intensity, not output.`
+        );
+    }
+
+    // 2. Conditions framing
     if (isWetSurface) {
         execLines.push(
             `Surface: ${input.trackSurface}. Speed and explosiveness metrics should be compared against other ${input.trackSurface} sessions only — ` +
             `traction conditions affect these outputs independently of technique.`
+        );
+    } else if (isDampSurface) {
+        execLines.push(
+            `Surface was damp — treat speed metrics as indicative rather than definitive.`
+        );
+    }
+
+    if (weatherCondition === 'windy') {
+        execLines.push(
+            `Windy conditions — speed carry and timing can be affected. Flag if this pattern appears across multiple sessions.`
+        );
+    } else if (weatherCondition === 'cold') {
+        execLines.push(
+            `Cold conditions — reaction time and explosive output can be suppressed. Compare against similar-temperature sessions for a fair read.`
+        );
+    } else if (weatherCondition === 'hot') {
+        execLines.push(
+            `Hot conditions — fatigue may accumulate faster than usual. Worth checking whether drop-off occurred earlier than normal.`
+        );
+    } else if (weatherCondition === 'rain' || weatherCondition === 'light-rain') {
+        execLines.push(
+            `Wet weather — grip-dependent metrics are less reliable today.`
+        );
+    }
+
+    // 3. Ride feel — dissonance is the valuable signal
+    if (rideFeel) {
+        const feelLabel: Record<string, string> = {
+            off: 'an off day', solid: 'a solid day', good: 'a good day',
+            dialled: 'dialled in', peak: 'a peak day'
+        };
+        const feelDisplay = feelLabel[rideFeel] ?? rideFeel;
+        const sessionQuality = input.sessionReport?.sessionQuality ?? null;
+
+        if ((rideFeel === 'peak' || rideFeel === 'dialled') && sessionQuality !== null && sessionQuality < 55) {
+            execLines.push(
+                `The rider logged this as ${feelDisplay}, but the data shows more variation than expected for that level of readiness. ` +
+                `That gap between subjective feel and objective output is worth noting — it doesn't mean the feel was wrong, but it's worth tracking.`
+            );
+        } else if (rideFeel === 'off' && sessionQuality !== null && sessionQuality >= 65) {
+            execLines.push(
+                `The rider logged this as an off day, but the data held up well. ` +
+                `That kind of resilience — solid output despite low perceived readiness — is worth explicitly acknowledging.`
+            );
+        } else if (rideFeel === 'off' && isChallengingConditions) {
+            execLines.push(
+                `Low readiness combined with challenging conditions — the data should be interpreted with that context in mind.`
+            );
+        } else if ((rideFeel === 'peak' || rideFeel === 'dialled') && isChallengingConditions) {
+            execLines.push(
+                `Strong readiness despite challenging conditions — any solid numbers here carry extra contextual weight.`
+            );
+        }
+    }
+
+    // 4. Outlier run framing — competition/best-effort runs excluded from stats
+    // but worth acknowledging explicitly rather than silently dropping
+    if (hasCompetitionRuns) {
+        execLines.push(
+            `Competition runs were excluded from session averages to preserve training-quality baselines. ` +
+            `Review those runs individually — competition context produces different outputs to training.`
+        );
+    } else if (hasBestEffortRuns) {
+        execLines.push(
+            `Best-effort runs were excluded from averages — these are useful as ceiling references but can skew session-level consistency metrics.`
         );
     }
 
@@ -341,6 +431,46 @@ export function buildCoachSessionReport(
             ? insightLines
             : ['Session analysis complete. Upload more sessions to identify patterns over time.'],
     });
+
+    // ── Goal progress section ─────────────────────────────────────────────────
+    // Only generated when goals were hit or meaningfully progressed this session.
+    // Significant improvements (milestone-level) are called out explicitly.
+    const goalProgressSection = (() => {
+        const goals = input.goalProgress;
+        if (!goals || goals.length === 0) return null;
+
+        const lines: string[] = [];
+
+        const significant = goals.filter(g => g.isSignificant);
+        const progressed  = goals.filter(g => !g.isSignificant);
+
+        if (significant.length > 0) {
+            significant.forEach(g => {
+                lines.push(
+                    `Goal milestone: ${g.metricLabel} — ${g.improvement}. ` +
+                    `Now ${g.percentToGoal}% of the way to target.`
+                );
+            });
+        }
+
+        if (progressed.length > 0) {
+            progressed.forEach(g => {
+                lines.push(
+                    `Goal progress: ${g.metricLabel} — ${g.improvement} (${g.percentToGoal}% to target).`
+                );
+            });
+        }
+
+        if (lines.length === 0) return null;
+
+        return createSection({
+            id:       'goal-progress',
+            type:     'key-findings',
+            title:    significant.length > 0 ? 'Goals & Milestones' : 'Goal Progress',
+            priority: 'high',
+            content:  lines,
+        });
+    })();
 
     // ── Cross-run analysis section ────────────────────────────────────────────
     const crossRunLines: string[] = [];
@@ -448,8 +578,9 @@ export function buildCoachSessionReport(
 
     const sections = [
         executiveSummarySection,      // 1. What happened — coaching headline + context
-        keyFindingsSection,           // 2. Key findings — insights from analysis view  
-        crossRunSection,              // 3. Run analysis — best vs avg, drop-off, phase
+        goalProgressSection,          // 2. Goals & milestones hit this session (null when none)
+        keyFindingsSection,           // 3. Key findings — insights from analysis view  
+        crossRunSection,              // 4. Run analysis — best vs avg, drop-off, phase
         createSection({               // 4. Session quality — scores + repeatability
             id:       'session-quality',
             type:     'session-quality',

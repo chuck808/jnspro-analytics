@@ -110,7 +110,61 @@ export function buildProgressReport(
         charts,
     }) : null;
 
-    // 7. Data quality / confidence
+    // 7. Goal context — progress toward active goals
+    const goalsSection = (() => {
+        const goals = input.goalContext;
+        if (!goals || goals.length === 0) return null;
+
+        const lines: string[] = [];
+
+        // Goals close to target (≥80%) — celebrate progress
+        const nearTarget = goals.filter(g => (g.percentToGoal ?? 0) >= 80);
+        // Goals with meaningful progress (20–79%)
+        const inProgress = goals.filter(g => {
+            const p = g.percentToGoal ?? 0;
+            return p >= 20 && p < 80;
+        });
+        // Goals just started or stalled (<20%)
+        const earlyStage = goals.filter(g => (g.percentToGoal ?? 0) < 20);
+
+        if (nearTarget.length > 0) {
+            nearTarget.forEach(g => {
+                lines.push(
+                    `${g.metric} goal — ${g.percentToGoal}% of the way to target. ` +
+                    `Current: ${g.currentValue !== null ? g.currentValue.toFixed(3) : '—'}, Target: ${g.targetValue.toFixed(3)}.`
+                );
+            });
+        }
+
+        if (inProgress.length > 0) {
+            inProgress.forEach(g => {
+                lines.push(
+                    `${g.metric} — ${g.percentToGoal}% progress toward target ` +
+                    `(${g.currentValue !== null ? g.currentValue.toFixed(3) : '—'} → ${g.targetValue.toFixed(3)}).`
+                );
+            });
+        }
+
+        if (earlyStage.length > 0 && detailLevel !== 'simple') {
+            earlyStage.forEach(g => {
+                lines.push(
+                    `${g.metric} goal set — ${g.percentToGoal ?? 0}% progress so far.`
+                );
+            });
+        }
+
+        if (lines.length === 0) return null;
+
+        return createSection({
+            id:       'goal-progress',
+            type:     'key-findings',
+            title:    nearTarget.length > 0 ? 'Goals — Close to Target' : 'Active Goals',
+            priority: 'high',
+            content:  lines,
+        });
+    })();
+
+    // 8. Data quality / confidence
     const confidenceSection = includeDiag ? createSection({
         id:       'data-quality',
         type:     'data-quality',
@@ -121,6 +175,7 @@ export function buildProgressReport(
 
     const sections = [
         executiveSummarySection,
+        goalsSection,
         keyFindingsSection,
         trendsSection,
         fatigueSection,
