@@ -431,6 +431,13 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
         };
     }
 
+    // ── USER PREFERENCES (for social card image display) ──────────────────────
+    const { data: userPreferences } = await supabase
+        .from('user_preferences')
+        .select('show_profile_icon, show_background_image')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
     return {
         session,
         runs: runs ?? [],
@@ -452,6 +459,11 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
             sessions: sessionSummaries,
             allRuns: allRunsData,
             sessionCount: recentSessions?.length ?? 0,
+        },
+        // User preferences for social card
+        userPreferences: {
+            show_profile_icon:     userPreferences?.show_profile_icon     ?? true,
+            show_background_image: userPreferences?.show_background_image ?? true,
         },
     };
 };

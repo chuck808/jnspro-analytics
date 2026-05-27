@@ -7,6 +7,8 @@
     import StrengthsLimiters from '$lib/components/session/StrengthsLimiters.svelte';
     import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
     import { getUCICategory } from '$lib/utils/uciCategories';
+    import { detectAchievement, buildDetectorInput } from '$lib/social';
+    import SocialShareModal from '$lib/components/social/SocialShareModal.svelte';
 
     let { data }: { data: LayoutData } = $props();
 
@@ -90,6 +92,28 @@
     // ── Session narrative ──────────────────────────────────────────────────────
     let sessionIntelligence = $derived(performanceAnalysis.intelligence);
     let quality = $derived(performanceAnalysis.selectedRun?.physics?.dataQuality);
+
+    // ── Achievement detection ─────────────────────────────────────────────────
+    // Runs deterministically from existing session data — no extra queries.
+    // Result is null when nothing meaningful happened or data can't be trusted.
+    let achievementResult = $derived.by(() => {
+        const detectorInput = buildDetectorInput({
+            session:          data.session as any,
+            sessionStats:     data.sessionStats as any,
+            allTimePBs:       data.allTimePBs as any,
+            goalProgress:     (data as any).goalProgress ?? null,
+            profile:          (data as any).profile ?? null,
+            crossSessionReport: (data as any).advancedAnalytics?.crossSessionReport ?? null,
+            hasCalibrationWarning: performanceAnalysis.hasCalibrationWarning ?? false,
+            profileComplete:  performanceAnalysis.profileComplete ?? false,
+            dataQualityRating: (quality?.badge as any) ?? null,
+        });
+        return detectAchievement(detectorInput);
+    });
+
+    let shareableAchievement = $derived(achievementResult.achievement);
+    let showShareModal = $state(false);
+
     let totalMassKg = $derived(
         ((data.riderWeight ?? 0) + (data.bikeWeight ?? 0)) > 0
             ? (data.riderWeight ?? 0) + (data.bikeWeight ?? 0) : null
@@ -265,7 +289,24 @@
                     <p class="text-xs uppercase tracking-wide themed-accent">Session Summary</p>
                     <h3 class="text-lg font-semibold themed-text-primary mt-1">How This Session Went</h3>
                 </div>
-                <div class="text-right">
+                <div class="flex items-start gap-3">
+                    <!-- Share card button — only when achievement detected -->
+                    {#if shareableAchievement?.isShareable}
+                        <button
+                            onclick={() => showShareModal = true}
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                                   bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.25)]
+                                   text-[#00e5ff] hover:bg-[rgba(0,229,255,0.18)] transition-colors"
+                            title="Share this achievement"
+                        >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                            Share
+                        </button>
+                    {/if}
+                    <div class="text-right">
                     <p class="text-[10px] uppercase tracking-wider themed-text-subtle mb-0.5">
                         {heroMetric.isPersonalBest ? '🏆 Personal Best' : heroMetric.isGoalMilestone ? '🎯 Goal Milestone' : 'Best Today'}
                     </p>
@@ -275,9 +316,22 @@
                     </div>
                     <p class="text-xs themed-text-subtle">{heroMetric.label}</p>
                 </div>
+                </div>
             </div>
             <SessionNarrativeCard narrative={sessionNarrative} detailLevel="coach" />
         </div>
+    {/if}
+
+    <!-- Social share modal — rendered when achievement detected and user clicks Share -->
+    {#if showShareModal && shareableAchievement}
+        <SocialShareModal
+            achievement={shareableAchievement}
+            backgroundImageUrl={(data as any).profile?.background_image_url ?? null}
+            profileIconUrl={(data as any).profile?.profile_icon_url ?? null}
+            showProfileIcon={data.userPreferences?.show_profile_icon ?? true}
+            showBackgroundImage={data.userPreferences?.show_background_image ?? true}
+            onclose={() => showShareModal = false}
+        />
     {/if}
 
     <!-- ══════════════════════════════════════════════════════
