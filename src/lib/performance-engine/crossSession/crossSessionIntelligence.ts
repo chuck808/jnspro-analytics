@@ -8,6 +8,7 @@ import { sortByDate, getConfidence } from './trendUtils';
 import { analysePerformanceProgression } from './progressionAnalysis';
 import { analyseConsistencyTrends } from './consistencyTrends';
 import { analyseFatigueProgression } from './fatigueProgression';
+import { analyseContextualPatterns } from './contextualPatterns';
 import type {
   SessionPerformanceSummary,
   CrossSessionReport,
@@ -50,6 +51,7 @@ export function analyseCrossSessionIntelligence(
         dropOffTrend: createEmptyTrend(),
         optimalSetLengthTrend: createEmptyTrend()
       },
+      contextualPatterns: null,
       warnings: [`Need at least ${opts.minSessions} sessions for trend analysis`],
       recommendations: [],
       headline: 'Insufficient data for cross-session analysis'
@@ -65,6 +67,10 @@ export function analyseCrossSessionIntelligence(
   const performance = analysePerformanceProgression(lookbackSessions);
   const consistency = analyseConsistencyTrends(lookbackSessions);
   const fatigue = analyseFatigueProgression(lookbackSessions);
+
+  // Contextual pattern analysis uses the full session history (not just lookback)
+  // so condition groups have the best chance of reaching the minimum sample threshold.
+  const contextualPatterns = analyseContextualPatterns(sortedSessions);
 
   // Determine overall trend
   const overallTrend = determineOverallTrend(performance, consistency, fatigue);
@@ -87,6 +93,7 @@ export function analyseCrossSessionIntelligence(
     performance,
     consistency,
     fatigue,
+    contextualPatterns: contextualPatterns.hasEnoughData ? contextualPatterns : null,
     warnings,
     recommendations,
     headline

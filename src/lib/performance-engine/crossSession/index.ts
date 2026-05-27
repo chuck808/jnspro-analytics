@@ -13,3 +13,6 @@ export * from './crossSessionIntelligence';
 // v8.1 - Enhanced Messaging & Feedback
 export * from './messaging';
 export * from './recommendationMessaging';
+
+// v8.5 - Contextual Pattern Analysis
+export * from './contextualPatterns';

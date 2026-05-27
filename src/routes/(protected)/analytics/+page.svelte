@@ -127,7 +127,14 @@
                 bestReactionTimeSec: s.best_reaction_ms ? s.best_reaction_ms / 1000 : null,
                 avgReactionTimeSec: s.avg_reaction_ms ? s.avg_reaction_ms / 1000 : null,
                 peakG: s.best_max_g,
-                avgPeakG: s.avg_max_g
+                avgPeakG: s.avg_max_g,
+
+                // Context fields — passed to the contextual patterns analyser.
+                // These are interpretive only and do not affect core numeric trends.
+                weatherCondition: (s as any).weather_conditions ?? null,
+                trackSurface:     (s as any).track_surface     ?? null,
+                sessionFocus:     (s as any).session_focus     ?? null,
+                rideFeel:         (s as any).ride_feel         ?? null,
             };
         });
 
@@ -157,11 +164,14 @@
         if (data.sessions.length === 0 || !latestSessionReport) return null;
         const latest = data.sessions[data.sessions.length - 1];
         
-        // Build correlation hints from insights for context-aware narrative
-        const hints = (data.correlationInsights ?? [])
+        // Build correlation hints from two sources:
+        // 1. data.correlationInsights — Pearson correlation analysis (existing)
+        // 2. crossSessionReport.contextualPatterns — condition-segmented patterns (new)
+        // Both feed the narrative engine's buildCorrelationNote via the same CorrelationHint shape.
+
+        const legacyHints = (data.correlationInsights ?? [])
             .filter((i: any) => i.correlation?.sampleSize >= 8)
             .map((i: any) => {
-                // Map correlation insight back to a hint the narrative can use
                 const v1 = i.correlation?.variable1?.toLowerCase() ?? '';
                 const variable =
                     v1.includes('surface') ? 'track_surface' :
@@ -180,6 +190,13 @@
                 } as any;
             })
             .filter(Boolean);
+
+        // Merge in contextual pattern hints from cross-session engine
+        const contextualHints = (crossSessionReport?.contextualPatterns?.patterns ?? [])
+            .map((p: any) => p.correlationHint)
+            .filter(Boolean);
+
+        const hints = [...legacyHints, ...contextualHints];
 
         return buildSessionNarrative({
             runCount:               latest.run_count,
@@ -460,6 +477,9 @@
                             improving: crossSessionReport.fatigue?.dropOffTrend?.improving ?? false,
                         },
                     },
+
+                    // Contextual patterns — pass through directly; shape is already correct
+                    contextualPatterns: crossSessionReport.contextualPatterns ?? null,
                 } : undefined,
 
                 // Trend percentages from server
