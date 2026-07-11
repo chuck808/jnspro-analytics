@@ -195,6 +195,7 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
  * Limits:
  *   - Upload endpoint: max 20 requests per user per hour
  *   - Auth endpoints: max 10 requests per IP per 15 minutes (brute-force guard)
+ *   - Feedback endpoints: max 30 requests per user (or IP, if anonymous) per hour
  */
 
 interface RateLimitEntry {
@@ -202,8 +203,9 @@ interface RateLimitEntry {
     windowEnd: number; // Unix ms
 }
 
-const uploadLimits = new Map<string, RateLimitEntry>();
-const authLimits   = new Map<string, RateLimitEntry>();
+const uploadLimits   = new Map<string, RateLimitEntry>();
+const authLimits     = new Map<string, RateLimitEntry>();
+const feedbackLimits = new Map<string, RateLimitEntry>();
 
 function checkRateLimit(
     map:        Map<string, RateLimitEntry>,
@@ -233,6 +235,9 @@ setInterval(() => {
     }
     for (const [key, entry] of authLimits) {
         if (now > entry.windowEnd) authLimits.delete(key);
+    }
+    for (const [key, entry] of feedbackLimits) {
+        if (now > entry.windowEnd) feedbackLimits.delete(key);
     }
 }, 5 * 60 * 1000); // every 5 minutes
 
@@ -270,6 +275,21 @@ const rateLimiter: Handle = async ({ event, resolve }) => {
         );
         if (!allowed) {
             throw error(429, 'Too many authentication attempts — please wait 15 minutes');
+        }
+    }
+
+    // Feedback rate limit — keyed by user ID when authenticated, IP otherwise
+    // (feedback submission is intentionally allowed anonymously).
+    if (pathname.startsWith('/api/feedback')) {
+        const key     = event.locals.user?.id ?? event.getClientAddress();
+        const allowed = checkRateLimit(
+            feedbackLimits,
+            key,
+            30,           // max 30 feedback requests
+            60 * 60_000   // per hour
+        );
+        if (!allowed) {
+            throw error(429, 'Too many feedback requests — please wait before trying again');
         }
     }
 
