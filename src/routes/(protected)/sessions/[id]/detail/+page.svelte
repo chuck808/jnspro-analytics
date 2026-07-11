@@ -3,6 +3,7 @@
 	import type { LayoutData } from '../$types';
 	import RunComparison from '$lib/components/RunComparison.svelte';
 	import PerformanceTargets from '$lib/components/PerformanceTargets.svelte';
+	import RunVideoAttachment from '$lib/components/RunVideoAttachment.svelte';
 	import DataDrillDown from '$lib/components/DataDrillDown.svelte';
 	import SessionNotesManager from '$lib/components/SessionNotesManager.svelte';
 	import type { SessionNote } from '$lib/types/notes';
@@ -121,6 +122,11 @@
 			techniqueScore={techniqueScores?.overall ?? null}
 			riderLevel={riderLevel ?? 'intermediate'}
 		/>
+
+		<!-- ══════════════════════════════════════════════════════
+             VIDEO (foundation slice — see VIDEO_SYNC_DESIGN.md)
+             ══════════════════════════════════════════════════════ -->
+		<RunVideoAttachment runId={selectedRun.id} video={selectedRun.run_videos ?? null} />
 
 		<!-- ══════════════════════════════════════════════════════
              G-FORCE STABILITY

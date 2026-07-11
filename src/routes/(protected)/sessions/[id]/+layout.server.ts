@@ -103,6 +103,15 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
                 pitch_deg,
                 roll_deg,
                 linear_accel_g
+            ),
+            run_videos(
+                id,
+                storage_path,
+                filename,
+                mime_type,
+                duration_ms,
+                status,
+                created_at
             )
         `
 		)
@@ -111,6 +120,19 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 
 	if (runsError) {
 		throw error(500, 'Failed to load runs');
+	}
+
+	// Mint signed URLs for any attached videos — most runs won't have one, so
+	// this stays cheap. Foundation-slice rough edge: signed URLs expire (1hr);
+	// a tab left open past that will 403 on replay until reloaded.
+	for (const run of runs ?? []) {
+		const video = (run as any).run_videos;
+		if (video?.storage_path) {
+			const { data: signedUrlData } = await supabase.storage
+				.from('run-videos')
+				.createSignedUrl(video.storage_path, 3600);
+			video.signed_url = signedUrlData?.signedUrl ?? null;
+		}
 	}
 
 	// Compute session-level summary stats

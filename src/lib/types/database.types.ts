@@ -873,6 +873,56 @@ export type Database = {
 					}
 				];
 			};
+			run_videos: {
+				Row: {
+					created_at: string | null;
+					duration_ms: number | null;
+					file_size_bytes: number;
+					filename: string;
+					id: string;
+					mime_type: string;
+					run_id: string;
+					status: string;
+					storage_path: string;
+					sync_offset_s: number | null;
+					thumbnail_path: string | null;
+				};
+				Insert: {
+					created_at?: string | null;
+					duration_ms?: number | null;
+					file_size_bytes: number;
+					filename: string;
+					id?: string;
+					mime_type: string;
+					run_id: string;
+					status?: string;
+					storage_path: string;
+					sync_offset_s?: number | null;
+					thumbnail_path?: string | null;
+				};
+				Update: {
+					created_at?: string | null;
+					duration_ms?: number | null;
+					file_size_bytes?: number;
+					filename?: string;
+					id?: string;
+					mime_type?: string;
+					run_id?: string;
+					status?: string;
+					storage_path?: string;
+					sync_offset_s?: number | null;
+					thumbnail_path?: string | null;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'run_videos_run_id_fkey';
+						columns: ['run_id'];
+						isOneToOne: true;
+						referencedRelation: 'runs';
+						referencedColumns: ['id'];
+					}
+				];
+			};
 			runs: {
 				Row: {
 					chart_data: Json;
