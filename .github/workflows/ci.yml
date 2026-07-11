@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  # Format-valid placeholders only — satisfy $env/static/* and validateEnv()
+  # for typecheck/lint/test/build. No real credentials are used in CI; live
+  # Supabase calls are not exercised by these steps.
+  PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+  PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_placeholder_0000000000
+  SUPABASE_SERVICE_ROLE_KEY: sb_secret_ci_placeholder_00000000000000
+  DEVICE_INGEST_SECRET: ci-placeholder-secret-not-for-production-use-32c
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
