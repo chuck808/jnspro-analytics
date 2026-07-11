@@ -1,10 +1,20 @@
 <script lang="ts">
 	import type { ActionData } from './$types';
+	import { MINOR_CONSENT_AGE_THRESHOLD, calculateAge } from '$lib/consent';
 
 	let { form }: { form: ActionData } = $props();
 
 	let loading = $state(false);
 	let showPassword = $state(false);
+	let dateOfBirth = $state('');
+
+	let isMinor = $derived(
+		dateOfBirth ? calculateAge(dateOfBirth) < MINOR_CONSENT_AGE_THRESHOLD : false
+	);
+
+	// Reasonable bounds for the date input: no future dates, nothing older than 120 years.
+	let maxDob = new Date().toISOString().slice(0, 10);
+	let minDob = new Date(new Date().getFullYear() - 120, 0, 1).toISOString().slice(0, 10);
 </script>
 
 <svelte:head>
@@ -28,6 +38,12 @@
 			Click the link in the email to activate your account. Check your spam folder if you don't see
 			it.
 		</p>
+		{#if form.isMinor}
+			<p class="mt-4 rounded-lg border border-[#f5a623]/20 bg-[#131010] p-3 text-xs text-[#9a8f7a]">
+				We've also sent a consent request to the parent/guardian email you provided. The account
+				stays inactive until they confirm.
+			</p>
+		{/if}
 	</div>
 {:else}
 	<h1 class="mb-1 text-2xl font-bold text-[#f0ece4]">Create your account</h1>
@@ -55,6 +71,48 @@
 				placeholder="Jamie Norris-Still"
 			/>
 		</div>
+
+		<!-- Date of birth -->
+		<div>
+			<label for="dateOfBirth" class="mb-1.5 block text-sm font-medium text-[#9a8f7a]">
+				Date of birth
+			</label>
+			<input
+				id="dateOfBirth"
+				name="dateOfBirth"
+				type="date"
+				autocomplete="bday"
+				required
+				min={minDob}
+				max={maxDob}
+				bind:value={dateOfBirth}
+				class="w-full rounded-lg border border-[#221c18] bg-[#0a0809] px-4 py-2.5 text-sm
+                       text-[#f0ece4] transition-colors focus:border-[#f5a623]
+                       focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
+			/>
+		</div>
+
+		{#if isMinor}
+			<div>
+				<label for="parentEmail" class="mb-1.5 block text-sm font-medium text-[#9a8f7a]">
+					Parent or guardian's email
+				</label>
+				<input
+					id="parentEmail"
+					name="parentEmail"
+					type="email"
+					required
+					class="w-full rounded-lg border border-[#221c18] bg-[#0a0809] px-4 py-2.5 text-sm
+                           text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
+                           focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
+					placeholder="parent@example.com"
+				/>
+				<p class="mt-1.5 text-xs text-[#4a4038]">
+					Riders under {MINOR_CONSENT_AGE_THRESHOLD} need a parent or guardian to confirm consent before
+					the account can be used.
+				</p>
+			</div>
+		{/if}
 
 		<!-- Email -->
 		<div>
