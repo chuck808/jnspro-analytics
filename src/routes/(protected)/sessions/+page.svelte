@@ -8,8 +8,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let filteredSessions = $state<typeof data.sessions>([]);
-
 	let dateFrom = $state('');
 	let dateTo = $state('');
 	let perPage = $state(10);
@@ -30,16 +28,7 @@
 			field: data.sortBy || 'timestamp',
 			direction: (data.sortDir || 'desc') as 'asc' | 'desc'
 		};
-		filteredSessions = data.sessions;
 	});
-
-	function formatDate(timestamp: string) {
-		return new Date(timestamp).toLocaleDateString('en-GB', {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		});
-	}
 
 	function formatTime(timestamp: string) {
 		return new Date(timestamp).toLocaleTimeString('en-GB', {
@@ -151,10 +140,7 @@
 
 	<!-- SessionFilter Component -->
 	{#if data.totalCount > 0}
-		<SessionFilter
-			sessions={data.sessions}
-			onFilter={(filtered) => (filteredSessions = filtered)}
-		/>
+		<SessionFilter sessions={data.sessions} onFilter={() => {}} />
 
 		<!-- Old manual filters (keeping for pagination/perPage) -->
 		<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">

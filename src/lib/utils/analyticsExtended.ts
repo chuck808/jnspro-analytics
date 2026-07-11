@@ -629,7 +629,7 @@ export function generateRecommendations(
 			priority: 'medium',
 			category: 'reaction',
 			title: 'Reaction time — marginal gains available',
-			insight: `${(reactionMs / 1000).toFixed(3)}s is solid but there\'s time to find. The gap to excellent is ${((reactionMs - THRESHOLDS.reactionMs.excellent) / 1000).toFixed(3)}s.`,
+			insight: `${(reactionMs / 1000).toFixed(3)}s is solid but there's time to find. The gap to excellent is ${((reactionMs - THRESHOLDS.reactionMs.excellent) / 1000).toFixed(3)}s.`,
 			advice: [
 				'Fine-tune gate position — small fore/aft adjustments can find 15–20ms',
 				'Tighten your pre-gate routine for more consistent preparation state',

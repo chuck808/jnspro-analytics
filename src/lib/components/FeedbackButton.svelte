@@ -45,7 +45,7 @@
 			} else {
 				alert('Failed to submit feedback. Please try again or contact support directly.');
 			}
-		} catch (error) {
+		} catch {
 			alert('Failed to submit feedback. Please try again or contact support directly.');
 		} finally {
 			isSubmitting = false;
@@ -79,7 +79,6 @@
 
 <!-- Modal -->
 {#if isOpen}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="modal-backdrop"
 		onclick={handleBackdropClick}
@@ -87,7 +86,6 @@
 		role="button"
 		tabindex="-1"
 	>
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="modal-content"
 			onclick={(e) => e.stopPropagation()}

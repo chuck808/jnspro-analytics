@@ -5,7 +5,7 @@
 
 	let {
 		section,
-		detailLevel
+		detailLevel: _detailLevel
 	}: {
 		section: ReportSection;
 		detailLevel: ReportDetailLevel;
@@ -30,11 +30,6 @@
 									: section.type === 'progress-trends'
 										? '#1a1410'
 										: '#9a8f7a'
-	);
-
-	// Only executive summary and recommendations get amber treatment
-	let isHighlighted = $derived(
-		section.type === 'executive-summary' || section.type === 'recommendations'
 	);
 
 	// Data quality is visually de-emphasised
@@ -129,14 +124,6 @@
 								: item.tone === 'neutral'
 									? '#f5a623'
 									: '#ede8e0'}
-					{@const dotCol =
-						item.tone === 'warning'
-							? '#ff6b3d'
-							: item.tone === 'positive'
-								? '#3de8c8'
-								: item.tone === 'neutral'
-									? '#f5a623'
-									: '#c8bfaf'}
 					<div
 						class="flex gap-3 rounded-lg border-l-2 bg-[#faf8f5] p-4"
 						style="border-color:{borderCol}"

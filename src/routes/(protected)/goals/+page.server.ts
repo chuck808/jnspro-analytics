@@ -394,7 +394,7 @@ export const actions: Actions = {
 		}
 
 		// Build update object based on adjustment type
-		let updateData: any = {};
+		let updateData: any;
 
 		switch (adjustmentType) {
 			case 'increase_target':
@@ -420,7 +420,7 @@ export const actions: Actions = {
 						"Goal pause is not yet available. If you need a break, you can delete and recreate the goal when you're ready to resume."
 				});
 
-			case 'cancel':
+			case 'cancel': {
 				// Delete the goal
 				const { error: deleteError } = await supabase
 					.from('training_goals')
@@ -430,6 +430,7 @@ export const actions: Actions = {
 
 				if (deleteError) return fail(500, { adjustError: deleteError.message });
 				return { adjustSuccess: true, message: 'Goal removed' };
+			}
 
 			default:
 				return fail(400, { adjustError: 'Unknown adjustment type' });

@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async () => {
 	// Use admin client to bypass RLS for system-wide stats
 	const admin = createSupabaseAdminClient();
 

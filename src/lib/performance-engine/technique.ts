@@ -1,4 +1,4 @@
-import { clamp, round } from './math';
+import { clamp } from './math';
 import type { SpeedCurve } from './physics';
 import type { TechniqueAnalysis } from './types';
 

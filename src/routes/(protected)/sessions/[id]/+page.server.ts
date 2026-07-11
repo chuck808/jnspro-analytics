@@ -26,10 +26,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing runId or sessionId' });
 		}
 
-		let tags: string[] = [];
+		let tags: string[];
 		try {
 			tags = JSON.parse(tagsJson);
-		} catch (e) {
+		} catch {
 			return fail(400, { error: 'Invalid tags format' });
 		}
 

@@ -155,7 +155,7 @@
 				{/each}
 			{:else if chartType === 'bar'}
 				<!-- Bars -->
-				{#each data as point, i}
+				{#each data as point}
 					{@const barWidth = ((width - padding.left - padding.right) / data.length) * 0.7}
 					{@const barX = xScale(point.x) - barWidth / 2}
 					{@const barHeight = yScale(yExtent[0]) - yScale(point.y)}

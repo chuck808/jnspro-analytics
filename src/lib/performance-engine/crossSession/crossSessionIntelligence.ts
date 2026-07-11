@@ -82,7 +82,7 @@ export function analyseCrossSessionIntelligence(
 	const recommendations = generateRecommendations(performance, consistency, fatigue, overallTrend);
 
 	// Generate headline
-	const headline = generateHeadline(overallTrend, performance, consistency, fatigue);
+	const headline = generateHeadline(overallTrend, performance);
 
 	return {
 		status: 'ready',
@@ -218,12 +218,7 @@ function generateRecommendations(
 	return rec;
 }
 
-function generateHeadline(
-	overallTrend: OverallTrend,
-	performance: PerformanceProgression,
-	consistency: ConsistencyTrends,
-	fatigue: FatigueProgression
-): string {
+function generateHeadline(overallTrend: OverallTrend, performance: PerformanceProgression): string {
 	if (overallTrend === 'improving') {
 		if (performance.speedTrend.change !== null) {
 			return `Performance improving (+${performance.speedTrend.change.toFixed(1)} km/h)`;

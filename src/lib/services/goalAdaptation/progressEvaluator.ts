@@ -41,7 +41,7 @@ interface GoalData {
  */
 export function evaluateGoalProgress(
 	goal: GoalData,
-	sessionsRemaining: number | null
+	_sessionsRemaining: number | null
 ): ProgressEvaluation {
 	const now = new Date();
 	const daysElapsed = Math.max(
@@ -73,8 +73,7 @@ export function evaluateGoalProgress(
 		status,
 		variance,
 		actualCompletion,
-		daysRemaining,
-		sessionsRemaining
+		daysRemaining
 	);
 
 	// Estimate days remaining based on current pace
@@ -134,8 +133,7 @@ function shouldSuggestAdjustment(
 	status: ProgressStatus,
 	variance: number,
 	actualCompletion: number,
-	daysRemaining: number,
-	sessionsRemaining: number | null
+	daysRemaining: number
 ): { shouldAdjust: boolean; adjustmentReason: string | null } {
 	// Suggest stretch goal if way ahead
 	if (status === 'way_ahead' && actualCompletion > 40) {

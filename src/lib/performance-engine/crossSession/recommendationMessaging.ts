@@ -4,7 +4,7 @@
  * Builds recommendations with reasons and priority
  */
 
-import type { CrossSessionReport, OverallTrend } from './types';
+import type { CrossSessionReport } from './types';
 
 export interface EnhancedRecommendation {
 	text: string;

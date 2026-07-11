@@ -6,7 +6,6 @@
 	import SessionNarrativeCard from '$lib/components/performance-insights/SessionNarrativeCard.svelte';
 	import StrengthsLimiters from '$lib/components/session/StrengthsLimiters.svelte';
 	import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
-	import { getUCICategory } from '$lib/utils/uciCategories';
 	import { detectAchievement, buildDetectorInput } from '$lib/social';
 	import SocialShareModal from '$lib/components/social/SocialShareModal.svelte';
 

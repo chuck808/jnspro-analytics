@@ -35,7 +35,6 @@
  */
 
 const GRAVITY = 9.80665; // m/s²
-const RAD_TO_DEG = 180 / Math.PI;
 
 // ─── Speed curve computation ──────────────────────────────────────────────────
 
@@ -229,12 +228,13 @@ export function scoreTechnique(
 	// Velocity efficiency — area under curve vs ideal
 	const peakSpeed = curve.speeds.length > 0 ? Math.max(...curve.speeds) : 0;
 	const peakIdx = curve.speeds.indexOf(peakSpeed);
+	let efficiency: number;
 	if (peakIdx > 0 && peakSpeed > 0) {
 		const actualArea = curve.speeds.slice(0, peakIdx).reduce((s, v) => s + v, 0);
 		const idealArea = (peakSpeed * peakIdx) / 2;
-		var efficiency = Math.min(100, (actualArea / (idealArea || 1)) * 100);
+		efficiency = Math.min(100, (actualArea / (idealArea || 1)) * 100);
 	} else {
-		var efficiency = 0;
+		efficiency = 0;
 	}
 
 	// Overall weighted score

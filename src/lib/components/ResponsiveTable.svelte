@@ -2,13 +2,11 @@
 	let {
 		headers,
 		rows,
-		caption = '',
-		mobileLayout = 'cards'
+		caption = ''
 	}: {
 		headers: string[];
 		rows: any[][];
 		caption?: string;
-		mobileLayout?: 'cards' | 'stacked';
 	} = $props();
 </script>
 

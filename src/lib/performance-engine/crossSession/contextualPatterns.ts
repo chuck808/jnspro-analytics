@@ -182,8 +182,8 @@ function analyseVariablePattern(
 
 	// Calculate meaningful difference
 	let differencePercent: number | null = null;
-	let bestValue: number | null = null;
-	let worstValue: number | null = null;
+	let bestValue: number | null;
+	let worstValue: number | null;
 
 	if (metric === 'reactionTime') {
 		bestValue = best.avgReactionMs;

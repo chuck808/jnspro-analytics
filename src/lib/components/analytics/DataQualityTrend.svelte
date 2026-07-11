@@ -17,16 +17,7 @@
 		isMobile?: boolean;
 	}
 
-	let { data, isMobile = false }: Props = $props();
-
-	// Quality score mapping
-	const qualityScores = {
-		excellent: 100,
-		good: 75,
-		fair: 50,
-		calibrate: 25,
-		unknown: 0
-	};
+	let { data, isMobile: _isMobile = false }: Props = $props();
 
 	const qualityColors = {
 		excellent: '#3de8c8',
@@ -109,8 +100,7 @@
 		<!-- Visual timeline bar -->
 		<div class="relative mb-3 h-12 overflow-hidden rounded-lg border border-[#221c18] bg-[#0a0809]">
 			<div class="absolute inset-0 flex items-stretch">
-				{#each data as session, index}
-					{@const width = 100 / data.length}
+				{#each data as session}
 					<div
 						class="group relative flex-1 transition-all hover:opacity-80"
 						style="background:{qualityColors[session.qualityRating]}; opacity: 0.6;"

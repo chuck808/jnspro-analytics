@@ -66,7 +66,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, user }
 		}
 
 		// Upload the new file
-		const { data: uploadData, error: uploadError } = await supabase.storage
+		const { error: uploadError } = await supabase.storage
 			.from('user-images')
 			.upload(filePath, file, {
 				cacheControl: '3600',

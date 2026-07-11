@@ -1,10 +1,6 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
-	import {
-		HealthStatusDashboard,
-		GoalProgressCard,
-		AdjustmentSuggestionModal
-	} from '$lib/components/goals';
+	import { HealthStatusDashboard, AdjustmentSuggestionModal } from '$lib/components/goals';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -78,7 +74,6 @@
 	let selectedMetric = $state<MetricId>('reactionTime');
 	let creating = $state(false);
 	let showCompleted = $state(false);
-	let showSuggestions = $state(false);
 	let showFeatures = $state(false);
 	let selectedGoalForSuggestions: any = $state(null);
 

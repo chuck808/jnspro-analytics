@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { chapters } from '$lib/docs/contents';
 	import { P, A } from 'flowbite-svelte';
 

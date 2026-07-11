@@ -1,6 +1,4 @@
 <script lang="ts">
-	import BottomSheet from './BottomSheet.svelte';
-
 	let {
 		sessions,
 		onFilter

@@ -29,8 +29,8 @@
 	let sortedRuns = $derived.by(() => {
 		const runs = analysis.runs || [];
 		const sorted = [...runs].sort((a, b) => {
-			let aVal: number | null = null;
-			let bVal: number | null = null;
+			let aVal: number | null;
+			let bVal: number | null;
 
 			if (sortColumn === 'runNumber') {
 				aVal = a.runNumber ?? 0;

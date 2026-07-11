@@ -85,7 +85,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 
 	// Fetch all gate_runs for these runs
 	const runIds = (runs || []).map((r) => r.id);
-	const { data: gateRuns, error: gateRunsError } = await supabase
+	const { data: gateRuns } = await supabase
 		.from('gate_runs')
 		.select(
 			'run_id, reaction_time_ms, max_g, avg_g, peak_speed_ms, avg_speed_ms_calc, time_to_peak_speed_ms, analytics_valid, max_pitch_deg, front_wheel_lifted, bias_correction_ms2'
@@ -147,7 +147,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		max_g: allMaxG.length > 0 ? Math.max(...allMaxG) : null
 	};
 
-	let trend: { reaction: number | null; speed: number | null } = { reaction: null, speed: null };
+	const trend: { reaction: number | null; speed: number | null } = { reaction: null, speed: null };
 	if (sessionCount >= 6) {
 		const recent = sessionSummaries.slice(-5);
 		const previous = sessionSummaries.slice(-10, -5);

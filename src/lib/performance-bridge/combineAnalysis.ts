@@ -91,14 +91,3 @@ export function buildIntegrationSections(
 
 	return sections.filter((section) => section.visibleFor.includes(detailLevel));
 }
-
-function emptyChartSeries() {
-	return {
-		acceleration: [],
-		speed: [],
-		distance: [],
-		impulse: [],
-		power: [],
-		jerk: []
-	};
-}

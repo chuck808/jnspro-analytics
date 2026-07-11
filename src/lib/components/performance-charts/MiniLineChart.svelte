@@ -46,7 +46,7 @@
 	const xTicks = $derived.by(() => {
 		if (!stats) return [];
 		const duration = stats.durationS;
-		return [0, 0.25, 0.5, 0.75, 1].map((fraction, i) => ({
+		return [0, 0.25, 0.5, 0.75, 1].map((fraction) => ({
 			value: duration * fraction,
 			x: 24 + fraction * (width - 48)
 		}));

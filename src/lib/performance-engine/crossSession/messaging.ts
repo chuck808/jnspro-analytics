@@ -4,7 +4,7 @@
  * Builds conflict-aware headlines and explanations
  */
 
-import type { CrossSessionReport, OverallTrend } from './types';
+import type { CrossSessionReport } from './types';
 
 export interface CrossSessionMessaging {
 	headline: string;
@@ -43,7 +43,7 @@ export function buildCrossSessionMessaging(report: CrossSessionReport): CrossSes
 
 	// Conflict-aware headline generation
 	let headline: string;
-	let priority: 'high' | 'medium' | 'low' = 'medium';
+	let priority: 'high' | 'medium' | 'low';
 
 	if (bestImproving && avgDeclining) {
 		headline =

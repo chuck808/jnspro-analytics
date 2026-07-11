@@ -1,4 +1,4 @@
-import { redirect, fail } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals, cookies, url }) => {
+	default: async ({ request, locals }) => {
 		const form = await request.formData();
 		const email = form.get('email') as string;
 		const password = form.get('password') as string;

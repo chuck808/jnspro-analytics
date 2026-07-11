@@ -42,12 +42,8 @@
 
 	async function renderChart() {
 		const cssVars = getComputedStyle(document.documentElement);
-		const themeGrid = cssVars.getPropertyValue('--theme-border').trim() || '#221c18';
 		const themeTick = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
 		const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim() || '#6b5f4d';
-		const themeBg = cssVars.getPropertyValue('--theme-bg').trim() || '#0a0809';
-		const themeSurface = cssVars.getPropertyValue('--theme-surface').trim() || '#131010';
-		const themeText = cssVars.getPropertyValue('--theme-text-primary').trim() || '#f0ece4';
 		if (!chartCanvas || data.length === 0) return;
 
 		const { Chart, registerables } = await import('chart.js');
@@ -88,7 +84,7 @@
 								const score = context.parsed.y;
 								if (score === null || score === undefined) return 'No data';
 
-								let quality = 'Unknown';
+								let quality: string;
 								if (score >= 80) quality = 'Excellent';
 								else if (score >= 60) quality = 'Good';
 								else if (score >= 40) quality = 'Fair';

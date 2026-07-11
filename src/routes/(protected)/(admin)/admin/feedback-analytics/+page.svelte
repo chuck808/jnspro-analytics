@@ -86,15 +86,6 @@
 		goto(`/admin/feedback-analytics?days=${days}`);
 	}
 
-	function formatDate(dateString: string) {
-		return new Date(dateString).toLocaleDateString('en-GB', {
-			day: 'numeric',
-			month: 'short',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
 	function formatTimeAgo(dateString: string) {
 		const seconds = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000);
 		if (seconds < 60) return `${seconds}s ago`;

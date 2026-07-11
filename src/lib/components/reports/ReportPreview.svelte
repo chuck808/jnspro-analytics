@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { GeneratedReport } from '$lib/report-engine/types';
 	import ReportSectionPreview from './ReportSectionPreview.svelte';
-	import ReportMetricGrid from './ReportMetricGrid.svelte';
 	import { getConfidenceLabel } from '$lib/report-engine/reportLanguage';
 
 	let {

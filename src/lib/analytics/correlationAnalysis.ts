@@ -76,7 +76,6 @@ export function calculatePValue(r: number, n: number): number {
 	if (n < 3) return 1;
 
 	const t = r * Math.sqrt((n - 2) / (1 - r * r));
-	const df = n - 2;
 
 	// Simplified p-value approximation (two-tailed)
 	// For production, use a proper statistical library
@@ -194,9 +193,7 @@ export function analyzeCorrelation(
 export function analyzeCategoricalCorrelation(
 	data: SessionDataPoint[],
 	categoryKey: keyof SessionDataPoint,
-	metricKey: keyof SessionDataPoint,
-	categoryLabel: string,
-	metricLabel: string
+	metricKey: keyof SessionDataPoint
 ): { category: string; mean: number; count: number; stdDev: number }[] {
 	const groups = new Map<string, number[]>();
 
@@ -396,7 +393,7 @@ function synthesizeMultiVariableInsights(
 		}
 
 		synthesized.push({
-			id: `insight-multi-${insightId++}`,
+			id: `insight-multi-${insightId}`,
 			title: `🌡️ Temperature's Dual Impact on Performance`,
 			description: narrative.join(' '),
 			correlation: context.tempMaxG,
@@ -435,7 +432,6 @@ export function generateCorrelationInsights(
 	if (tempReaction && tempReaction.significant && Math.abs(tempReaction.correlation) > 0.3) {
 		const direction = tempReaction.direction === 'negative' ? 'faster' : 'slower';
 		const tempThreshold = tempReaction.direction === 'negative' ? 'warmer' : 'colder';
-		const improvementPct = Math.abs(tempReaction.correlation * 100).toFixed(0);
 
 		insights.push({
 			id: `insight-${insightId++}`,
@@ -452,13 +448,7 @@ export function generateCorrelationInsights(
 	}
 
 	// 2. Track Surface vs Consistency
-	const surfaceConsistency = analyzeCategoricalCorrelation(
-		data,
-		'trackSurface',
-		'reactionCV',
-		'Track Surface',
-		'Consistency (CV%)'
-	);
+	const surfaceConsistency = analyzeCategoricalCorrelation(data, 'trackSurface', 'reactionCV');
 
 	if (surfaceConsistency.length >= 2) {
 		const sorted = [...surfaceConsistency].sort((a, b) => a.mean - b.mean);
@@ -521,13 +511,7 @@ export function generateCorrelationInsights(
 	}
 
 	// 4. Time of Day vs Performance
-	const timeOfDayPerf = analyzeCategoricalCorrelation(
-		data,
-		'timeOfDay',
-		'bestReactionMs',
-		'Time of Day',
-		'Reaction Time'
-	);
+	const timeOfDayPerf = analyzeCategoricalCorrelation(data, 'timeOfDay', 'bestReactionMs');
 
 	if (timeOfDayPerf.length >= 2) {
 		const sorted = [...timeOfDayPerf].sort((a, b) => a.mean - b.mean);

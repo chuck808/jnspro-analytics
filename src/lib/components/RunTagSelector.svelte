@@ -41,11 +41,6 @@
 		selectedTags = [...currentTags]; // Reset on cancel
 	}
 
-	async function handleSave() {
-		saving = true;
-		// Form will be submitted via enhance
-	}
-
 	const hasChanges = $derived(
 		JSON.stringify(selectedTags.sort()) !== JSON.stringify(currentTags.sort())
 	);

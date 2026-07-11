@@ -22,7 +22,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 
-export const GET: RequestHandler = async ({ request, url, locals }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	// Admin check — must be authenticated and have admin role
 	const { session, user } = await locals.safeGetSession();
 	if (!session || !user) throw error(401, 'Not authenticated');

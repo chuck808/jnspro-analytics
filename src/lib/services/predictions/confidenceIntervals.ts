@@ -61,9 +61,6 @@ export function calculateConfidenceInterval(
 		residuals.reduce((sum, r) => sum + Math.pow(r - meanResidual, 2), 0) / (residuals.length - 1);
 	const stdError = Math.sqrt(variance);
 
-	// Use t-distribution critical value for small samples
-	const tValue = getTDistributionValue(confidenceLevel, residuals.length - 1);
-
 	// Predict when target will be reached with uncertainty
 	const predictions: number[] = [];
 

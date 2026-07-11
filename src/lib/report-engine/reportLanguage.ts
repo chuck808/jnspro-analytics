@@ -91,11 +91,11 @@ export function sessionQualitySummary(
 				lines.push("Your best run and your average run were very close — that's what you want.");
 			else if (bestVsAvgGap < 12)
 				lines.push(
-					`Your best run was about ${bestVsAvgGap.toFixed(0)}% better than your average — there\'s some gap to close.`
+					`Your best run was about ${bestVsAvgGap.toFixed(0)}% better than your average — there's some gap to close.`
 				);
 			else
 				lines.push(
-					`There\'s a big gap between your best run and your typical run (${bestVsAvgGap.toFixed(0)}%). The focus should be on making the average better, not chasing one perfect start.`
+					`There's a big gap between your best run and your typical run (${bestVsAvgGap.toFixed(0)}%). The focus should be on making the average better, not chasing one perfect start.`
 				);
 		} else {
 			if (bestVsAvgGap < 5)
@@ -104,11 +104,11 @@ export function sessionQualitySummary(
 				);
 			else if (bestVsAvgGap < 12)
 				lines.push(
-					`Best-vs-average gap: ${bestVsAvgGap.toFixed(1)}% — moderate. There\'s meaningful performance left in the typical run.`
+					`Best-vs-average gap: ${bestVsAvgGap.toFixed(1)}% — moderate. There's meaningful performance left in the typical run.`
 				);
 			else
 				lines.push(
-					`Best-vs-average gap: ${bestVsAvgGap.toFixed(1)}% — wide. The rider\'s peak performance significantly exceeds their typical output. Focus should shift to floor-raising over peak-chasing.`
+					`Best-vs-average gap: ${bestVsAvgGap.toFixed(1)}% — wide. The rider's peak performance significantly exceeds their typical output. Focus should shift to floor-raising over peak-chasing.`
 				);
 		}
 	}
@@ -243,11 +243,11 @@ export function techniqueSection(input: TechniqueInput, level: ReportDetailLevel
 			lines.push(`Your technique was solid${levelText} with a couple of areas to work on.`);
 		else if (overall >= 50)
 			lines.push(
-				`There\'s room to improve your technique${levelText}. The focus areas below are worth working on.`
+				`There's room to improve your technique${levelText}. The focus areas below are worth working on.`
 			);
 		else
 			lines.push(
-				`Your technique needs some work${levelText}. Don\'t be discouraged — these are coachable things.`
+				`Your technique needs some work${levelText}. Don't be discouraged — these are coachable things.`
 			);
 	} else {
 		lines.push(`Overall technique score: ${overall}/100${levelText}.`);
@@ -269,11 +269,11 @@ export function techniqueSection(input: TechniqueInput, level: ReportDetailLevel
 	if (isSimple(level)) {
 		if (strongest.score >= 75)
 			lines.push(
-				`Your strongest area is ${strongest.name.toLowerCase()} — keep doing what you\'re doing there.`
+				`Your strongest area is ${strongest.name.toLowerCase()} — keep doing what you're doing there.`
 			);
 		if (weakest.score < 60)
 			lines.push(
-				`The main area to focus on is ${weakest.name.toLowerCase()} — that\'s where the most improvement is available.`
+				`The main area to focus on is ${weakest.name.toLowerCase()} — that's where the most improvement is available.`
 			);
 	} else {
 		// Coach-level: describe the pattern, not just the scores
@@ -589,7 +589,7 @@ export function progressExecutiveSummary(params: {
 	warnings: string[];
 	level: ReportDetailLevel;
 }): string[] {
-	const { headline, overallTrend, confidence, sessionCount, warnings, level } = params;
+	const { headline, confidence, sessionCount, warnings, level } = params;
 	const lines: string[] = [];
 
 	lines.push(headline);

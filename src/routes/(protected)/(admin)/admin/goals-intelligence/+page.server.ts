@@ -1,6 +1,5 @@
 import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
-import type { GoalWithProfile } from '$lib/types/queries';
 
 const LOWER_IS_BETTER_METRICS = ['reactionTime', 'elapsedTime', 'accelerationPhase'];
 

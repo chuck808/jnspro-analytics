@@ -8,10 +8,7 @@
 	import {
 		analyseFrontWheelLift,
 		assessDataQuality,
-		analysePhaseConsistency,
-		type FrontWheelLiftAnalysis,
-		type DataQualityAssessment,
-		type PhaseConsistencyResult
+		analysePhaseConsistency
 	} from '$lib/performance-engine';
 
 	import { PerformanceDistributionChart } from '$lib/components/performance-charts';
@@ -58,22 +55,12 @@
 			: []
 	);
 
-	// Chart data
-	const speedPoints = $derived(
-		runs.map((run, i) => ({
-			runIndex: i,
-			speed: run.gate_runs?.peak_speed_ms ? run.gate_runs.peak_speed_ms * 3.6 : 0,
-			runNumber: run.run_number
-		}))
-	);
-
 	// Derived insights
 	const wheeliePattern = $derived(() => {
 		const classifications = wheelieAnalysis.map((w) => w.analysis.classification);
 		const excessiveCount = classifications.filter((c) => c === 'excessive-lift').length;
 		const lateCount = classifications.filter((c) => c === 'late-lift').length;
 		const controlledCount = classifications.filter((c) => c === 'controlled').length;
-		const noLiftCount = classifications.filter((c) => c === 'no-lift').length;
 
 		if (excessiveCount > runs.length * 0.3) {
 			return {
@@ -143,7 +130,6 @@
 	);
 
 	const isAdvanced = $derived(detailLevel === 'elite' || detailLevel === 'coach');
-	const showCharts = $derived(runs.length >= 3 && !compact);
 </script>
 
 <section class="technique-panel">

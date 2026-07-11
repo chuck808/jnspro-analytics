@@ -1,12 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import LoadingButton from '$lib/components/LoadingButton.svelte';
 
 	let { data }: { data: PageData } = $props();
 
-	type UploadState = 'idle' | 'reading' | 'uploading' | 'success' | 'error';
-
-	// @ts-ignore - Svelte 5 $state rune
+	// @ts-expect-error - Svelte 5 $state rune
 	let state = $state('idle');
 	let file = $state(null);
 	let result = $state(null);
@@ -88,7 +85,7 @@
 			warnings = data.warnings ?? [];
 			state = 'success';
 			file = null;
-		} catch (err) {
+		} catch {
 			state = 'error';
 			errorMsg = 'Network error — check your connection and try again';
 		}
@@ -101,14 +98,6 @@
 		errorMsg = '';
 		warnings = [];
 		duplicateSession = null;
-	}
-
-	async function uploadAnyway() {
-		if (!file) return;
-
-		// Force re-upload (this will still be detected as duplicate, but we could add a flag later if needed)
-		duplicateSession = null;
-		await upload();
 	}
 
 	let isUploading = $derived(state === 'reading' || state === 'uploading');
@@ -221,7 +210,6 @@
 		<!-- Upload form -->
 		<div class="space-y-5 rounded-xl border border-[#221c18] bg-[#131010] p-6">
 			<!-- Drop zone -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				role="button"
 				tabindex="0"

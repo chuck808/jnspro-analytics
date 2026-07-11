@@ -29,7 +29,7 @@ export function containsProfanity(text: string): boolean {
 	if (!text) return false;
 
 	// Remove spaces and special characters for checking
-	const normalized = text.toLowerCase().replace(/[\s\-_\.]/g, '');
+	const normalized = text.toLowerCase().replace(/[\s\-_.]/g, '');
 
 	return PROFANITY_PATTERNS.some((pattern) => pattern.test(normalized));
 }

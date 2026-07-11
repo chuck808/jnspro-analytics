@@ -10,8 +10,6 @@
  *   - Context-aware variants exist for rideFeel, sessionFocus, trackSurface, weather
  */
 
-import type { PhraseOptions } from './types';
-
 // ── Core headlines ────────────────────────────────────────────────────────────
 
 export const HEADLINES = {

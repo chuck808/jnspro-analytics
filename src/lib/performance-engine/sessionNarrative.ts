@@ -372,7 +372,7 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
 	// ── Recommendations ──────────────────────────────────────────────────────────
 	// Single unified list derived from the primary message and intelligence report.
 	// Replaces the string[] that sessionIntelligence.ts used to produce separately.
-	const recommendations = buildRecommendations(message, intel, input.consistencyScore);
+	const recommendations = buildRecommendations(message, intel);
 
 	return {
 		message,
@@ -385,8 +385,7 @@ export function buildSessionNarrative(input: SessionNarrativeInput): SessionNarr
 
 function buildRecommendations(
 	message: CoachMessage,
-	intel: SessionIntelligenceReport | null,
-	consistencyScore: number | null | undefined
+	intel: SessionIntelligenceReport | null
 ): Array<{ id: string; title: string; body: string; priority: 'high' | 'medium' | 'low' }> {
 	const recs: Array<{
 		id: string;

@@ -19,7 +19,6 @@
 
 	let selectedRun = $derived(ctx.selectedRun);
 	let selectedGate = $derived(ctx.selectedGate);
-	let selectedRunIdx = $derived(ctx.selectedRunIdx);
 	let riderLevel = $derived(ctx.riderLevel);
 	let performanceAnalysis = $derived(ctx.performanceAnalysis);
 	let techniqueScores = $derived(ctx.techniqueScores);

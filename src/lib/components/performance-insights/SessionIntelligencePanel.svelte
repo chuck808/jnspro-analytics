@@ -64,25 +64,6 @@
 		report.sessionQuality >= 80 ? '#3de8c8' : report.sessionQuality >= 60 ? '#f5a623' : '#ff4444'
 	);
 
-	const fatigueColor = $derived(
-		report.fatigue.trend === 'improving'
-			? '#3de8c8'
-			: report.fatigue.trend === 'stable'
-				? '#f5a623'
-				: report.fatigue.trend === 'declining'
-					? '#ff4444'
-					: 'var(--theme-text-subtle)'
-	);
-
-	const fatigueLabel = $derived(
-		report.fatigue.trend === 'improving'
-			? 'Improving ↗'
-			: report.fatigue.trend === 'stable'
-				? 'Stable →'
-				: report.fatigue.trend === 'declining'
-					? 'Declining ↘'
-					: 'Unknown'
-	);
 </script>
 
 <section class="intelligence-panel">

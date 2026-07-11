@@ -1,6 +1,4 @@
 <script lang="ts">
-	import type { SessionPerformanceSummary } from '$lib/performance-engine/crossSession/types';
-
 	interface Props {
 		sessionCount: number;
 		crossSessionReport: any;
@@ -13,8 +11,13 @@
 		isMobile: boolean;
 	}
 
-	let { sessionCount, crossSessionReport, latestSessionRatings, personalBests, isMobile }: Props =
-		$props();
+	let {
+		sessionCount,
+		crossSessionReport,
+		latestSessionRatings,
+		personalBests,
+		isMobile: _isMobile
+	}: Props = $props();
 
 	// Generate headline based on cross-session intelligence
 	let headline = $derived.by(() => {
@@ -23,7 +26,6 @@
 		}
 
 		const patterns = crossSessionReport.patterns || {};
-		const recommendations = crossSessionReport.recommendations || [];
 
 		// Check for improving consistency
 		if (patterns.consistency?.trend === 'improving') {

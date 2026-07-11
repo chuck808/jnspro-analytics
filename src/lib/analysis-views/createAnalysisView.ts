@@ -190,7 +190,6 @@ function buildHeadline(analysis: SessionAnalysis): string {
 	const ctx = analysis.context;
 	const int = analysis.intelligence;
 
-	const bestReactionS = s.bestReactionMs != null ? s.bestReactionMs / 1000 : null;
 	const consistencyScore = s.consistencyScore ?? null;
 	const fatigueTrend = int?.fatigue?.trend ?? 'unknown';
 	const repeatability = int?.repeatability?.overall ?? null;

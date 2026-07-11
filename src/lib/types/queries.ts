@@ -7,7 +7,6 @@ type RiderProfileRow = Tables['rider_profiles']['Row'];
 type GateRunRow = Tables['gate_runs']['Row'];
 type RunRow = Tables['runs']['Row'];
 type SessionRow = Tables['sessions']['Row'];
-type UserPreferencesRow = Tables['user_preferences']['Row'];
 type ProfileRow = Tables['profiles']['Row'];
 type TrainingGoalRow = Tables['training_goals']['Row'];
 

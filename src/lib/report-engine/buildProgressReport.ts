@@ -8,14 +8,7 @@ import type {
 	ProgressRecommendation
 } from './types';
 
-import {
-	compactLines,
-	createRecommendation,
-	createSection,
-	formatNumber,
-	formatPercent,
-	reportId
-} from './reportSections';
+import { compactLines, createRecommendation, createSection, reportId } from './reportSections';
 
 import { isSimple, isCoach } from './reportLanguage';
 
@@ -33,14 +26,14 @@ export function buildProgressReport(
 	const report = input.crossSessionReport;
 
 	// ── Headline ──────────────────────────────────────────────────────────────
-	const headline = buildProgressHeadline(input, detailLevel);
+	const headline = buildProgressHeadline(input);
 	const confidence = report?.confidence as 'high' | 'medium' | 'low' | undefined;
 
 	// ── Metrics ───────────────────────────────────────────────────────────────
 	const metrics: ReportMetric[] = buildProgressMetrics(input);
 
 	// ── Recommendations ───────────────────────────────────────────────────────
-	const recommendations = includeRecs ? buildProgressRecommendations(input, detailLevel) : [];
+	const recommendations = includeRecs ? buildProgressRecommendations(input) : [];
 
 	// ── Charts ────────────────────────────────────────────────────────────────
 	const charts: ReportChart[] = includeCharts ? (input.charts ?? defaultProgressCharts()) : [];
@@ -216,7 +209,7 @@ export function buildProgressReport(
 
 // ─── Headline ─────────────────────────────────────────────────────────────────
 
-function buildProgressHeadline(input: ProgressReportInput, level: ReportDetailLevel): string {
+function buildProgressHeadline(input: ProgressReportInput): string {
 	const report = input.crossSessionReport;
 	const trend = report?.overallTrend?.toLowerCase() ?? '';
 	const session = input.sessionCount;
@@ -668,7 +661,7 @@ function buildProgressMetrics(input: ProgressReportInput): ReportMetric[] {
 
 // ─── Recommendations ─────────────────────────────────────────────────────────
 
-function buildProgressRecommendations(input: ProgressReportInput, level: ReportDetailLevel) {
+function buildProgressRecommendations(input: ProgressReportInput) {
 	const rawRecs = input.recommendations ?? input.crossSessionReport?.recommendations ?? [];
 
 	if (Array.isArray(rawRecs) && rawRecs.length > 0) {

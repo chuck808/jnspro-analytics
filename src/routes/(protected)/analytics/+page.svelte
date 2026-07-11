@@ -2,7 +2,6 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { getSessionLink } from '$lib/utils/deepLinks';
 	import ExportButton from '$lib/components/ExportButton.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import { TrainingInsightsPanel } from '$lib/components/performance-insights';
@@ -24,9 +23,8 @@
 	import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
 	import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
 	import { rateSessionMetrics } from '$lib/performance-engine/thresholds';
-	import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
 	import { buildProgressReport } from '$lib/report-engine';
-	import { ReportOptionsPanel, ReportPreview } from '$lib/components/reports';
+	import { ReportPreview } from '$lib/components/reports';
 	import type { GeneratedReport, ReportDetailLevel } from '$lib/report-engine/types';
 
 	let { data }: { data: PageData } = $props();
@@ -114,7 +112,7 @@
 	let crossSessionReport = $derived.by(() => {
 		if (data.sessionCount < 3) return null;
 
-		const sessionSummaries = data.sessions.map((s, index) => {
+		const sessionSummaries = data.sessions.map((s) => {
 			const sessionReport = allSessionReports.find((r) => r && r.sessionId === s.id);
 			const intelligence = sessionReport?.intelligence;
 
@@ -171,77 +169,9 @@
 		);
 	});
 
-	// ── v8.3 Session Narrative ──
-	let latestSessionNarrative = $derived.by(() => {
-		if (data.sessions.length === 0 || !latestSessionReport) return null;
-		const latest = data.sessions[data.sessions.length - 1];
-
-		// Build correlation hints from two sources:
-		// 1. data.correlationInsights — Pearson correlation analysis (existing)
-		// 2. crossSessionReport.contextualPatterns — condition-segmented patterns (new)
-		// Both feed the narrative engine's buildCorrelationNote via the same CorrelationHint shape.
-
-		const legacyHints = (data.correlationInsights ?? [])
-			.filter((i: any) => i.correlation?.sampleSize >= 8)
-			.map((i: any) => {
-				const v1 = i.correlation?.variable1?.toLowerCase() ?? '';
-				const variable = v1.includes('surface')
-					? 'track_surface'
-					: v1.includes('weather') || v1.includes('temperature')
-						? 'weather_condition'
-						: null;
-				if (!variable) return null;
-				return {
-					variable,
-					value: latest.track_surface ?? latest.weather_conditions ?? '',
-					metric: i.correlation?.variable2?.toLowerCase() ?? 'performance',
-					direction:
-						i.correlation?.direction === 'negative' && v1.includes('reaction')
-							? 'better'
-							: i.correlation?.direction === 'positive'
-								? 'better'
-								: 'worse',
-					strength:
-						i.correlation?.strength === 'very strong' || i.correlation?.strength === 'strong'
-							? 'strong'
-							: i.correlation?.strength === 'moderate'
-								? 'moderate'
-								: 'weak',
-					sessionCount: i.correlation?.sampleSize ?? 0
-				} as any;
-			})
-			.filter(Boolean);
-
-		// Merge in contextual pattern hints from cross-session engine
-		const contextualHints = (crossSessionReport?.contextualPatterns?.patterns ?? [])
-			.map((p: any) => p.correlationHint)
-			.filter(Boolean);
-
-		const hints = [...legacyHints, ...contextualHints];
-
-		return buildSessionNarrative({
-			runCount: latest.run_count,
-			consistencyScore: latestSessionReport.repeatability.overall,
-			reactionCvPercent: latest.reaction_cv,
-			dataQualityRating: null,
-			speedBlocked: false,
-			powerBlocked: false,
-			hasCalibrationWarnings: false,
-			fatigueDetected: latestSessionReport.fatigue.trend === 'declining',
-			dropOffRun: latestSessionReport.dropOff?.dropOffRun ?? null,
-			bestVsAvgGapPercent: latestSessionReport.bestVsAvg?.gapPercent ?? null,
-			// Session context — v8.4
-			sessionFocus: (latest as any).session_focus ?? null,
-			trackSurface: (latest as any).track_surface ?? null,
-			weatherCondition: (latest as any).weather_conditions ?? null,
-			rideFeel: (latest as any).ride_feel ?? null,
-			correlationHints: hints
-		});
-	});
-
 	// Prepare data for Performance Patterns Section
 	let performancePatternsData = $derived.by(() => {
-		return data.sessions.map((s, index) => {
+		return data.sessions.map((s) => {
 			const sessionReport = allSessionReports.find((r) => r && r.sessionId === s.id);
 			const intelligence = sessionReport?.intelligence;
 
@@ -601,10 +531,6 @@
 
 	function closeProgressReport() {
 		showProgressReport = false;
-	}
-
-	function toggleProgressOptions() {
-		showProgressOptions = !showProgressOptions;
 	}
 
 	function navClass(tab: typeof activeTab) {

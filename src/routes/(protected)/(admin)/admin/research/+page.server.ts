@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from '$lib/server/supabase';
 export const load: PageServerLoad = async () => {
 	const admin = createSupabaseAdminClient();
 
-	const [consentedResult, totalResult, participationResult, sessionCountResult] = await Promise.all(
+	const [consentedResult, totalResult, _participationResult, sessionCountResult] = await Promise.all(
 		[
 			// Consented riders with profile completeness
 			admin

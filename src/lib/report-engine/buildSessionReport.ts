@@ -22,15 +22,13 @@ import {
 	repeatabilitySection,
 	techniqueSection,
 	dataQualitySection,
-	formatRecommendation,
 	watchForSection,
 	sessionExecutiveSummary,
 	conflictWarning,
 	type SessionQualityInput,
 	type RepeatabilityInput,
 	type TechniqueInput,
-	type DataQualityInput,
-	type RecommendationInput
+	type DataQualityInput
 } from './reportLanguage';
 
 // ─── Main builder ─────────────────────────────────────────────────────────────
@@ -68,7 +66,6 @@ export function buildCoachSessionReport(
 	// but should modulate report framing (not silently dropped)
 	const hasCompetitionRuns = (input.excludedReasons ?? []).includes('Competition');
 	const hasBestEffortRuns = (input.excludedReasons ?? []).includes('Best Effort');
-	const hasOutlierRuns = hasCompetitionRuns || hasBestEffortRuns;
 
 	const excludedRuns = input.excludedRunCount ?? narrative?.trust?.excludedRuns ?? 0;
 	const excludedReasons = input.excludedReasons ?? narrative?.trust?.excludedReasons ?? [];
@@ -185,7 +182,7 @@ export function buildCoachSessionReport(
 	const recommendations = includeRecs
 		? narrativeRecs.length > 0
 			? narrativeRecs
-			: buildSessionRecommendations(input, detailLevel)
+			: buildSessionRecommendations(input)
 		: [];
 
 	// ── Charts ────────────────────────────────────────────────────────────────
@@ -523,7 +520,7 @@ export function buildCoachSessionReport(
 					? "Your best run and your average run were very close — that's consistent execution."
 					: gap < 12
 						? `Your best run was about ${gap.toFixed(0)}% better than your average.`
-						: `There\'s a ${gap.toFixed(0)}% gap between your best and average run. Work on making the average better, not just the best.`
+						: `There's a ${gap.toFixed(0)}% gap between your best and average run. Work on making the average better, not just the best.`
 			);
 		} else {
 			crossRunLines.push(
@@ -762,10 +759,7 @@ export function buildCoachSessionReport(
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
-function buildSessionRecommendations(
-	input: CoachSessionReportInput,
-	level: import('./types').ReportDetailLevel
-): ReportRecommendation[] {
+function buildSessionRecommendations(input: CoachSessionReportInput): ReportRecommendation[] {
 	const rawRecs = input.recommendations ?? input.sessionReport?.recommendations ?? [];
 
 	if (Array.isArray(rawRecs) && rawRecs.length > 0) {

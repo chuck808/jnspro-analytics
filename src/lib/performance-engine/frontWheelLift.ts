@@ -37,7 +37,7 @@ export function analyseFrontWheelLift(input: FrontWheelLiftInput): FrontWheelLif
 	const timeToLift = input.time_to_wheelie_ms ?? null;
 	const duration = input.wheelie_duration_ms ?? null;
 
-	let classification: WheelieClassification = 'unknown';
+	let classification: WheelieClassification;
 
 	if (!detected) {
 		classification = 'no-lift';

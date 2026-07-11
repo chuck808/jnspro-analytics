@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { chapters } from '$lib/docs/contents';
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
 
 	let searchQuery = $state('');
 	let searchResults = $state<typeof chapters>([]);

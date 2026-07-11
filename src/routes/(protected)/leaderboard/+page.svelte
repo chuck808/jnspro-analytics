@@ -328,7 +328,7 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-[#221c18]">
-						{#each currentLeaderboard.entries as entry, i}
+						{#each currentLeaderboard.entries as entry}
 							{@const medal = getRankMedal(entry.rank)}
 							{@const isUser = entry.isCurrentUser}
 							{@const isTopTen = entry.rank <= 10}

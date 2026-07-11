@@ -47,7 +47,6 @@ function calculateLinearRegression(values: number[]): {
 	const sumY = values.reduce((a, b) => a + b, 0);
 	const sumXY = x.reduce((sum, xi, i) => sum + xi * values[i], 0);
 	const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
-	const sumY2 = values.reduce((sum, yi) => sum + yi * yi, 0);
 
 	const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 	const intercept = (sumY - slope * sumX) / n;
@@ -68,7 +67,7 @@ export function forecastGoalAchievement(
 	sessions: Session[],
 	metric: string,
 	targetValue: number,
-	currentValue: number
+	_currentValue: number
 ): ForecastResult {
 	// Extract metric values
 	const values: number[] = [];
@@ -287,7 +286,7 @@ export function calculateGoalAlignment(
 	score = Math.max(0, Math.min(100, score));
 
 	// Feedback
-	let feedback = '';
+	let feedback: string;
 	if (score >= 80) feedback = '🔥 Excellent! Your training is highly aligned with your goal.';
 	else if (score >= 60) feedback = '✅ Good alignment. Stay consistent to reach your goal.';
 	else if (score >= 40) feedback = '⚠️ Moderate alignment. Consider adjusting training approach.';

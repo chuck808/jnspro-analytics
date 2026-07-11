@@ -6,11 +6,7 @@
 -->
 
 <script lang="ts">
-	import type {
-		CrossSessionReport,
-		TrendResult,
-		OverallTrend
-	} from '$lib/performance-engine/crossSession';
+	import type { CrossSessionReport, OverallTrend } from '$lib/performance-engine/crossSession';
 	import { submitInsightFeedback } from '$lib/utils/submitInsightFeedback';
 
 	interface Props {
@@ -116,14 +112,6 @@
 	const trendStatusColor = (improving: boolean): string => {
 		return improving ? '#3de8c8' : '#f5a623';
 	};
-
-	// Define insights with metadata for display
-	interface InsightDisplay {
-		label: string;
-		trend: TrendResult;
-		unit: string;
-		decimals: number;
-	}
 
 	// Build all insights array
 	const allInsights = $derived(

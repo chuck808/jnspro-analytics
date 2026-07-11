@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { scoreConsistency } from '$lib/performance-engine';
 	import { getChartOptions } from '$lib/utils/chartConfig';
 	import HelpButton from '$lib/components/HelpButton.svelte';

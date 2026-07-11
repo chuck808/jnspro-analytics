@@ -10,7 +10,7 @@
 	import { TrainingInsightsPanel } from '$lib/components/performance-insights';
 	import CoachDiagnosticsCard from '$lib/components/session/CoachDiagnosticsCard.svelte';
 	import TechniqueScoreBreakdown from '$lib/components/session/TechniqueScoreBreakdown.svelte';
-	import { buildChartSeries, shouldShowPower } from '$lib/performance-engine';
+	import { shouldShowPower } from '$lib/performance-engine';
 	import { computeDetailedPhases } from '$lib/performance-engine/phaseAnalysis';
 	import { getChartOptions } from '$lib/utils/chartConfig';
 	import { gaugeArcPath } from '$lib/utils/svgHelpers';
@@ -106,10 +106,6 @@
 		const cssVars = getComputedStyle(document.documentElement);
 		const themeGrid = cssVars.getPropertyValue('--theme-border').trim() || '#221c18';
 		const themeTick = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
-		const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim() || '#6b5f4d';
-		const themeBg = cssVars.getPropertyValue('--theme-bg').trim() || '#0a0809';
-		const themeSurface = cssVars.getPropertyValue('--theme-surface').trim() || '#131010';
-		const themeText = cssVars.getPropertyValue('--theme-text-primary').trim() || '#f0ece4';
 		const baseOpts = getChartOptions(isMobile);
 		const labels = curve.times.map((t: number) => t.toFixed(2));
 

@@ -103,7 +103,7 @@
 			} else {
 				alert('Failed to update feedback');
 			}
-		} catch (error) {
+		} catch {
 			alert('Error updating feedback');
 		} finally {
 			isUpdating = false;
@@ -283,7 +283,6 @@
 
 <!-- Detail Modal -->
 {#if selectedFeedback}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="modal-backdrop"
 		onclick={handleBackdropClick}
@@ -291,7 +290,6 @@
 		role="button"
 		tabindex="-1"
 	>
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="modal-content detail-modal"
 			onclick={(e) => e.stopPropagation()}

@@ -1,6 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
-import type { SessionListItem } from '$lib/types/queries';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }) => {
 	const { profile } = await parent();
@@ -87,7 +86,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		runs: SessionRun[];
 	};
 
-	let sessionsWithStats = ((sessions as SessionWithRuns[]) ?? []).map((session) => {
+	const sessionsWithStats = ((sessions as SessionWithRuns[]) ?? []).map((session) => {
 		const runs = session.runs ?? [];
 		const gateRuns = runs
 			.map((r) => r.gate_runs)
@@ -120,8 +119,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	// Client-side sorting (since we computed stats after query)
 	if (sortBy && sessionsWithStats.length > 0) {
 		sessionsWithStats.sort((a, b) => {
-			let aVal: number = 0;
-			let bVal: number = 0;
+			let aVal: number;
+			let bVal: number;
 
 			switch (sortBy) {
 				case 'timestamp':

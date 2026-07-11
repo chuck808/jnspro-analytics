@@ -3,7 +3,6 @@
 	import { enhance } from '$app/forms';
 
 	let formEl: HTMLFormElement;
-	let loading = $state(false);
 
 	onMount(() => {
 		// Auto-submit the form when the page loads
@@ -13,7 +12,6 @@
 	});
 
 	const handleSignOut = () => {
-		loading = true;
 		return async ({ update }: { update: () => Promise<void> }) => {
 			await update();
 		};

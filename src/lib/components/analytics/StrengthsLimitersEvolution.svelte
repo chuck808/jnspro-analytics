@@ -76,10 +76,6 @@
 		};
 	});
 
-	function formatDate(dateString: string) {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-	}
 </script>
 
 <div class="themed-card rounded-xl p-5">

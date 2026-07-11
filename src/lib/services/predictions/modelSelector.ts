@@ -66,7 +66,7 @@ export function selectBestModel(
 	try {
 		const linear = fitLinearModel(dataPoints, targetValue, currentSession, lowerIsBetter);
 		candidates.push(linear);
-	} catch (e) {
+	} catch {
 		// Linear fit failed
 	}
 
@@ -75,7 +75,7 @@ export function selectBestModel(
 		try {
 			const poly = fitPolynomialModel(dataPoints, targetValue, currentSession, lowerIsBetter);
 			candidates.push(poly);
-		} catch (e) {
+		} catch {
 			// Polynomial fit failed
 		}
 	}
@@ -85,7 +85,7 @@ export function selectBestModel(
 		try {
 			const exp = fitExponentialModel(dataPoints, targetValue, currentSession, lowerIsBetter);
 			candidates.push(exp);
-		} catch (e) {
+		} catch {
 			// Exponential fit failed
 		}
 	}

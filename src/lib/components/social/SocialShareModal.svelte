@@ -37,7 +37,6 @@
 		if (!cardRef || downloading) return;
 		downloading = true;
 		try {
-			// @ts-ignore — html2canvas has no bundled types; declared above
 			const h2c = (await import('html2canvas')).default;
 			const canvas = await h2c(cardRef, {
 				scale: 2,
@@ -51,7 +50,7 @@
 			link.download = `appgatepro-${achievement.type}-${new Date(achievement.sessionDate).toISOString().slice(0, 10)}.png`;
 			link.href = canvas.toDataURL('image/png');
 			link.click();
-		} catch (err) {
+		} catch {
 			// Fallback: open card in new tab for manual screenshot
 			const win = window.open('', '_blank');
 			if (win && cardRef) {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import MultiRunOverlayChart from './charts/MultiRunOverlayChart.svelte';
-	import { computeSpeedCurve, computeJerk, GRAVITY_MS2 } from '$lib/performance-engine/physics';
+	import { computeSpeedCurve, computeJerk } from '$lib/performance-engine/physics';
 
 	interface Run {
 		id: string;

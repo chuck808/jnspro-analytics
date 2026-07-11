@@ -18,7 +18,7 @@
 	import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
 	import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
 	import { createAnalysisView } from '$lib/analysis-views';
-	import { buildChartSeries, shouldShowPower } from '$lib/performance-engine';
+	import { buildChartSeries } from '$lib/performance-engine';
 	import { getExclusionReasons } from '$lib/types/runs';
 	import { getUCICategory } from '$lib/utils/uciCategories';
 
@@ -328,7 +328,7 @@
 						basedOnRuns: (data as any).analysisRuns.length,
 						excludedRuns: data.sessionStats.excluded_run_count ?? 0,
 						excludedReasons: data.runs
-							.filter((r: any) => data.sessionStats.excluded_run_count > 0)
+							.filter(() => data.sessionStats.excluded_run_count > 0)
 							.flatMap((r: any) => getExclusionReasons(r.tags)),
 						trustedMetrics: ['reaction time'],
 						cautionMetrics:

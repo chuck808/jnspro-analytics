@@ -186,7 +186,7 @@
 
 	// Extract session ID from URL if on a session detail page
 	let currentSessionId = $derived.by(() => {
-		const match = $page.url.pathname.match(/^\/sessions\/([^\/]+)/);
+		const match = $page.url.pathname.match(/^\/sessions\/([^/]+)/);
 		return match ? match[1] : null;
 	});
 

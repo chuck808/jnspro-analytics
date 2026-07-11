@@ -165,8 +165,6 @@
 		const cssVars = getComputedStyle(document.documentElement);
 		const themeGrid = cssVars.getPropertyValue('--theme-border').trim() || '#221c18';
 		const themeTick = cssVars.getPropertyValue('--theme-text-secondary').trim() || '#9a8f7a';
-		const themeSubtle = cssVars.getPropertyValue('--theme-text-subtle').trim() || '#6b5f4d';
-		const themeBg = cssVars.getPropertyValue('--theme-bg').trim() || '#0a0809';
 		const themeSurface = cssVars.getPropertyValue('--theme-surface').trim() || '#131010';
 		const themeText = cssVars.getPropertyValue('--theme-text-primary').trim() || '#f0ece4';
 		if (!chartCanvas || annotatedPoints.length === 0) return;

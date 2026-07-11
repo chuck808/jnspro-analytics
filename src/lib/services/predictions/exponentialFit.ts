@@ -107,9 +107,8 @@ export function fitExponential(dataPoints: DataPoint[], lowerIsBetter: boolean):
 function fitExponentialSimple(dataPoints: DataPoint[], lowerIsBetter: boolean): ExponentialModel {
 	const n = dataPoints.length;
 
-	// Use first, middle, and last points for quick fit
+	// Use first and last points for quick fit
 	const p1 = dataPoints[0];
-	const p2 = dataPoints[Math.floor(n / 2)];
 	const p3 = dataPoints[n - 1];
 
 	// Estimate trend and asymptote

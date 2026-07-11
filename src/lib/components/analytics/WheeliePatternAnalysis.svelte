@@ -18,7 +18,7 @@
 		isMobile?: boolean;
 	}
 
-	let { data, isMobile = false }: Props = $props();
+	let { data, isMobile: _isMobile = false }: Props = $props();
 
 	// Calculate wheelie pattern insights
 	let wheelieInsights = $derived.by(() => {

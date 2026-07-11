@@ -5,7 +5,7 @@
  * based on progress evaluation and performance data.
  */
 
-import type { ProgressEvaluation, ProgressStatus } from './progressEvaluator';
+import type { ProgressEvaluation } from './progressEvaluator';
 
 export type AdjustmentType =
 	| 'increase_target'
@@ -104,24 +104,6 @@ export function generateAdjustmentSuggestions(
 }
 
 /**
- * Generate pause suggestion
- */
-function generatePauseSuggestion(context: SuggestionContext): GoalAdjustmentSuggestion {
-	return {
-		type: 'pause',
-		priority: 'high',
-		title: '⏸️ Pause Goal for Recovery',
-		description:
-			'Your health check indicates you need rest. Pause this goal temporarily to focus on recovery.',
-		currentValue: 'Active',
-		suggestedValue: 'Paused',
-		rationale: 'Injury risk or fatigue detected. Continuing could lead to setbacks.',
-		confidence: 0.9,
-		autoApply: false
-	};
-}
-
-/**
  * Generate completion suggestion
  */
 function generateCompleteSuggestion(context: SuggestionContext): GoalAdjustmentSuggestion {
@@ -162,7 +144,6 @@ function generateWayAheadSuggestions(context: SuggestionContext): GoalAdjustment
 	const suggestions: GoalAdjustmentSuggestion[] = [];
 
 	// Suggest more ambitious target
-	const improvement = Math.abs(context.currentValue - context.startValue);
 	const remainingToTarget = Math.abs(context.currentTarget - context.currentValue);
 	const newTarget = context.lowerIsBetter
 		? context.currentTarget - remainingToTarget * 0.5 // Go 50% further

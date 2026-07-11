@@ -5,7 +5,7 @@
  * into actionable alerts for users. Manages alert priorities and dismissal.
  */
 
-import type { PerformanceAnomaly, Severity } from './outlierDetection';
+import type { PerformanceAnomaly } from './outlierDetection';
 import type { FatigueAssessment } from './fatigueAnalysis';
 import type { InjuryRiskAssessment } from './injuryRisk';
 

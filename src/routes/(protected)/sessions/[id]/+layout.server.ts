@@ -257,11 +257,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 
 	// Auto-create milestones for significant improvements
 	if (improvements.length > 0) {
-		const milestonesCreated = await processGoalImprovements(
-			supabase,
-			improvements,
-			session.timestamp
-		);
+		await processGoalImprovements(supabase, improvements, session.timestamp);
 	}
 
 	// ── ALL-TIME PERSONAL BESTS ──
