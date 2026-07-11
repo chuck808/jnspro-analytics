@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
+    import DOMPurify from 'isomorphic-dompurify';
     import RichTextEditor from './RichTextEditor.svelte';
     import type { SessionNote, NoteType, AuthorRole } from '$lib/types/notes';
     import { NOTE_TYPE_CONFIG } from '$lib/types/notes';
@@ -293,7 +294,7 @@
                         </div>
 
                         <div class="prose prose-sm max-w-none tiptap-content">
-                            {@html note.content}
+                            {@html DOMPurify.sanitize(note.content)}
                         </div>
                     </div>
                 {/if}

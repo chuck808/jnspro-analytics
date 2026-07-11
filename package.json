@@ -55,6 +55,7 @@
 		"@tiptap/pm": "^3.22.5",
 		"@tiptap/starter-kit": "^3.22.5",
 		"chart.js": "^4.5.1",
-		"html2canvas": "^1.4.1"
+		"html2canvas": "^1.4.1",
+		"isomorphic-dompurify": "^3.18.0"
 	}
 }
