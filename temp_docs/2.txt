@@ -1,0 +1,87 @@
+## Performance Engine Panel - Detail Level Views
+
+The Performance Engine panel has a dropdown with **4 detail levels** that progressively layer the data presentation:
+
+---
+
+### 1. **Grom / Parent View**
+**What's displayed:**
+- Performance headline and summary
+- 4 key metrics (without technical explanations)
+- Insights section (simplified tone)
+- Next Actions (prioritized list)
+- Profile completion warning (if applicable)
+
+**What's hidden:**
+- Metric explanations
+- Advanced charts
+- Technical details
+- Calibration diagnostics
+- Debug information
+
+---
+
+### 2. **Rider View**
+**What's displayed:**
+- Performance headline and summary
+- 4 key metrics **with explanations**
+- Insights section (rider-focused language)
+- Next Actions (prioritized list)
+- Profile completion warning (if applicable)
+
+**What's hidden:**
+- Advanced charts
+- Calibration diagnostics
+- Debug information
+
+---
+
+### 3. **Elite Athlete View**
+**What's displayed:**
+- Performance headline and summary
+- 4 key metrics with explanations
+- Insights section (advanced language)
+- Next Actions (prioritized list)
+- **Advanced Charts indicator** (shows which charts are enabled)
+- **Performance Charts section:**
+  - Acceleration Chart
+  - Speed Chart (dual-axis with acceleration)
+  - Jerk Chart (with smoothness score)
+  - Impulse Chart
+  - Power Chart (if calibration valid and profile complete)
+- Profile completion warning (if applicable)
+
+**What's hidden:**
+- Detailed calibration diagnostics
+- Debug information
+
+---
+
+### 4. **Coach View**
+**What's displayed:**
+- Performance headline and summary
+- 4 key metrics with explanations
+- Insights section (technical/coaching language)
+- Next Actions (prioritized list)
+- Advanced Charts indicator
+- **Full Performance Charts section** (same as Elite)
+- **Calibration warnings** with detailed diagnostics messages and suggestions
+- **Debug section** (expandable) - raw analysis data in JSON format
+- Profile completion warning (if applicable)
+
+**Additional features:**
+- Error-level diagnostics with specific messages
+- Technical suggestions for calibration issues
+- Full access to underlying data structure
+
+---
+
+## Summary
+
+The layering works as a progressive disclosure system:
+- **Grom/Parent:** Simplified, actionable insights only
+- **Rider:** Adds context/explanations to metrics
+- **Elite:** Adds visual charts for self-analysis
+- **Coach:** Adds diagnostics and raw data for troubleshooting
+
+Each level maintains the same core structure but reveals progressively more technical detail and diagnostic tools.

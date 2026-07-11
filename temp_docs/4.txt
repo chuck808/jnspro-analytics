@@ -1,0 +1,49 @@
+## Sanity Check - Data Source Verification
+
+You're **absolutely correct**! I apologize for the confusion in my previous response. 
+
+### The Reality:
+
+Looking at the code (lines 70-120), the comments are explicit:
+
+```javascript
+// Performance Engine analysis - SINGLE SOURCE OF TRUTH
+let performanceAnalysis = $derived(analyseSession(...));
+
+// Extract data from Performance Engine (no more legacy calls!)
+let curve = $derived(performanceAnalysis.selectedRun?.physics ? {...});
+let splits = $derived(performanceAnalysis.selectedRun?.physics?.speedSplits ?? []);
+let quality = $derived(performanceAnalysis.selectedRun?.physics?.dataQuality ?? {...});
+let techniqueScores = $derived(performanceAnalysis.selectedRun?.technique);
+let powerMetrics = $derived(performanceAnalysis.selectedRun?.physics?.power);
+let impulse = $derived(performanceAnalysis.selectedRun?.physics?.impulse);
+let jerkProfile = $derived(performanceAnalysis.selectedRun?.physics?.jerk ? {...});
+let consistency = $derived(performanceAnalysis.summary.consistencyScore...);
+let weaknesses = $derived(enhancedAnalysis.weaknesses);
+let recommendations = $derived(enhancedAnalysis.recommendations);
+```
+
+**ALL of this data comes from the Performance Engine.**
+
+### What I Got Wrong:
+
+I incorrectly referred to the other panels as "legacy panels" - they're NOT legacy in terms of data source. They're just **legacy UI components** that display **Performance Engine data**. There's no duplication of analytics - just duplication of UI presentation.
+
+### The ONLY Actual Legacy Analytics Remaining:
+
+Lines 110-114 show the only features not yet migrated:
+```javascript
+// Legacy-only features (not yet in Performance Engine - keep for now)
+let phaseMetrics = $derived(null as any); // TODO: Migrate to Performance Engine
+let sessionStability = $derived([] as any[]); // TODO: Use Performance Engine session analysis
+```
+
+These are currently disabled (null/empty) and marked as TODO.
+
+### Corrected Summary:
+
+- **Data Source:** ~99% Performance Engine (single source of truth)
+- **UI Presentation:** Multiple panels showing the same PE data in different formats
+- **Issue:** Not a data duplication problem, but a **UI duplication problem** - the same PE-generated data is presented multiple times in different visual formats across the page
+
+The migration to Performance Engine **was successful** for the data layer. The remaining work is UI consolidation, not data migration.

@@ -1,0 +1,76 @@
+## Data & Chart Duplications Between Performance Engine Panel and Rest of Page
+
+Here are the instances where the **Performance Engine panel** and **other panels** on the Session page display the same or overlapping data:
+
+---
+
+### 1. **Acceleration / G-Force Chart**
+- **Performance Engine:** "Acceleration Chart" (Elite/Coach views only)
+- **Rest of Page:** "G-Force — Run X" panel (#9)
+- **Difference:** Same data, both show G-force over time. The PE chart is only visible in Elite/Coach detail levels.
+
+---
+
+### 2. **Speed Chart**
+- **Performance Engine:** "Speed Chart" - dual-axis with speed + acceleration (Elite/Coach views only)
+- **Rest of Page:** "Performance Curves" panel (#10) - dual-axis showing speed (km/h) + acceleration (G)
+- **Difference:** Same data presentation - both show speed and acceleration overlaid. PE version only appears for Elite/Coach, while the legacy version is always shown when analytics_valid is true.
+
+---
+
+### 3. **Jerk / Force Application**
+- **Performance Engine:** "Jerk Chart" with smoothness score (Elite/Coach views only)
+- **Rest of Page:** "Force Application (Jerk)" panel (#11) with smoothness score and insight
+- **Difference:** Same data - both show jerk profile over time with smoothness scoring. Both conditional on jerk data availability.
+
+---
+
+### 4. **Power Metrics**
+- **Performance Engine:** "Power Chart" - line chart over time (Elite/Coach views, requires profile complete + valid calibration)
+- **Rest of Page:** "Power Output" panel (#22) - shows peak power (W) and average power (W) as static metrics
+- **Difference:** PE shows power curve over time; legacy panel shows summary metrics only. Same underlying data, different presentation.
+
+---
+
+### 5. **Impulse Data**
+- **Performance Engine:** "Impulse Chart" - cumulative impulse curve over time (Elite/Coach views only)
+- **Rest of Page:** "Impulse Analysis" panel (#23) - shows total impulse, efficiency, 50% point, front-load ratio as static metrics
+- **Difference:** PE shows impulse accumulation curve; legacy panel shows summary metrics with visual front-load indicator. Same underlying data, different presentation.
+
+---
+
+### 6. **Metrics Overlap**
+The Performance Engine shows 4 key metrics that likely overlap with:
+- **Rest of Page:** "Run Metrics" panel (#12) - 8 metric cards including reaction time, max G, peak speed, etc.
+- **Difference:** PE metrics are dynamically selected and include explanations; legacy panel shows fixed set of 8 metrics. Some metrics appear in both.
+
+---
+
+### 7. **Insights vs. Recommendations**
+- **Performance Engine:** "Insights" section (tone-coded: positive/neutral/warning)
+- **Rest of Page:** "Areas for Improvement" (#24) and "Recommendations" (#25) panels
+- **Difference:** Same analytical output from performance engine, but formatted differently. PE insights are broader; legacy panels separate weaknesses from actionable recommendations.
+
+---
+
+### 8. **Technique Analysis**
+- **Performance Engine:** Includes technique insights in the general insights section
+- **Rest of Page:** "Technique Scores" panel (#13) with overall gauge + 4 breakdown bars
+- **Difference:** PE provides narrative insights about technique; legacy panel provides numerical scores (0-100) with visual gauges.
+
+---
+
+## Summary of Duplications
+
+| Data Type | Performance Engine | Legacy Panel(s) | Key Difference |
+|-----------|-------------------|-----------------|----------------|
+| Acceleration/G-Force | Acceleration Chart | G-Force Chart (#9) | Same chart, gated by detail level |
+| Speed + Accel | Speed Chart (dual-axis) | Performance Curves (#10) | Same dual-axis presentation |
+| Jerk/Smoothness | Jerk Chart | Force Application (#11) | Same data and scoring |
+| Power | Power Chart (curve) | Power Output (#22) | Curve vs. summary metrics |
+| Impulse | Impulse Chart (curve) | Impulse Analysis (#23) | Curve vs. summary metrics |
+| Key Metrics | 4 dynamic metrics | Run Metrics (#12) | Selected vs. comprehensive |
+| Insights | Insights section | Areas/Recommendations (#24, #25) | Narrative vs. structured lists |
+| Technique | Narrative insights | Technique Scores (#13) | Narrative vs. numerical scores |
+
+**Result:** Significant duplication exists, with the Performance Engine providing a more condensed, narrative-driven view while the legacy panels provide more comprehensive metric coverage and alternative visualizations. The page essentially shows the same analytical data twice in different formats.

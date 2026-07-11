@@ -1,0 +1,140 @@
+## Session Page Detail - Panel Inventory
+
+Here's a complete list of all panels on the Session page detail in the order they appear:
+
+### 1. **Session Header**
+- **Presents:** Date, run count, bike name, UCI category
+- **Focus:** Session
+- **Type:** Actual data
+
+### 2. **Goal Progress Alert** (conditional)
+- **Presents:** Updated goal metrics, milestone indicators, progress bars
+- **Focus:** Session
+- **Type:** Actual data + insights
+
+### 3. **Session Summary Stats** (6 cards)
+- **Presents:** Best/Avg Reaction, Best Peak Speed, Best Max G, Consistency CV%, Wheelie count
+- **Focus:** Session
+- **Type:** Actual data
+
+### 4. **Session Narrative** (v8.3)
+- **Presents:** "How This Session Went" - narrative summary with headline, impact, actions
+- **Focus:** Session
+- **Type:** Insights
+
+### 5. **Training Insights Panel**
+- **Presents:** Session + Technique analysis (repeatability, fatigue, best vs avg, technique scores)
+- **Focus:** Session
+- **Type:** Insights
+
+### 6. **All Runs Comparison Table** (multi-run only)
+- **Presents:** Clickable table with all runs showing reaction, elapsed, max G, peak speed, wheelie
+- **Focus:** Session
+- **Type:** Actual data
+
+### 7. **Run Selector** (multi-run only)
+- **Presents:** Swipeable cards (mobile) or pill buttons (desktop) to select run
+- **Focus:** Session
+- **Type:** Navigation UI
+
+### 8. **Session Performance Panel**
+- **Presents:** Performance Engine analysis output
+- **Focus:** Single run (selected)
+- **Type:** Insights
+
+### 9. **G-Force Chart**
+- **Presents:** Line chart of G-force over time for selected run
+- **Focus:** Single run
+- **Type:** Actual data
+
+### 10. **Performance Curves Chart** (requires analytics_valid)
+- **Presents:** Dual-axis chart - speed and acceleration over time
+- **Focus:** Single run
+- **Type:** Actual data
+
+### 11. **Force Application (Jerk) Chart** (conditional)
+- **Presents:** Jerk profile chart with smoothness score and insight
+- **Focus:** Single run
+- **Type:** Actual data + insights
+
+### 12. **Run Metrics**
+- **Presents:** 8 metric cards - reaction, elapsed, max G, avg G, peak/end/avg speed, time to peak
+- **Focus:** Single run
+- **Type:** Actual data
+
+### 13. **Technique Scores** (conditional)
+- **Presents:** Overall gauge + 4 breakdown bars (reaction, explosiveness, smoothness, efficiency)
+- **Focus:** Single run
+- **Type:** Insights
+
+### 14. **Technique Indicators** (conditional)
+- **Presents:** Pitch metrics and wheelie data (max/avg pitch, front wheel lift, timing, duration)
+- **Focus:** Single run
+- **Type:** Actual data
+
+### 15. **Detailed Phase Analysis** (conditional on phaseMetrics)
+- **Presents:** Drive/Transition/Velocity phase breakdown with efficiency scores
+- **Focus:** Single run
+- **Type:** Insights
+
+### 16. **Speed Splits Table** (conditional)
+- **Presents:** Acceleration splits with target speeds, times, distances, phases
+- **Focus:** Single run
+- **Type:** Actual data
+
+### 17. **Cross-Run Progression** (multi-run only)
+- **Presents:** Trend charts showing progression across runs in session
+- **Focus:** Session
+- **Type:** Actual data
+
+### 18. **Run Comparison** (multi-run only)
+- **Presents:** Side-by-side comparison of all runs
+- **Focus:** Session
+- **Type:** Actual data
+
+### 19. **Performance Targets**
+- **Presents:** Benchmarks for selected run vs rider level targets
+- **Focus:** Single run
+- **Type:** Insights
+
+### 20. **Data Drill Down**
+- **Presents:** Detailed G-force data table/explorer
+- **Focus:** Single run
+- **Type:** Actual data
+
+### 21. **G-Force Stability** (multi-run only)
+- **Presents:** Bar chart of first 0.5s avg G-force across runs
+- **Focus:** Session
+- **Type:** Actual data
+
+### 22. **Power Output** (conditional on mass data)
+- **Presents:** Peak and average power estimates
+- **Focus:** Single run
+- **Type:** Insights (calculated)
+
+### 23. **Impulse Analysis** (conditional)
+- **Presents:** Total impulse, efficiency, 50% point, front-load ratio
+- **Focus:** Single run
+- **Type:** Insights (calculated)
+
+### 24. **Areas for Improvement** (Weaknesses)
+- **Presents:** Low-scoring metrics with advice
+- **Focus:** Single run
+- **Type:** Insights
+
+### 25. **Recommendations**
+- **Presents:** Prioritized action items (high/medium/low priority)
+- **Focus:** Single run
+- **Type:** Insights
+
+### 26. **Advanced Analytics Section**
+- **Presents:** Cross-session trend analysis and historical comparisons
+- **Focus:** Cross-session (multi-session)
+- **Type:** Insights
+
+### 27. **Generate Session Report Button**
+- **Presents:** CTA to open report generation modal
+- **Focus:** Session
+- **Type:** Action button
+
+**Summary:** 27 distinct panels/sections, with significant mixing of session-level and single-run data throughout the page. Most insights panels appear toward the bottom, while actual data charts/metrics dominate the top and middle sections.

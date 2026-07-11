@@ -1,0 +1,99 @@
+## Legacy Onboarding System - Rider Level
+
+The **deprecated legacy system** used the **`rider_level`** field from the user's profile to automatically determine data presentation layering. This field is still collected during onboarding but is no longer the primary control for UI layering.
+
+---
+
+### Legacy Rider Level Options (Profile-Based)
+
+From the profile onboarding form, users select:
+
+1. **`novice`** — "just getting started"
+2. **`intermediate`** — "club level"
+3. **`expert`** — "regional / national"
+4. **`elite`** — "national team / professional"
+
+This selection was stored in the `rider_profiles` table under the `rider_level` column.
+
+---
+
+### How Legacy System Used `rider_level`
+
+**Automatic Presentation Layering:**
+- The system read `rider_level` from the user's profile
+- Analytics were automatically filtered/simplified based on this level
+- No manual dropdown - the presentation was tied to the user's self-declared level
+- Different thresholds/benchmarks applied based on level
+
+**Example from legacy code:**
+```typescript
+const benchmark = reactionBenchmarks[riderLevel ?? 'intermediate'] ?? 300;
+```
+
+**Reaction time benchmarks by level:**
+- `novice`: 350ms
+- `intermediate`: 300ms
+- `expert`: 250ms
+- `elite`: 220ms
+
+---
+
+### Performance Engine vs. Legacy System
+
+**Key Difference:**
+
+| Aspect | Legacy System | Performance Engine (Current) |
+|--------|--------------|------------------------------|
+| **Control** | Profile-based (automatic) | Dropdown (manual) |
+| **Stored** | Database (`rider_level` field) | UI state only (per-session) |
+| **Levels** | 4 levels (novice/intermediate/expert/elite) | 4 levels (grom/rider/elite/coach) |
+| **Purpose** | Skill-based benchmarking | Audience-based presentation |
+| **Flexibility** | Fixed per user | User can toggle per viewing |
+
+---
+
+### Conceptual Mapping (Legacy → Performance Engine)
+
+While not a direct 1:1 mapping, the conceptual relationship is:
+
+| Legacy `rider_level` | Performance Engine `detailLevel` | Reasoning |
+|---------------------|----------------------------------|-----------|
+| `novice` | `grom` or `rider` | Simplified view, plain language |
+| `intermediate` | `rider` | Standard view with some context |
+| `expert` | `elite` | Full analytics, advanced charts |
+| `elite` | `elite` or `coach` | Maximum detail, diagnostics |
+
+---
+
+### Current State
+
+**Profile still collects `rider_level`** for:
+- Benchmarking thresholds (technique scores, reaction time standards)
+- Goal target recommendations
+- Historical data context
+
+**But presentation is now controlled by:**
+- Performance Engine dropdown (manual selection)
+- Not automatically tied to profile
+- User can view same data through different lenses
+
+---
+
+### Why the Change?
+
+**Problem with profile-based layering:**
+1. **Coaches viewing rider data** - Elite coach couldn't see full detail for novice rider
+2. **Parents/guardians** - Needed simple view regardless of rider's actual level
+3. **Education** - Riders couldn't explore more detailed views to learn
+4. **Inflexibility** - Required profile change to see different presentation
+
+**Solution: Decouple presentation from identity**
+- Keep `rider_level` for benchmarking (what level you ARE)
+- Add `detailLevel` dropdown for presentation (what detail you WANT to see)
+- Same data, multiple viewing modes
+
+---
+
+## Summary
+
+The **legacy onboarding system** automatically set analytics presentation based on the user's self-declared `rider_level` (novice/intermediate/expert/elite). This has been **replaced** with a manual **Performance Engine dropdown** that separates identity (skill level) from presentation preferences (detail level), allowing flexible viewing of the same data through different lenses (grom/rider/elite/coach).
