@@ -38,7 +38,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         content: payload.content,
         response: payload.response,
         detail_level: payload.detailLevel || null,
-        rider_id: payload.riderId || user?.id || null,
+        // Derived from the authenticated session, never the client payload —
+        // otherwise any caller could attribute feedback to an arbitrary rider.
+        rider_id: user?.id ?? null,
         session_id: payload.sessionId || null,
         context: payload.context || {},
         comment: payload.comment || null,
