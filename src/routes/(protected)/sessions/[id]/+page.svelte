@@ -153,7 +153,7 @@
         runNumber:     r.runNumber ?? idx + 1,
         reactionMs:    r.reactionMs,
         maxG:          r.maxG,
-        peakSpeedKmh:  r.physics?.speedKmh?.length ? Math.max(...r.physics.speedKmh) : null,
+        peakSpeedKmh:  r.physics?.measuredPeakSpeedKmh ?? (r.physics?.speedKmh?.length ? Math.max(...r.physics.speedKmh) : null),
         techniqueScore: r.technique?.overall ?? null,
     })));
 </script>

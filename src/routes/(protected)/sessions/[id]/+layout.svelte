@@ -158,7 +158,7 @@
                 runNumber:        r.runNumber ?? 0,
                 reactionMs:       r.reactionMs ?? null,
                 maxG:             r.maxG ?? null,
-                peakSpeedKmh:     r.physics?.speedKmh?.length ? Math.max(...r.physics.speedKmh) : null,
+                peakSpeedKmh:     r.physics?.measuredPeakSpeedKmh ?? (r.physics?.speedKmh?.length ? Math.max(...r.physics.speedKmh) : null),
                 techniqueOverall: r.technique?.overall ?? null,
                 analyticsValid:   r.analyticsValid ?? false,
             }));
