@@ -47,13 +47,13 @@ src/lib/performance-engine/
 import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
 
 const narrative = buildSessionNarrative({
-  runCount: 5,
-  consistencyScore: 15,
-  reactionCvPercent: 8.5,
-  dataQualityRating: 'fair',
-  speedBlocked: true,
-  powerBlocked: true,
-  hasCalibrationWarnings: true
+	runCount: 5,
+	consistencyScore: 15,
+	reactionCvPercent: 8.5,
+	dataQualityRating: 'fair',
+	speedBlocked: true,
+	powerBlocked: true,
+	hasCalibrationWarnings: true
 });
 
 // narrative.message contains the coach message
@@ -65,29 +65,30 @@ const narrative = buildSessionNarrative({
 
 ```typescript
 interface SessionNarrative {
-  message: {
-    headline: string;
-    impact: string;
-    whyThisMatters: string;
-    action: string;
-    watchFor: string | null;
-    confidence: 'low' | 'moderate' | 'high';
-    priority: 'critical' | 'important' | 'watch' | 'info';
-  };
-  trust: {
-    confidence: 'low' | 'moderate' | 'high';
-    basedOnRuns: number;
-    trustedMetrics: string[];
-    cautionMetrics: string[];
-    blockedMetrics: string[];
-  };
-  warnings: string[];
+	message: {
+		headline: string;
+		impact: string;
+		whyThisMatters: string;
+		action: string;
+		watchFor: string | null;
+		confidence: 'low' | 'moderate' | 'high';
+		priority: 'critical' | 'important' | 'watch' | 'info';
+	};
+	trust: {
+		confidence: 'low' | 'moderate' | 'high';
+		basedOnRuns: number;
+		trustedMetrics: string[];
+		cautionMetrics: string[];
+		blockedMetrics: string[];
+	};
+	warnings: string[];
 }
 ```
 
 ## Example Output
 
 ### Input
+
 ```typescript
 {
   runCount: 5,
@@ -99,6 +100,7 @@ interface SessionNarrative {
 ```
 
 ### Output
+
 ```
 [Based on 5 runs]
 
@@ -129,6 +131,7 @@ Higher priority messages override lower priority ones.
 ## Phrase Dictionary
 
 ### Headlines
+
 - `calibrationLimited` - For data quality issues
 - `excellentConsistency` - CV < 2%
 - `goodConsistency` - CV 2-5%
@@ -138,18 +141,22 @@ Higher priority messages override lower priority ones.
 - `peaksWithoutRepeatability` - Best-avg gap > 15%
 
 ### Impacts
+
 - Clear explanation of what the pattern means
 - Evidence-based, not judgmental
 
 ### Why This Matters
+
 - Connects pattern to rider goals
 - Explains coaching relevance
 
 ### Actions
+
 - Specific, actionable guidance
 - Humble language: "Consider...", "Focus on..."
 
 ### Watch For
+
 - Observable targets for improvement
 - Helps close the feedback loop
 
@@ -171,6 +178,7 @@ The narrative should be the **single coach voice**.
 ## Rendering
 
 ### Markdown Format
+
 ```typescript
 import { renderCoachMessage } from '$lib/performance-engine/language';
 
@@ -178,6 +186,7 @@ const markdown = renderCoachMessage(narrative.message, narrative.trust);
 ```
 
 ### UI Colors
+
 ```typescript
 import { getPriorityColor, getConfidenceColor } from '$lib/performance-engine/language';
 
@@ -203,6 +212,7 @@ New system should not duplicate itself.
 ```
 
 During transition:
+
 - ✅ Old analytics can show alongside new engine
 - ✅ Duplication is temporary and expected
 - ❌ New engine should not generate multiple coach messages
@@ -213,29 +223,26 @@ During transition:
 ### `buildSessionNarrative()`
 
 ```typescript
-function buildSessionNarrative(input: SessionNarrativeInput): SessionNarrative
+function buildSessionNarrative(input: SessionNarrativeInput): SessionNarrative;
 
 interface SessionNarrativeInput {
-  runCount: number;
-  consistencyScore?: number | null;
-  reactionCvPercent?: number | null;
-  dataQualityRating?: 'excellent' | 'good' | 'fair' | 'calibrate' | null;
-  speedBlocked?: boolean;
-  powerBlocked?: boolean;
-  hasCalibrationWarnings?: boolean;
-  fatigueDetected?: boolean;
-  dropOffRun?: number | null;
-  bestVsAvgGapPercent?: number | null;
+	runCount: number;
+	consistencyScore?: number | null;
+	reactionCvPercent?: number | null;
+	dataQualityRating?: 'excellent' | 'good' | 'fair' | 'calibrate' | null;
+	speedBlocked?: boolean;
+	powerBlocked?: boolean;
+	hasCalibrationWarnings?: boolean;
+	fatigueDetected?: boolean;
+	dropOffRun?: number | null;
+	bestVsAvgGapPercent?: number | null;
 }
 ```
 
 ### `renderCoachMessage()`
 
 ```typescript
-function renderCoachMessage(
-  message: CoachMessage,
-  trust: TrustContext
-): string
+function renderCoachMessage(message: CoachMessage, trust: TrustContext): string;
 ```
 
 Returns markdown-formatted message.
@@ -243,7 +250,7 @@ Returns markdown-formatted message.
 ### `renderTrustSummary()`
 
 ```typescript
-function renderTrustSummary(trust: TrustContext): string
+function renderTrustSummary(trust: TrustContext): string;
 ```
 
 Returns concise trust summary: "✓ Trusted: reaction time • ✗ Blocked: speed, power"

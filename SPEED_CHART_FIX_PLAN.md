@@ -29,7 +29,7 @@
 // Firmware measured actual peak of 44 km/h
 // Scale factor = 44 / 165 = 0.267
 
-scaledSpeeds = predictedSpeeds.map(s => s * 0.267)
+scaledSpeeds = predictedSpeeds.map((s) => s * 0.267);
 // Now chart shows realistic 44 km/h peak!
 ```
 

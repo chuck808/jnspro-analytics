@@ -45,29 +45,29 @@
 import { shouldExcludeFromStats } from '$lib/types/runs';
 
 // Filter runs BEFORE calculating stats
-const allRuns = (runs ?? []);
-const includedRuns = allRuns.filter(r => !shouldExcludeFromStats(r.tags as any));
+const allRuns = runs ?? [];
+const includedRuns = allRuns.filter((r) => !shouldExcludeFromStats(r.tags as any));
 const excludedCount = allRuns.length - includedRuns.length;
 
 const gateRuns = includedRuns
-    .map(r => r.gate_runs)
-    .flat()
-    .filter(Boolean);
+	.map((r) => r.gate_runs)
+	.flat()
+	.filter(Boolean);
 
-const validRuns = gateRuns.filter(g => g!.analytics_valid);
+const validRuns = gateRuns.filter((g) => g!.analytics_valid);
 
 const sessionStats = {
-    run_count: allRuns.length,
-    included_run_count: includedRuns.length,
-    excluded_run_count: excludedCount,
-    best_reaction_ms: gateRuns.length > 0
-        ? Math.min(...gateRuns.map(g => g!.reaction_time_ms))
-        : null,
-    // ... rest of stats using FILTERED runs
+	run_count: allRuns.length,
+	included_run_count: includedRuns.length,
+	excluded_run_count: excludedCount,
+	best_reaction_ms:
+		gateRuns.length > 0 ? Math.min(...gateRuns.map((g) => g!.reaction_time_ms)) : null
+	// ... rest of stats using FILTERED runs
 };
 ```
 
 **Why This Matters:**
+
 - Currently: "Best reaction 0.285s" includes warmup runs (inflates average)
 - After fix: "Best reaction 0.265s (8 of 10 runs, 2 warmup excluded)"
 - This is THE WHOLE POINT of run tagging!
@@ -107,9 +107,9 @@ Find the desktop run selector (around line 689-714), update button to include ta
             <span class="font-bold">Run {run.run_number}</span>
             <span class="text-[10px] mt-0.5 opacity-75">{g ? fmtReaction(g.reaction_time_ms) : '—'}</span>
         </button>
-        
+
         <!-- Tag selector -->
-        <RunTagSelector 
+        <RunTagSelector
             runId={run.id}
             runNumber={run.run_number}
             currentTags={runTags ?? []}
@@ -125,19 +125,19 @@ Find the desktop run selector (around line 689-714), update button to include ta
 Find session stats display (around line 647-665), add excluded run count:
 
 ```svelte
-<div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-    <div class="flex items-start justify-between gap-4 mb-1">
-        <div class="flex-1 min-w-0">
-            <!-- existing header content -->
-        </div>
-    </div>
-    
-    {#if data.sessionStats.excluded_run_count > 0}
-        <p class="text-xs text-[#9a8f7a] mt-2">
-            Showing {data.sessionStats.included_run_count} of {data.sessionStats.run_count} runs
-            ({data.sessionStats.excluded_run_count} warmup/excluded)
-        </p>
-    {/if}
+<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+	<div class="mb-1 flex items-start justify-between gap-4">
+		<div class="min-w-0 flex-1">
+			<!-- existing header content -->
+		</div>
+	</div>
+
+	{#if data.sessionStats.excluded_run_count > 0}
+		<p class="mt-2 text-xs text-[#9a8f7a]">
+			Showing {data.sessionStats.included_run_count} of {data.sessionStats.run_count} runs ({data
+				.sessionStats.excluded_run_count} warmup/excluded)
+		</p>
+	{/if}
 </div>
 ```
 
@@ -167,6 +167,7 @@ Once integrated, test:
 ## 📊 Expected Behavior After Completion
 
 ### Before Run Tagging:
+
 ```
 Session Stats:
 Best Reaction: 0.285s  ← INCLUDES warmup runs
@@ -174,6 +175,7 @@ Avg Reaction: 0.310s   ← INFLATED by warmups
 ```
 
 ### After Run Tagging:
+
 ```
 Session Stats:
 Best Reaction: 0.265s  ← Warmups excluded!
@@ -224,6 +226,7 @@ pnpm dev
 ## ✅ Completion Criteria
 
 Task 1.1 is complete when:
+
 - [ ] Database migration deployed
 - [ ] Stats calculation filters excluded runs
 - [ ] RunTagSelector integrated on session page

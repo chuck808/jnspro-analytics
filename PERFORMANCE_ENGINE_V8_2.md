@@ -55,6 +55,7 @@ const crossSessionReport = applyTruthRulesToReport(rawReport); // v8.2 applied
 Rules are evaluated in this order (highest priority first):
 
 ### Priority 1: Mixed Trends (Early Signal Mode)
+
 - **Trigger:** Speed/reaction improving BUT repeatability declining OR gap widening
 - **Low Confidence Override:** "Early signal — speed improving but capacity needs watching"
 - **Low Confidence Recommendations:**
@@ -66,6 +67,7 @@ Rules are evaluated in this order (highest priority first):
 - **Key:** Acknowledges detected pattern even with limited data, but flags the uncertainty
 
 ### Priority 2: Low Confidence (Generic)
+
 - **Trigger:** `confidence === 'low'` (without mixed signals)
 - **Override:** "Early trend signal — more sessions needed"
 - **Recommendations:**
@@ -74,11 +76,13 @@ Rules are evaluated in this order (highest priority first):
 - **Prevents:** False confidence OR excessive caution when early signals exist
 
 ### Priority 3: Major Decline
+
 - **Trigger:** Any metric trending down (speed, reaction, power, consistency)
 - **Override:** "Performance declining — [metrics] trending down"
 - **Prevents:** Positive messaging during decline phase
 
 ### Priority 4: Contradictory Messaging
+
 - **Trigger:** Warnings exist but headline contains "excellent" or "strong progress"
 - **Override:** "Progress with areas to watch" + filtered recommendations
 - **Prevents:** Mixed messages that confuse riders
@@ -124,7 +128,7 @@ Best reaction: 0.190s → 0.243s (worse by 0.053s)
 ```typescript
 import { formatReactionComparison } from '$lib/performance-engine/crossSession/comparisonFormatting';
 
-const comparison = formatReactionComparison(0.190, 0.243);
+const comparison = formatReactionComparison(0.19, 0.243);
 // {
 //   fromValue: '0.190s',
 //   toValue: '0.243s',
@@ -166,9 +170,7 @@ v8.2 keeps the coaching narrative honest and prevents erosion of rider trust.
 Applies truth rules to a cross-session report, returning modified version if override needed.
 
 ```typescript
-function applyTruthRulesToReport(
-  report: CrossSessionReport | null
-): CrossSessionReport | null
+function applyTruthRulesToReport(report: CrossSessionReport | null): CrossSessionReport | null;
 ```
 
 ### `applyCrossSessionTruthRules()`
@@ -176,15 +178,13 @@ function applyTruthRulesToReport(
 Evaluates a report and returns override details if rule triggered.
 
 ```typescript
-function applyCrossSessionTruthRules(
-  report: CrossSessionReport
-): TruthRuleResult | null
+function applyCrossSessionTruthRules(report: CrossSessionReport): TruthRuleResult | null;
 
 interface TruthRuleResult {
-  overrideHeadline?: string;
-  overrideRecommendations?: string[];
-  reason: string;
-  priority: number;
+	overrideHeadline?: string;
+	overrideRecommendations?: string[];
+	reason: string;
+	priority: number;
 }
 ```
 
@@ -193,9 +193,7 @@ interface TruthRuleResult {
 Checks if a report contains contradictory messaging.
 
 ```typescript
-function detectContradiction(
-  report: CrossSessionReport
-): string | null
+function detectContradiction(report: CrossSessionReport): string | null;
 ```
 
 Returns reason string if contradiction found, null if report is truthful.

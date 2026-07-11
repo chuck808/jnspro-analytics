@@ -68,10 +68,10 @@ It means the system can see a pattern in your data but doesn't have enough sessi
 
 Progress reports are based on comparing your recent sessions against your earlier sessions. The more sessions you have, the more confident the system can be. With three or four sessions, it'll flag patterns as emerging — they're probably real, but they might just be variation. With ten or more sessions, if the trend holds, it'll show as high confidence — the pattern is reliable enough to plan around.
 
-The confidence indicator isn't about whether your data is accurate. Your reaction times are what they are — they're measured directly. It's about whether the *trend* is reliable. And the system is honest about the difference rather than presenting every movement as a significant development.
+The confidence indicator isn't about whether your data is accurate. Your reaction times are what they are — they're measured directly. It's about whether the _trend_ is reliable. And the system is honest about the difference rather than presenting every movement as a significant development.
 
 - Low confidence: this might be a thing, keep an eye on it
-- Trends emerging: this is probably a thing, don't overreact yet  
+- Trends emerging: this is probably a thing, don't overreact yet
 - High confidence: this is definitely a thing, plan accordingly
 
 ### What does "best vs average gap" mean?
@@ -165,10 +165,10 @@ Trust your coach. The report is looking at sensor data and applying statistical 
 
 ## A Note on Saving Reports
 
-Reports aren't currently saved to your account. If you want to keep one, export it as PDF or save the text. 
+Reports aren't currently saved to your account. If you want to keep one, export it as PDF or save the text.
 
 Saving report history, automatic scheduled reports, and report-to-report comparison are planned for future versions. The core system needs to be reliable first.
 
 ---
 
-*For help with the session page metrics that feed into reports, see the Session chapter. For understanding the trend analysis that drives progress reports, see the Analytics chapter.*
+_For help with the session page metrics that feed into reports, see the Session chapter. For understanding the trend analysis that drives progress reports, see the Analytics chapter._

@@ -22,20 +22,20 @@ const PROFANITY_PATTERNS = [
 	/\bc[o0]ck(s|head)?\b/i,
 	/\bp[i1!]ss(ed|off)?\b/i,
 	/\ba[s$]{2}h[o0]le\b/i,
-	/\bb[a@]st[a@]rd\b/i,
+	/\bb[a@]st[a@]rd\b/i
 ];
 
 export function containsProfanity(text: string): boolean {
 	if (!text) return false;
-	
+
 	// Remove spaces and special characters for checking
 	const normalized = text.toLowerCase().replace(/[\s\-_\.]/g, '');
-	
-	return PROFANITY_PATTERNS.some(pattern => pattern.test(normalized));
+
+	return PROFANITY_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
 export function flaggedDisplayNames(names: string[]): string[] {
-	return names.filter(name => containsProfanity(name));
+	return names.filter((name) => containsProfanity(name));
 }
 
 export function getSafeDisplayName(name: string): string {
@@ -53,7 +53,7 @@ export interface DisplayNameCheck {
 
 export function checkDisplayName(name: string): DisplayNameCheck {
 	const isFlagged = containsProfanity(name);
-	
+
 	return {
 		name,
 		isFlagged,

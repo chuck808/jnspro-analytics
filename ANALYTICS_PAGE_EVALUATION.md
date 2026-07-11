@@ -22,6 +22,7 @@ The page features a **progressive unlock system** based on session count, reveal
 All data originates from **Supabase** (PostgreSQL) via server-side loading:
 
 #### 1.1 Sessions Data
+
 ```sql
 SELECT id, timestamp, session_type
 FROM sessions
@@ -32,6 +33,7 @@ ORDER BY timestamp ASC
 ```
 
 #### 1.2 Runs Data
+
 ```sql
 SELECT id, session_id, elapsed_time_ms, distance_m
 FROM runs
@@ -39,13 +41,14 @@ WHERE session_id IN (:session_ids)
 ```
 
 #### 1.3 Gate Runs Data (Performance Metrics)
+
 ```sql
-SELECT 
-  run_id, 
-  reaction_time_ms, 
-  max_g, 
-  avg_g, 
-  peak_speed_ms, 
+SELECT
+  run_id,
+  reaction_time_ms,
+  max_g,
+  avg_g,
+  peak_speed_ms,
   avg_speed_ms_calc,
   time_to_peak_speed_ms,
   analytics_valid,
@@ -57,6 +60,7 @@ WHERE run_id IN (:run_ids)
 ```
 
 #### 1.4 Training Goals Data
+
 ```sql
 SELECT metric, target_value, start_value, current_value, deadline
 FROM training_goals
@@ -67,6 +71,7 @@ WHERE user_id = :profile_id
 ### Data Processing Pipeline
 
 **Server-side (+page.server.ts):**
+
 1. Fetches sessions, runs, and gate_runs
 2. Joins data into `sessionsWithRuns` structure
 3. Computes per-session summary statistics (best, avg, CV%)
@@ -75,6 +80,7 @@ WHERE user_id = :profile_id
 6. Returns structured data package
 
 **Client-side (+page.svelte):**
+
 1. Applies performance engine intelligence layers
 2. Generates session intelligence reports (v7.2)
 3. Generates cross-session intelligence (v8.1/v8.2)
@@ -89,15 +95,16 @@ WHERE user_id = :profile_id
 
 The page uses a **depth-based system** that unlocks features based on session count:
 
-| Session Count | Depth Level | Features Unlocked |
-|---------------|-------------|-------------------|
-| 0 | `none` | Empty state only |
-| 1-2 | `minimal` | Session summaries, personal bests |
-| 3-9 | `basic` | + Trend charts, consistency scoring, session comparison |
-| 10-19 | `full` | + Full rolling analytics |
-| 20+ | `advanced` | + Statistical analysis |
+| Session Count | Depth Level | Features Unlocked                                       |
+| ------------- | ----------- | ------------------------------------------------------- |
+| 0             | `none`      | Empty state only                                        |
+| 1-2           | `minimal`   | Session summaries, personal bests                       |
+| 3-9           | `basic`     | + Trend charts, consistency scoring, session comparison |
+| 10-19         | `full`      | + Full rolling analytics                                |
+| 20+           | `advanced`  | + Statistical analysis                                  |
 
 **Unlock Thresholds Displayed:**
+
 - ✓ Session summaries (1+ sessions)
 - ✓ Session comparison (2+ sessions)
 - ✓ Trend charts (3+ sessions)
@@ -140,6 +147,7 @@ The page uses a **depth-based system** that unlocks features based on session co
 **Component:** `SessionNarrativeCard.svelte`
 
 **Data Presented:**
+
 - Natural language summary of latest session
 - Considers:
   - Run count
@@ -157,6 +165,7 @@ The page uses a **depth-based system** that unlocks features based on session co
 Deliberately separates two intelligence systems:
 
 **Section A: "Today's Session" (v7.2 - Session Intelligence)**
+
 - **Repeatability scores**
   - Overall consistency metric
   - Reaction time repeatability
@@ -171,12 +180,14 @@ Deliberately separates two intelligence systems:
   - Recommended run count before fatigue
 
 **Section B: "Progress Over Time" (v8.1 - Cross-Session Intelligence)**
+
 - **Consistency trends** (improving/declining/stable)
 - **Speed progression**
 - **Fatigue progression patterns**
 - **Recommendations for training adjustments**
 
 **Section C: "Launch & Control Analysis" (Technique Layer)**
+
 - Wheelie analysis
 - Front wheel lift patterns
 - Data quality metrics
@@ -244,6 +255,7 @@ Deliberately separates two intelligence systems:
 **Condition:** Trend detected + no active goal for that metric
 
 **Examples:**
+
 - "📈 Reaction Time Improving — X% faster — set a goal to stay motivated!"
 - "⚡ Speed Increasing — +X% improvement — track your progress with a goal!"
 
@@ -254,11 +266,13 @@ Deliberately separates two intelligence systems:
 ### Session-Level Data (Single Session Analysis)
 
 **Sources:**
+
 - Latest session only
 - Individual run metrics within that session
 - v7.2 Performance Engine: `analyseSessionIntelligence()`
 
 **Metrics:**
+
 - ✅ Session Quality Score (0-10)
 - ✅ Repeatability (overall, reaction, speed)
 - ✅ Fatigue trend (stable/declining)
@@ -268,6 +282,7 @@ Deliberately separates two intelligence systems:
 - ✅ Technique analysis (wheelies, data quality)
 
 **Where Displayed:**
+
 - Session Narrative Card ("Latest Session Analysis")
 - Training Insights Panel → "Today's Session" section
 - Performance Overview → contributes to latest session ratings
@@ -279,11 +294,13 @@ Deliberately separates two intelligence systems:
 ### Over-Time Analysis (Cross-Session Trends)
 
 **Sources:**
+
 - All sessions in chronological order
 - Session summary statistics aggregated over time
 - v8.1/v8.2 Performance Engine: `analyseCrossSessionIntelligence()`
 
 **Metrics:**
+
 - ✅ Consistency trends (improving/declining/stable)
 - ✅ Speed progression patterns
 - ✅ Fatigue progression over weeks/months
@@ -294,6 +311,7 @@ Deliberately separates two intelligence systems:
 - ✅ Comparative statistics (recent 5 vs previous 5)
 
 **Where Displayed:**
+
 - Performance Overview → headline + recommendations
 - Training Insights Panel → "Progress Over Time" section
 - Performance Patterns Section → all 4 charts
@@ -302,6 +320,7 @@ Deliberately separates two intelligence systems:
 **Engine:** Performance Engine v8.1/v8.2 with Truth Rules
 
 **Truth Rules Applied (v8.2):**
+
 - Ensures cross-session insights don't contradict single-session data
 - Validates trend confidence levels
 - Applies statistical significance thresholds
@@ -311,6 +330,7 @@ Deliberately separates two intelligence systems:
 ## 4. Performance Engine Architecture
 
 ### v7.2 - Session Intelligence
+
 **File:** `src/lib/performance-engine/sessionIntelligence.ts`
 
 **Purpose:** Analyze individual session quality
@@ -318,6 +338,7 @@ Deliberately separates two intelligence systems:
 **Inputs:** Array of runs from a single session
 
 **Outputs:**
+
 - Session quality score
 - Repeatability analysis
 - Fatigue detection
@@ -326,6 +347,7 @@ Deliberately separates two intelligence systems:
 - Optimal set length
 
 ### v8.1 - Cross-Session Intelligence
+
 **File:** `src/lib/performance-engine/crossSession/crossSessionIntelligence.ts`
 
 **Purpose:** Identify patterns across multiple sessions
@@ -333,12 +355,14 @@ Deliberately separates two intelligence systems:
 **Inputs:** Array of session summaries with intelligence outputs
 
 **Outputs:**
+
 - Pattern detection (consistency, speed, fatigue)
 - Trend analysis (improving/declining/stable)
 - Recommendations
 - Confidence levels
 
 ### v8.2 - Truth Rules
+
 **File:** `src/lib/performance-engine/crossSession/truthRules.ts`
 
 **Purpose:** Ensure cross-session reports don't contradict session-level data
@@ -346,6 +370,7 @@ Deliberately separates two intelligence systems:
 **Applied to:** Cross-session intelligence output before display
 
 ### v8.3 - Session Narrative
+
 **File:** `src/lib/performance-engine/sessionNarrative.ts`
 
 **Purpose:** Generate natural language session summaries
@@ -355,17 +380,20 @@ Deliberately separates two intelligence systems:
 **Outputs:** Human-readable narrative text
 
 ### BMX Threshold Ratings
+
 **File:** `src/lib/performance-engine/thresholds/rateSessionMetrics.ts`
 
 **Purpose:** Rate metrics against BMX performance standards
 
 **Categories:**
+
 - Excellent (elite level)
 - Good (competitive)
 - Caution (needs work)
 - Poor (significant attention needed)
 
 **Metrics Rated:**
+
 - Reaction time
 - Peak speed
 - Peak G-force
@@ -481,16 +509,16 @@ Deliberately separates two intelligence systems:
 
 ## 7. Summary: Session-Level vs Over-Time
 
-| Aspect | Session-Level | Over-Time |
-|--------|--------------|-----------|
-| **Time Scope** | Single session | Multiple sessions |
-| **Purpose** | "How did today go?" | "Am I improving?" |
-| **Engine** | v7.2 Session Intelligence | v8.1/v8.2 Cross-Session |
-| **Data Source** | Individual runs within session | Session summaries |
-| **Examples** | Fatigue within session, repeatability | Consistency trends, speed progression |
-| **Sections** | Session Narrative, "Today's Session" panel | Performance Overview headline, Pattern charts, Trend charts |
-| **Minimum Data** | 1 session with runs | 3+ sessions for trends |
-| **UI Label** | "single session" badge | "cross-session" badge |
+| Aspect           | Session-Level                              | Over-Time                                                   |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| **Time Scope**   | Single session                             | Multiple sessions                                           |
+| **Purpose**      | "How did today go?"                        | "Am I improving?"                                           |
+| **Engine**       | v7.2 Session Intelligence                  | v8.1/v8.2 Cross-Session                                     |
+| **Data Source**  | Individual runs within session             | Session summaries                                           |
+| **Examples**     | Fatigue within session, repeatability      | Consistency trends, speed progression                       |
+| **Sections**     | Session Narrative, "Today's Session" panel | Performance Overview headline, Pattern charts, Trend charts |
+| **Minimum Data** | 1 session with runs                        | 3+ sessions for trends                                      |
+| **UI Label**     | "single session" badge                     | "cross-session" badge                                       |
 
 ---
 
@@ -498,23 +526,23 @@ Deliberately separates two intelligence systems:
 
 ### Session-Level Metrics
 
-| Metric | Description | Source | Good Range |
-|--------|-------------|--------|-----------|
-| **Session Quality** | Overall score 0-10 | v7.2 engine | 7+ |
-| **Repeatability** | Consistency within session | v7.2 engine | >0.8 |
-| **Drop-Off Run** | Run number where fatigue hits | v7.2 engine | 8+ |
-| **Best vs Avg Gap %** | How close avg is to best | v7.2 engine | <5% excellent, <15% good |
-| **Optimal Set Length** | Runs before fatigue | v7.2 engine | 8+ |
-| **Reaction CV %** | Coefficient of variation | Server calculation | <2% excellent, <5% good |
+| Metric                 | Description                   | Source             | Good Range               |
+| ---------------------- | ----------------------------- | ------------------ | ------------------------ |
+| **Session Quality**    | Overall score 0-10            | v7.2 engine        | 7+                       |
+| **Repeatability**      | Consistency within session    | v7.2 engine        | >0.8                     |
+| **Drop-Off Run**       | Run number where fatigue hits | v7.2 engine        | 8+                       |
+| **Best vs Avg Gap %**  | How close avg is to best      | v7.2 engine        | <5% excellent, <15% good |
+| **Optimal Set Length** | Runs before fatigue           | v7.2 engine        | 8+                       |
+| **Reaction CV %**      | Coefficient of variation      | Server calculation | <2% excellent, <5% good  |
 
 ### Over-Time Metrics
 
-| Metric | Description | Source | Interpretation |
-|--------|-------------|--------|----------------|
-| **Consistency Trend** | improving/declining/stable | v8.1 engine | Improving preferred |
-| **Speed Progression** | Change % over time | Server (5-session comparison) | Positive = better |
-| **Reaction Trend** | Change % over time | Server (5-session comparison) | Negative = better (lower time) |
-| **Personal Bests** | All-time best values | Server aggregation | Individual benchmarks |
+| Metric                | Description                | Source                        | Interpretation                 |
+| --------------------- | -------------------------- | ----------------------------- | ------------------------------ |
+| **Consistency Trend** | improving/declining/stable | v8.1 engine                   | Improving preferred            |
+| **Speed Progression** | Change % over time         | Server (5-session comparison) | Positive = better              |
+| **Reaction Trend**    | Change % over time         | Server (5-session comparison) | Negative = better (lower time) |
+| **Personal Bests**    | All-time best values       | Server aggregation            | Individual benchmarks          |
 
 ---
 
@@ -530,6 +558,7 @@ The Analytics page is a **sophisticated, multi-layered dashboard** that successf
 **Data Source:** 100% Supabase (sessions, runs, gate_runs, training_goals tables)
 
 **Analysis Split:**
+
 - **~40% Session-Level** (v7.2 engine, latest session focus)
 - **~60% Over-Time** (v8.1/v8.2 engine, trend analysis, charts)
 

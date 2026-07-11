@@ -5,9 +5,11 @@ import { createSupabaseAdminClient } from '$lib/server/supabase';
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	// Get user from parent layout
 	await parent();
-	
+
 	const supabase = locals.supabase;
-	const { data: { user } } = await supabase.auth.getUser();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
 
 	if (!user) {
 		throw error(401, 'Unauthorized');
@@ -26,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 
 	// Use admin client to fetch feedback (bypasses RLS for cleaner queries)
 	const supabaseAdmin = createSupabaseAdminClient();
-	
+
 	// Fetch all feedback with user information
 	const { data: feedback, error: feedbackError } = await supabaseAdmin
 		.from('feedback')
@@ -36,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	// Manually fetch and merge profile data for each feedback
 	if (feedback && feedback.length > 0) {
 		const userIds = [...new Set(feedback.filter((f: any) => f.user_id).map((f: any) => f.user_id))];
-		
+
 		if (userIds.length > 0) {
 			const { data: profiles } = await supabaseAdmin
 				.from('profiles')
@@ -44,7 +46,9 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 				.in('id', userIds);
 
 			// Create a map for quick lookup
-			const profileMap = new Map(profiles?.map((p: any) => [p.id, { full_name: p.name, email: p.email }]) || []);
+			const profileMap = new Map(
+				profiles?.map((p: any) => [p.id, { full_name: p.name, email: p.email }]) || []
+			);
 
 			// Merge profile data into feedback
 			feedback.forEach((item: any) => {

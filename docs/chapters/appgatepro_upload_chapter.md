@@ -132,4 +132,4 @@ You can delete sessions at any time from the session page. Deletion is immediate
 
 ---
 
-*If upload isn't working and this chapter didn't help, use the feedback button on the upload page. Include the exact error message and your firmware version.*
+_If upload isn't working and this chapter didn't help, use the feedback button on the upload page. Include the exact error message and your firmware version._

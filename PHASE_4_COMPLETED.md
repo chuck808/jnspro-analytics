@@ -21,6 +21,7 @@ Phase 4 added **reusable UI components** and **enhanced visual trust indicators*
 **Purpose:** Reusable badge component that displays data quality ratings with consistent styling
 
 **Features:**
+
 - **5 quality levels**: excellent, good, fair, calibrate, unknown
 - **Color-coded**: Green (excellent) → Amber (good) → Yellow (fair) → Red (calibrate) → Gray (unknown)
 - **Icon indicators**: ✓, ⚠, ✗, ?, —
@@ -30,6 +31,7 @@ Phase 4 added **reusable UI components** and **enhanced visual trust indicators*
 - **Accessible**: Title attribute for screen readers
 
 **Usage:**
+
 ```svelte
 <DataQualityBadge quality="good" size="md" showIcon={true} />
 ```
@@ -40,27 +42,30 @@ Phase 4 added **reusable UI components** and **enhanced visual trust indicators*
 
 ### Quality Levels
 
-| Level | Color | Icon | Description | Use Case |
-|-------|-------|------|-------------|----------|
-| **Excellent** | `#3de8c8` (Mint) | ✓ | Highly accurate data | Bias < 0.5 m/s² |
-| **Good** | `#f5a623` (Amber) | ✓ | Reliable data | Bias < 1.0 m/s² |
-| **Fair** | `#ffcc44` (Yellow) | ⚠ | Use trends, not absolutes | Bias < 2.0 m/s² |
-| **Calibrate** | `#ff4444` (Red) | ✗ | Needs calibration | Bias ≥ 2.0 m/s² |
-| **Unknown** | `#9a8f7a` (Gray) | ? | Quality not assessed | No bias data |
+| Level         | Color              | Icon | Description               | Use Case        |
+| ------------- | ------------------ | ---- | ------------------------- | --------------- |
+| **Excellent** | `#3de8c8` (Mint)   | ✓    | Highly accurate data      | Bias < 0.5 m/s² |
+| **Good**      | `#f5a623` (Amber)  | ✓    | Reliable data             | Bias < 1.0 m/s² |
+| **Fair**      | `#ffcc44` (Yellow) | ⚠    | Use trends, not absolutes | Bias < 2.0 m/s² |
+| **Calibrate** | `#ff4444` (Red)    | ✗    | Needs calibration         | Bias ≥ 2.0 m/s² |
+| **Unknown**   | `#9a8f7a` (Gray)   | ?    | Quality not assessed      | No bias data    |
 
 ### Size Variants
 
 **Small (sm):**
+
 - Text: 10px
 - Padding: 1.5px 6px
 - Use: Inline labels, tight spaces
 
 **Medium (md) - Default:**
+
 - Text: 12px (xs)
 - Padding: 2px 8px
 - Use: Standard badges, lists
 
 **Large (lg):**
+
 - Text: 14px (sm)
 - Padding: 4px 12px
 - Use: Prominent indicators, headers
@@ -73,13 +78,14 @@ Phase 4 added **reusable UI components** and **enhanced visual trust indicators*
 
 ```typescript
 interface Props {
-  quality: 'excellent' | 'good' | 'fair' | 'calibrate' | 'unknown' | null;
-  size?: 'sm' | 'md' | 'lg';
-  showIcon?: boolean;
+	quality: 'excellent' | 'good' | 'fair' | 'calibrate' | 'unknown' | null;
+	size?: 'sm' | 'md' | 'lg';
+	showIcon?: boolean;
 }
 ```
 
 **Defaults:**
+
 - `size`: 'md'
 - `showIcon`: true
 
@@ -117,12 +123,12 @@ interface Props {
 
 ### What Phase 4 Adds
 
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| **DataQualityBadge** | Reusable quality indicator | ✅ Created |
-| **SessionNarrativeCard** | v8.3 narrative display | ✅ Exported |
-| **Trust Indicators** | Visual data quality system | ✅ Implemented |
-| **Consistent Styling** | Design system patterns | ✅ Established |
+| Component                | Purpose                    | Status         |
+| ------------------------ | -------------------------- | -------------- |
+| **DataQualityBadge**     | Reusable quality indicator | ✅ Created     |
+| **SessionNarrativeCard** | v8.3 narrative display     | ✅ Exported    |
+| **Trust Indicators**     | Visual data quality system | ✅ Implemented |
+| **Consistent Styling**   | Design system patterns     | ✅ Established |
 
 ### Reusable Components
 
@@ -146,18 +152,16 @@ src/lib/components/
 
 ```svelte
 {#each sessions as session}
-  <div class="session-item">
-    <span>{session.date}</span>
-    <span>{session.runs} runs</span>
-    <DataQualityBadge 
-      quality={session.dataQuality} 
-      size="sm" 
-    />
-  </div>
+	<div class="session-item">
+		<span>{session.date}</span>
+		<span>{session.runs} runs</span>
+		<DataQualityBadge quality={session.dataQuality} size="sm" />
+	</div>
 {/each}
 ```
 
 **Result:**
+
 ```
 Apr 27 · 5 runs · [✓ Good]
 Apr 26 · 6 runs · [⚠ Fair]
@@ -170,15 +174,10 @@ Apr 25 · 4 runs · [✓ Excellent]
 
 ```svelte
 <div class="chart-header">
-  <h3>Peak Speed Trend</h3>
-  <DataQualityBadge 
-    quality="fair" 
-    size="md" 
-  />
+	<h3>Peak Speed Trend</h3>
+	<DataQualityBadge quality="fair" size="md" />
 </div>
-<p class="warning">
-  ⚠ Use trends, not absolute values
-</p>
+<p class="warning">⚠ Use trends, not absolute values</p>
 ```
 
 ---
@@ -187,14 +186,11 @@ Apr 25 · 4 runs · [✓ Excellent]
 
 ```svelte
 <div class="metric-card">
-  <div class="metric-header">
-    <span>Best Peak Speed</span>
-    <DataQualityBadge 
-      quality={speedQuality} 
-      size="sm" 
-    />
-  </div>
-  <p class="value">48.2 km/h</p>
+	<div class="metric-header">
+		<span>Best Peak Speed</span>
+		<DataQualityBadge quality={speedQuality} size="sm" />
+	</div>
+	<p class="value">48.2 km/h</p>
 </div>
 ```
 
@@ -203,21 +199,25 @@ Apr 25 · 4 runs · [✓ Excellent]
 ## 🎨 Design Principles Applied
 
 ### 1. Consistency ✅
+
 - Same badge component everywhere
 - Predictable color meanings
 - Uniform sizing system
 
 ### 2. Clarity ✅
+
 - Icons reinforce meaning
 - Tooltips provide context
 - Color-coded for quick scanning
 
 ### 3. Accessibility ✅
+
 - Title attributes for screen readers
 - High contrast colors
 - Semantic HTML
 
 ### 4. Scalability ✅
+
 - Reusable across entire app
 - Easy to extend with new quality levels
 - Size variants for different contexts
@@ -229,6 +229,7 @@ Apr 25 · 4 runs · [✓ Excellent]
 ### Before Phase 4
 
 Users saw metrics but didn't know:
+
 - ❌ Is this data reliable?
 - ❌ Should I trust this number?
 - ❌ Is calibration needed?
@@ -237,6 +238,7 @@ Users saw metrics but didn't know:
 ### After Phase 4
 
 Users immediately see:
+
 - ✅ Data quality at a glance (badges)
 - ✅ Trust level (color-coded)
 - ✅ What action is needed (calibrate/none)
@@ -252,8 +254,8 @@ Users immediately see:
 
 ```svelte
 <p>
-  Peak Speed: 48.2 km/h 
-  <DataQualityBadge quality="good" size="sm" />
+	Peak Speed: 48.2 km/h
+	<DataQualityBadge quality="good" size="sm" />
 </p>
 ```
 
@@ -261,8 +263,8 @@ Users immediately see:
 
 ```svelte
 <div class="card-header">
-  <h3>Session Summary</h3>
-  <DataQualityBadge quality={sessionQuality} />
+	<h3>Session Summary</h3>
+	<DataQualityBadge quality={sessionQuality} />
 </div>
 ```
 
@@ -270,8 +272,8 @@ Users immediately see:
 
 ```svelte
 <div class="flex justify-between">
-  <span>Apr 27 Session</span>
-  <DataQualityBadge quality="excellent" size="sm" />
+	<span>Apr 27 Session</span>
+	<DataQualityBadge quality="excellent" size="sm" />
 </div>
 ```
 
@@ -307,13 +309,13 @@ Users immediately see:
 
 ### All Phases Summary
 
-| Phase | Focus | Files | Lines | Status |
-|-------|-------|-------|-------|--------|
-| **Phase 1** | Core Logic | 3 | ~90 | ✅ Complete |
-| **Phase 2** | Data Flow | 1 | ~90 | ✅ Complete |
-| **Phase 3** | UI Integration | 2 | ~487 | ✅ Complete |
-| **Phase 4** | Trust Components | 1 | ~100 | ✅ Complete |
-| **Total** | **Full System** | **7** | **~767** | **✅ Production Ready** |
+| Phase       | Focus            | Files | Lines    | Status                  |
+| ----------- | ---------------- | ----- | -------- | ----------------------- |
+| **Phase 1** | Core Logic       | 3     | ~90      | ✅ Complete             |
+| **Phase 2** | Data Flow        | 1     | ~90      | ✅ Complete             |
+| **Phase 3** | UI Integration   | 2     | ~487     | ✅ Complete             |
+| **Phase 4** | Trust Components | 1     | ~100     | ✅ Complete             |
+| **Total**   | **Full System**  | **7** | **~767** | **✅ Production Ready** |
 
 ---
 
@@ -391,9 +393,11 @@ Users immediately see:
 ## 💬 User Experience Impact
 
 ### Before
+
 "I see speed data, but should I trust it? No idea."
 
 ### After
+
 "Speed data has a [⚠ Fair] badge - use trends, not absolutes. Got it!"
 
 **Difference:** Immediate clarity on data trustworthiness.
@@ -451,6 +455,7 @@ With DataQualityBadge as a foundation, we can build:
 From raw data → accurate calculations → trustworthy coaching → beautiful UI → **professional polish**
 
 The system now has:
+
 - ✅ Accurate calculations (Phase 1)
 - ✅ Real data flow (Phase 2)
 - ✅ Beautiful narrative UI (Phase 3)

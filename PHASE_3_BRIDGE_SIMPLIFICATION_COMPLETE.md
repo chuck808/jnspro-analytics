@@ -14,11 +14,12 @@ Updated the Performance Bridge layer to extract all data from the Performance En
 After Phases 1 & 2, the Performance Engine provided all analytics in unified output, but the bridge layer (`legacyIntegration.ts`) still:
 
 - ❌ Required legacy metrics as a separate input parameter
-- ❌ Expected data from legacy analytics.ts computations  
+- ❌ Expected data from legacy analytics.ts computations
 - ❌ Tracked legacy formula references
 - ❌ Created duplicate computation risk
 
 This meant consumers still needed to:
+
 1. Call Performance Engine
 2. Call legacy analytics separately
 3. Pass both to the bridge
@@ -30,6 +31,7 @@ This meant consumers still needed to:
 ## Solution: Extract from Engine, Don't Require Legacy
 
 Updated `integrateWithPerformanceEngine()` to:
+
 1. Extract all data from Performance Engine output
 2. Make legacy metrics parameter optional (backward compatibility)
 3. Track Performance Engine formulas instead of legacy
@@ -42,30 +44,34 @@ Updated `integrateWithPerformanceEngine()` to:
 ### 1. **Function Signature Update**
 
 **Before:**
+
 ```typescript
 export function integrateWithPerformanceEngine(
-  performanceAnalysis: SessionAnalysis,
-  legacyMetrics: LegacyMetricsInput  // REQUIRED
-): EnhancedSessionAnalysis
+	performanceAnalysis: SessionAnalysis,
+	legacyMetrics: LegacyMetricsInput // REQUIRED
+): EnhancedSessionAnalysis;
 ```
 
 **After:**
+
 ```typescript
 export function integrateWithPerformanceEngine(
-  performanceAnalysis: SessionAnalysis,
-  legacyMetrics?: LegacyMetricsInput  // OPTIONAL - deprecated
-): EnhancedSessionAnalysis
+	performanceAnalysis: SessionAnalysis,
+	legacyMetrics?: LegacyMetricsInput // OPTIONAL - deprecated
+): EnhancedSessionAnalysis;
 ```
 
 ### 2. **Data Extraction from Performance Engine**
 
 **Before:**
+
 ```typescript
 speedProfile: legacyMetrics.speedProfile,
 dataQuality: legacyMetrics.dataQuality,
 ```
 
 **After:**
+
 ```typescript
 const speedProfile = performanceAnalysis.selectedRun?.physics?.speedProfile ?? '—';
 const dataQuality = performanceAnalysis.selectedRun?.physics?.dataQuality?.label ?? 'Unknown';
@@ -79,23 +85,23 @@ Created `identifyActiveFormulasFromEngine()` that tracks Performance Engine form
 
 ```typescript
 function identifyActiveFormulasFromEngine(analysis: SessionAnalysis): string[] {
-  const formulas: string[] = ['Performance Engine Core'];
-  
-  if (analysis.selectedRun?.physics?.speedSplits?.length) {
-    formulas.push('calculateSpeedSplits - performance-engine/physics.ts');
-  }
-  
-  if (analysis.selectedRun?.physics?.jerk) {
-    formulas.push('computeJerk - performance-engine/physics.ts');
-  }
-  
-  if (analysis.intelligence?.dropOff) {
-    formulas.push('detectDropOff - performance-engine/dropoff.ts');
-  }
-  
-  // ... etc
-  
-  return formulas;
+	const formulas: string[] = ['Performance Engine Core'];
+
+	if (analysis.selectedRun?.physics?.speedSplits?.length) {
+		formulas.push('calculateSpeedSplits - performance-engine/physics.ts');
+	}
+
+	if (analysis.selectedRun?.physics?.jerk) {
+		formulas.push('computeJerk - performance-engine/physics.ts');
+	}
+
+	if (analysis.intelligence?.dropOff) {
+		formulas.push('detectDropOff - performance-engine/dropoff.ts');
+	}
+
+	// ... etc
+
+	return formulas;
 }
 ```
 
@@ -108,6 +114,7 @@ Old `identifyActiveFormulas()` marked as `@deprecated`
 ### `performance-bridge/legacyIntegration.ts`
 
 **Changes:**
+
 - Made `legacyMetrics` parameter optional
 - Extract `speedProfile` from `analysis.selectedRun.physics.speedProfile`
 - Extract `dataQuality` from `analysis.selectedRun.physics.dataQuality.label`
@@ -121,6 +128,7 @@ Old `identifyActiveFormulas()` marked as `@deprecated`
 ## Migration Impact
 
 ### Before Phase 3
+
 ```typescript
 // Consumer code HAD to do this:
 const legacyMetrics = {
@@ -137,13 +145,14 @@ const enhanced = integrateWithPerformanceEngine(
 ```
 
 ### After Phase 3
+
 ```typescript
 // Consumer code can now do this:
 const performanceAnalysis = analyseSession(session, rider);
 
 const enhanced = integrateWithPerformanceEngine(
-  performanceAnalysis
-  // No second parameter needed!
+	performanceAnalysis
+	// No second parameter needed!
 );
 
 // All data extracted from Performance Engine output
@@ -175,6 +184,7 @@ const enhanced = integrateWithPerformanceEngine(
 4. **Summarizes** insights (`createUnifiedInsightSummary`)
 
 **Does NOT:**
+
 - ❌ Perform calculations
 - ❌ Call legacy analytics
 - ❌ Duplicate any computation
@@ -188,19 +198,19 @@ The bridge now tracks Performance Engine formulas:
 
 ```typescript
 formulaReferences: [
-  'Performance Engine Core',
-  'computeSpeedCurve - performance-engine/physics.ts',
-  'calculateSpeedSplits - performance-engine/physics.ts',
-  'classifySpeedProfile - performance-engine/physics.ts',
-  'computeJerk - performance-engine/physics.ts',
-  'estimatePower - performance-engine/physics.ts',
-  'assessDataQuality - performance-engine/dataQuality.ts',
-  'scoreTechnique - performance-engine/technique.ts',
-  'Session Intelligence:',
-  'analyseBestVsAverage - performance-engine/bestVsAverage.ts',
-  'detectDropOff - performance-engine/dropoff.ts',
-  'suggestSetLength - performance-engine/setLength.ts'
-]
+	'Performance Engine Core',
+	'computeSpeedCurve - performance-engine/physics.ts',
+	'calculateSpeedSplits - performance-engine/physics.ts',
+	'classifySpeedProfile - performance-engine/physics.ts',
+	'computeJerk - performance-engine/physics.ts',
+	'estimatePower - performance-engine/physics.ts',
+	'assessDataQuality - performance-engine/dataQuality.ts',
+	'scoreTechnique - performance-engine/technique.ts',
+	'Session Intelligence:',
+	'analyseBestVsAverage - performance-engine/bestVsAverage.ts',
+	'detectDropOff - performance-engine/dropoff.ts',
+	'suggestSetLength - performance-engine/setLength.ts'
+];
 ```
 
 This provides **full traceability** of which analytics were computed.
@@ -210,6 +220,7 @@ This provides **full traceability** of which analytics were computed.
 ## Usage Example
 
 **Simple use case:**
+
 ```typescript
 import { analyseSession } from '$lib/performance-engine';
 import { integrateWithPerformanceEngine } from '$lib/performance-bridge';
@@ -221,12 +232,13 @@ const analysis = analyseSession(session, rider);
 const enhanced = integrateWithPerformanceEngine(analysis);
 
 // 3. Use in UI
-console.log(enhanced.legacyIntegration.speedProfile);  // "Explosive"
-console.log(enhanced.legacyIntegration.dataQuality);   // "Excellent"
-console.log(enhanced.legacyIntegration.formulaReferences);  // Array of active formulas
+console.log(enhanced.legacyIntegration.speedProfile); // "Explosive"
+console.log(enhanced.legacyIntegration.dataQuality); // "Excellent"
+console.log(enhanced.legacyIntegration.formulaReferences); // Array of active formulas
 ```
 
 **Legacy compatibility:**
+
 ```typescript
 // Old code still works (but legacy metrics are ignored)
 const legacyMetrics = getLegacyMetrics(...);  // Still computed somewhere
@@ -239,11 +251,13 @@ const enhanced = integrateWithPerformanceEngine(analysis, legacyMetrics);
 ## Deprecation Path
 
 ### Immediate (Phase 3)
+
 - ✅ `LegacyMetricsInput` marked `@deprecated`
 - ✅ `identifyActiveFormulas()` marked `@deprecated`
 - ✅ File header updated to reflect migration complete
 
 ### Future (Phase 4 - Optional)
+
 - Remove `combineWeaknesses()` (unused now)
 - Remove `generateLegacyRecommendations()` (unused now)
 - Remove `mergeRecommendations()` (unused now)
@@ -297,7 +311,8 @@ const enhanced = integrateWithPerformanceEngine(analysis, legacyMetrics);
 └─────────────────────────────────────────┘
 ```
 
-**Legacy System:**  
+**Legacy System:**
+
 - ✅ Preserved as reference
 - ⚠️ No longer called by bridge
 - 📅 Can be deprecated in future
@@ -307,48 +322,47 @@ const enhanced = integrateWithPerformanceEngine(analysis, legacyMetrics);
 ## Testing Recommendations
 
 ### 1. **Integration Tests**
+
 ```typescript
 test('bridge extracts data from engine output', () => {
-  const analysis = analyseSession(mockSession);
-  const enhanced = integrateWithPerformanceEngine(analysis);
-  
-  expect(enhanced.legacyIntegration.speedProfile).toBe(
-    analysis.selectedRun?.physics?.speedProfile
-  );
-  
-  expect(enhanced.legacyIntegration.dataQuality).toBe(
-    analysis.selectedRun?.physics?.dataQuality?.label
-  );
+	const analysis = analyseSession(mockSession);
+	const enhanced = integrateWithPerformanceEngine(analysis);
+
+	expect(enhanced.legacyIntegration.speedProfile).toBe(analysis.selectedRun?.physics?.speedProfile);
+
+	expect(enhanced.legacyIntegration.dataQuality).toBe(
+		analysis.selectedRun?.physics?.dataQuality?.label
+	);
 });
 ```
 
 ### 2. **Backward Compatibility**
+
 ```typescript
 test('legacy parameter still works but is optional', () => {
-  const analysis = analyseSession(mockSession);
-  
-  // New way (no legacy)
-  const enhanced1 = integrateWithPerformanceEngine(analysis);
-  expect(enhanced1).toBeDefined();
-  
-  // Old way (with legacy)
-  const enhanced2 = integrateWithPerformanceEngine(analysis, mockLegacy);
-  expect(enhanced2).toBeDefined();
+	const analysis = analyseSession(mockSession);
+
+	// New way (no legacy)
+	const enhanced1 = integrateWithPerformanceEngine(analysis);
+	expect(enhanced1).toBeDefined();
+
+	// Old way (with legacy)
+	const enhanced2 = integrateWithPerformanceEngine(analysis, mockLegacy);
+	expect(enhanced2).toBeDefined();
 });
 ```
 
 ### 3. **Formula Tracking**
+
 ```typescript
 test('tracks performance engine formulas', () => {
-  const analysis = analyseSession(mockSessionWithIntelligence);
-  const enhanced = integrateWithPerformanceEngine(analysis);
-  
-  expect(enhanced.legacyIntegration.formulaReferences).toContain(
-    'Performance Engine Core'
-  );
-  expect(enhanced.legacyIntegration.formulaReferences).toContain(
-    'detectDropOff - performance-engine/dropoff.ts'
-  );
+	const analysis = analyseSession(mockSessionWithIntelligence);
+	const enhanced = integrateWithPerformanceEngine(analysis);
+
+	expect(enhanced.legacyIntegration.formulaReferences).toContain('Performance Engine Core');
+	expect(enhanced.legacyIntegration.formulaReferences).toContain(
+		'detectDropOff - performance-engine/dropoff.ts'
+	);
 });
 ```
 

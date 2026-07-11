@@ -17,6 +17,7 @@ All concerns identified in the pipeline evaluation have been addressed. The syst
 ### ✅ 1. Missing Database Migrations
 
 **Problem:**
+
 - No SQL schema files found for core tables (`sessions`, `runs`, `gate_runs`, `run_timeseries`)
 - Risk: Unable to recreate schema from scratch for new environments or disaster recovery
 
@@ -25,6 +26,7 @@ All concerns identified in the pipeline evaluation have been addressed. The syst
 Created comprehensive migration file: `supabase/migrations/20260101_create_core_schema.sql`
 
 **Features:**
+
 - Complete schema definition for all 4 core tables
 - Proper foreign key relationships with CASCADE deletes
 - Row Level Security (RLS) policies for all tables
@@ -51,11 +53,12 @@ CREATE POLICY "Users can view runs for their sessions"
     ));
 
 -- Helpful documentation
-COMMENT ON COLUMN public.runs.chart_data IS 
+COMMENT ON COLUMN public.runs.chart_data IS
     'Acceleration trace as float[] in G-units (converted from int16×100 at ingestion)';
 ```
 
 **Benefits:**
+
 - ✅ Schema can be recreated in any environment
 - ✅ Clear documentation of data types and units
 - ✅ Security policies prevent data leaks
@@ -68,6 +71,7 @@ COMMENT ON COLUMN public.runs.chart_data IS
 ### ✅ 2. Timeseries Error Handling
 
 **Problem:**
+
 - Timeseries insert failures were logged but not surfaced to users
 - Users couldn't understand why pitch/wheelie analytics were missing
 
@@ -85,34 +89,35 @@ const timeseriesErrors: string[] = [];
 
 // On timeseries insert error
 if (tsError) {
-    timeseriesFailedCount++;
-    const errorMsg = `Run ${run.run_number}: ${tsError.message || 'Unknown error'}`;
-    timeseriesErrors.push(errorMsg);
-    console.warn(`Timeseries insert failed for run ${run.run_number}:`, tsError);
+	timeseriesFailedCount++;
+	const errorMsg = `Run ${run.run_number}: ${tsError.message || 'Unknown error'}`;
+	timeseriesErrors.push(errorMsg);
+	console.warn(`Timeseries insert failed for run ${run.run_number}:`, tsError);
 } else {
-    timeseriesCount++;
+	timeseriesCount++;
 }
 
 // Add to warnings
 if (timeseriesFailedCount > 0) {
-    allWarnings.push(
-        `${timeseriesFailedCount} run(s) had timeseries data that failed to import. ` +
-        `Pitch/wheelie analytics may be limited for these runs.`
-    );
+	allWarnings.push(
+		`${timeseriesFailedCount} run(s) had timeseries data that failed to import. ` +
+			`Pitch/wheelie analytics may be limited for these runs.`
+	);
 }
 
 // Return enhanced response
 return json({
-    success:               true,
-    timeseries_count:      timeseriesCount,
-    timeseries_failed:     timeseriesFailedCount,      // NEW
-    timeseries_errors:     timeseriesErrors,            // NEW
-    warnings:              allWarnings,                 // ENHANCED
-    // ... other fields
+	success: true,
+	timeseries_count: timeseriesCount,
+	timeseries_failed: timeseriesFailedCount, // NEW
+	timeseries_errors: timeseriesErrors, // NEW
+	warnings: allWarnings // ENHANCED
+	// ... other fields
 });
 ```
 
 **Benefits:**
+
 - ✅ Users see exactly how many runs had timeseries failures
 - ✅ Clear explanation of impact on analytics
 - ✅ Detailed error messages available in expandable section
@@ -125,6 +130,7 @@ return json({
 ### ✅ 3. Upload UI Warnings Display
 
 **Problem:**
+
 - Validation warnings were returned by API but not displayed to users
 - Users had no visibility into data quality issues
 
@@ -135,49 +141,58 @@ Enhanced upload page to prominently display all warnings:
 **Changes to Upload UI:**
 
 1. **Visual indicator for timeseries failures:**
+
    ```svelte
-   <div class="bg-[#0a0809] rounded-lg p-3 
-        {stat.warning ? 'border border-[#f5a623]/30' : ''}">
-       <p class="text-sm font-semibold 
-          {stat.warning ? 'text-[#f5a623]' : 'text-[#f0ece4]'}">
-           {stat.value}
-       </p>
-       {#if stat.warning}
-           <p class="text-xs text-[#9a8f7a] mt-1">
-               {result.timeseries_failed} failed
-           </p>
-       {/if}
+   <div
+   	class="rounded-lg bg-[#0a0809] p-3
+        {stat.warning ? 'border border-[#f5a623]/30' : ''}"
+   >
+   	<p
+   		class="text-sm font-semibold
+          {stat.warning ? 'text-[#f5a623]' : 'text-[#f0ece4]'}"
+   	>
+   		{stat.value}
+   	</p>
+   	{#if stat.warning}
+   		<p class="mt-1 text-xs text-[#9a8f7a]">
+   			{result.timeseries_failed} failed
+   		</p>
+   	{/if}
    </div>
    ```
 
 2. **Expanded warnings section:**
+
    ```svelte
-   <div class="mt-4 p-3 bg-[#f5a623]/10 border border-[#f5a623]/20 rounded-lg">
-       <p class="text-xs font-medium text-[#f5a623] mb-2">⚠ Warnings</p>
-       {#each warnings as w}
-           <p class="text-xs text-[#9a8f7a] leading-relaxed">• {w}</p>
-       {/each}
+   <div class="mt-4 rounded-lg border border-[#f5a623]/20 bg-[#f5a623]/10 p-3">
+   	<p class="mb-2 text-xs font-medium text-[#f5a623]">⚠ Warnings</p>
+   	{#each warnings as w}
+   		<p class="text-xs leading-relaxed text-[#9a8f7a]">• {w}</p>
+   	{/each}
    </div>
    ```
 
 3. **Collapsible error details:**
    ```svelte
    {#if result.timeseries_errors && result.timeseries_errors.length > 0}
-       <details class="mt-2 pt-2 border-t border-[#f5a623]/20">
-           <summary class="text-xs font-medium text-[#f5a623] 
-                           cursor-pointer hover:text-[#c97e0a] mb-1">
-               View timeseries error details
-           </summary>
-           <div class="mt-2 space-y-1">
-               {#each result.timeseries_errors as err}
-                   <p class="text-xs text-[#6b5f4d] font-mono">• {err}</p>
-               {/each}
-           </div>
-       </details>
+   	<details class="mt-2 border-t border-[#f5a623]/20 pt-2">
+   		<summary
+   			class="mb-1 cursor-pointer text-xs
+                           font-medium text-[#f5a623] hover:text-[#c97e0a]"
+   		>
+   			View timeseries error details
+   		</summary>
+   		<div class="mt-2 space-y-1">
+   			{#each result.timeseries_errors as err}
+   				<p class="font-mono text-xs text-[#6b5f4d]">• {err}</p>
+   			{/each}
+   		</div>
+   	</details>
    {/if}
    ```
 
 **Benefits:**
+
 - ✅ Warning icon (⚠) draws attention
 - ✅ Amber color scheme indicates caution (not error)
 - ✅ Clear explanation of impact on analytics
@@ -191,6 +206,7 @@ Enhanced upload page to prominently display all warnings:
 ### ✅ 4. Schema Evolution Strategy
 
 **Problem:**
+
 - No documented migration path for future schema versions
 - Risk of breaking backward compatibility with old SD card files
 
@@ -220,29 +236,36 @@ Created comprehensive schema evolution documentation:
 ```typescript
 // Multi-version ingest support
 export function transformSDFile(file: SDCardFile): IngestSession {
-    const version = file.schemaVersion ?? 1;
-    
-    switch (version) {
-        case 3: return transformSchemaV3(file);
-        case 2: return transformSchemaV2(file);
-        case 1: return transformSchemaV1(file);
-        default: throw new Error(`Unsupported schema version: ${version}`);
-    }
+	const version = file.schemaVersion ?? 1;
+
+	switch (version) {
+		case 3:
+			return transformSchemaV3(file);
+		case 2:
+			return transformSchemaV2(file);
+		case 1:
+			return transformSchemaV1(file);
+		default:
+			throw new Error(`Unsupported schema version: ${version}`);
+	}
 }
 ```
 
 **Testing Protocol:**
+
 - Sample files from each schema version
 - Automated compatibility tests
 - UI regression testing across versions
 - Database state verification
 
 **Rollback Strategy:**
+
 - Forward-only migrations (no destructive changes)
 - Hotfix deployment to ingest service
 - Re-import from SD card files (canonical source)
 
 **Benefits:**
+
 - ✅ Clear guidance for future development
 - ✅ Backward compatibility guaranteed
 - ✅ User confidence (no data loss)
@@ -255,11 +278,13 @@ export function transformSDFile(file: SDCardFile): IngestSession {
 ### ⚠️ 5. Batch Processing (Deferred)
 
 **Original Concern:**
+
 - Sequential inserts for runs could be bottleneck for large sessions
 
 **Analysis:**
 
 Current implementation:
+
 ```typescript
 for (const run of ingestData.runs) {
     const { data: runRecord } = await locals.supabase
@@ -267,20 +292,22 @@ for (const run of ingestData.runs) {
         .insert({ ... })
         .select('id')
         .single();
-    
+
     const runId = runRecord.id; // Needed for child tables
-    
+
     await locals.supabase.from('gate_runs').insert({ run_id: runId, ... });
     await locals.supabase.from('run_timeseries').insert({ run_id: runId, ... });
 }
 ```
 
 **Why Sequential is Necessary:**
+
 1. Need `run_id` before inserting gate_runs and timeseries
 2. Supabase batch insert doesn't return individual IDs reliably
 3. Transaction integrity requires ordered operations
 
 **Performance Reality:**
+
 - Typical session: 3-5 runs
 - Each run: 3 inserts (runs, gate_runs, timeseries)
 - Total: 9-15 sequential operations
@@ -290,21 +317,27 @@ for (const run of ingestData.runs) {
 **Decision:** **Defer optimization** until proven bottleneck
 
 **When to Revisit:**
+
 - Users report slow uploads (>3 seconds)
 - Average session size exceeds 10 runs
 - Database connection pooling issues emerge
 
 **Potential Future Optimization:**
+
 ```typescript
 // Batch approach (requires database trigger or different schema)
-const runsData = ingestData.runs.map(run => ({
-    session_id, run_number, elapsed_time_ms, distance_m, chart_data
+const runsData = ingestData.runs.map((run) => ({
+	session_id,
+	run_number,
+	elapsed_time_ms,
+	distance_m,
+	chart_data
 }));
 
 const { data: insertedRuns } = await locals.supabase
-    .from('runs')
-    .insert(runsData)
-    .select('id, run_number');
+	.from('runs')
+	.insert(runsData)
+	.select('id, run_number');
 
 // Then batch child records with returned IDs
 ```
@@ -360,25 +393,25 @@ const { data: insertedRuns } = await locals.supabase
 ```typescript
 // tests/integration/upload.test.ts
 describe('Session Upload', () => {
-    test('successful upload with timeseries', async () => {
-        const result = await uploadSession(validSessionV2);
-        expect(result.success).toBe(true);
-        expect(result.timeseries_count).toBe(5);
-        expect(result.timeseries_failed).toBe(0);
-    });
+	test('successful upload with timeseries', async () => {
+		const result = await uploadSession(validSessionV2);
+		expect(result.success).toBe(true);
+		expect(result.timeseries_count).toBe(5);
+		expect(result.timeseries_failed).toBe(0);
+	});
 
-    test('partial timeseries failure shows warnings', async () => {
-        const result = await uploadSession(partialTimeseriesSession);
-        expect(result.success).toBe(true);
-        expect(result.timeseries_failed).toBeGreaterThan(0);
-        expect(result.warnings).toContain('timeseries data that failed');
-    });
+	test('partial timeseries failure shows warnings', async () => {
+		const result = await uploadSession(partialTimeseriesSession);
+		expect(result.success).toBe(true);
+		expect(result.timeseries_failed).toBeGreaterThan(0);
+		expect(result.warnings).toContain('timeseries data that failed');
+	});
 
-    test('schema v1 compatibility', async () => {
-        const result = await uploadSession(legacySessionV1);
-        expect(result.success).toBe(true);
-        expect(result.warnings).toContain('Legacy schema');
-    });
+	test('schema v1 compatibility', async () => {
+		const result = await uploadSession(legacySessionV1);
+		expect(result.success).toBe(true);
+		expect(result.warnings).toContain('Legacy schema');
+	});
 });
 ```
 
@@ -437,7 +470,7 @@ vercel logs --follow
 
 ```sql
 -- Weekly upload success rate
-SELECT 
+SELECT
     DATE_TRUNC('week', created_at) as week,
     COUNT(*) as total_sessions,
     COUNT(*) FILTER (WHERE archived = false) as successful,
@@ -452,7 +485,7 @@ ORDER BY week DESC;
 
 ```sql
 -- How often timeseries data is successfully imported
-SELECT 
+SELECT
     COUNT(DISTINCT r.id) as total_runs,
     COUNT(DISTINCT rt.run_id) as runs_with_timeseries,
     ROUND(100.0 * COUNT(DISTINCT rt.run_id) / COUNT(DISTINCT r.id), 1) as timeseries_rate_pct
@@ -466,7 +499,7 @@ WHERE r.created_at > NOW() - INTERVAL '7 days';
 ```sql
 -- What schema versions are users uploading?
 -- (Requires adding schema_version tracking to sessions table)
-SELECT 
+SELECT
     schema_version,
     COUNT(*) as session_count,
     ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER(), 1) as percentage
@@ -538,6 +571,7 @@ All critical issues identified in the pipeline evaluation have been resolved:
 ### Ready for Production
 
 The system can now safely:
+
 - Import sessions from current and future firmware versions
 - Handle partial data gracefully (missing timeseries)
 - Communicate issues clearly to users
@@ -545,5 +579,3 @@ The system can now safely:
 - Recover from any database corruption (SD cards are canonical)
 
 **The pipeline is production-ready and can support feature development with confidence.**
-
-

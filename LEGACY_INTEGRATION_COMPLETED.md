@@ -32,15 +32,17 @@ Created `src/lib/performance-bridge/legacyIntegration.ts` which:
 - **Provides formula traceability** for transparency
 
 **Key Functions:**
+
 ```typescript
-integrateWithPerformanceEngine()  // Main integration function
-combineWeaknesses()               // Merges weakness detection
-generateLegacyRecommendations()   // Structured recs from raw scores
-mergeRecommendations()            // Deduplicates and prioritizes
-identifyActiveFormulas()          // Tracks which formulas were used
+integrateWithPerformanceEngine(); // Main integration function
+combineWeaknesses(); // Merges weakness detection
+generateLegacyRecommendations(); // Structured recs from raw scores
+mergeRecommendations(); // Deduplicates and prioritizes
+identifyActiveFormulas(); // Tracks which formulas were used
 ```
 
 **Integration Points:**
+
 - Performance Engine provides: Core physics analysis, diagnostics
 - Legacy System provides: Technique scores, speed splits, speed profile
 - Bridge System provides: Jerk analysis, detailed phases
@@ -57,6 +59,7 @@ Analytical formulas were embedded across multiple files with inconsistent docume
 Created `ANALYTICS_FORMULA_DOCUMENTATION.md` - comprehensive reference containing:
 
 **Documented Formulas:**
+
 1. **Speed Analysis** - `computeSpeedCurve()` with integration math
 2. **Technique Scoring** - 4-component breakdown with thresholds
 3. **Power Estimation** - Physics-based P = F × v calculations
@@ -68,6 +71,7 @@ Created `ANALYTICS_FORMULA_DOCUMENTATION.md` - comprehensive reference containin
 9. **Speed Profile Classification** - Peak timing categorization
 
 **Each Formula Includes:**
+
 - ✅ Location in codebase (file + line numbers)
 - ✅ Purpose and use case
 - ✅ Input parameters with types
@@ -99,16 +103,19 @@ Legacy system provided raw scores (0-100) without actionable guidance. Users had
 Implemented multi-layered recommendation system:
 
 #### **Level 1: Weakness Auto-Detection**
+
 Automatically identifies areas below threshold:
+
 ```typescript
 interface WeaknessAnalysis {
-  area: string;           // "Reaction Time", "Explosiveness", etc.
-  score?: number | null;  // 0-100 score
-  advice: string[];       // Specific actionable tips
+	area: string; // "Reaction Time", "Explosiveness", etc.
+	score?: number | null; // 0-100 score
+	advice: string[]; // Specific actionable tips
 }
 ```
 
 **Detection Rules:**
+
 - Reaction Time >350ms (elite) → weakness identified
 - Explosiveness <70 → weakness identified
 - Smoothness <65 → weakness identified
@@ -117,35 +124,42 @@ interface WeaknessAnalysis {
 - Phase efficiency <70 → weakness identified
 
 #### **Level 2: Priority-Based Recommendations**
+
 ```typescript
 interface Recommendation {
-  priority: 'high' | 'medium' | 'low';
-  title: string;          // "Improve reaction time"
-  message: string;        // Contextual explanation
-  metric?: string;        // For tracking/filtering
+	priority: 'high' | 'medium' | 'low';
+	title: string; // "Improve reaction time"
+	message: string; // Contextual explanation
+	metric?: string; // For tracking/filtering
 }
 ```
 
 **Priority Logic:**
+
 - **HIGH:** Score <50, critical performance gaps
 - **MEDIUM:** Score 50-65, room for improvement
 - **LOW:** Score >65, maintenance/optimization
 
 #### **Level 3: Contextual Advice**
+
 Each recommendation includes:
+
 - **Specific drills** - "Use random gate timing"
 - **Technique cues** - "Weight forward, hips loaded"
 - **Training focus** - "Short maximal efforts with full recovery"
 - **Measurement targets** - "Target <0.5s to 50% impulse"
 
 #### **Level 4: Smart Deduplication**
+
 Merges recommendations from all systems:
+
 - Removes duplicates based on metric tracking
 - Prioritizes Performance Engine insights
 - Adds legacy-specific recommendations where unique
 - Limits to top 6 to avoid overwhelming users
 
 **Example Output:**
+
 ```
 🔴 HIGH: Improve Reaction Time
 Score: 45/100
@@ -188,6 +202,7 @@ Efficiency: 62/100
    - Maintains backward compatibility
 
 **Changes:**
+
 - Added `analyseSession()` call for PE
 - Added `integrateWithPerformanceEngine()` for unified analysis
 - Replaced separate weakness/recommendation logic
@@ -282,24 +297,28 @@ Efficiency: 62/100
 This implementation provides a **bridge** not a replacement:
 
 ### Phase 1: ✅ COMPLETE (This Task)
+
 - Integration layer created
 - Systems work together
 - Recommendations unified
 - Formula documentation complete
 
 ### Phase 2: FUTURE
+
 - Migrate technique scoring to PE
 - Migrate speed splits to PE
 - Migrate phase analysis to PE
 - Deprecate legacy recommendations
 
 ### Phase 3: FUTURE
+
 - Full PE migration
 - Remove analytics.ts
 - Remove analyticsExtended.ts
 - PE handles everything
 
 **This approach:**
+
 - ✅ Solves immediate problems
 - ✅ Maintains backward compatibility
 - ✅ Provides clear migration path
@@ -396,11 +415,13 @@ This implementation provides a **bridge** not a replacement:
 ## Success Criteria
 
 ✅ **All Three Issues Resolved:**
+
 1. ✅ Performance Engine integrated with legacy systems
-2. ✅ Formulas documented centrally and comprehensively  
+2. ✅ Formulas documented centrally and comprehensively
 3. ✅ Structured, prioritized, actionable recommendations
 
 ✅ **Additional Achievements:**
+
 - No breaking changes to existing UI
 - Clear migration path established
 - Formula traceability implemented
@@ -411,17 +432,20 @@ This implementation provides a **bridge** not a replacement:
 ## Next Steps (Future Work)
 
 ### Immediate (Optional)
+
 - [ ] Add unit tests for integration layer
 - [ ] Add help tooltips referencing formula docs
 - [ ] Create admin view showing active formulas
 
 ### Short-Term (Phase 2)
+
 - [ ] Migrate technique scoring to PE
 - [ ] Migrate speed splits to PE
 - [ ] Migrate phase analysis to PE
 - [ ] Unify jerk analysis
 
 ### Long-Term (Phase 3)
+
 - [ ] Full PE migration
 - [ ] Deprecate legacy systems
 - [ ] Enhanced chart integration
@@ -438,6 +462,7 @@ Successfully resolved all three issues from SESSION_PAGE_ANALYSIS.md section 1.2
 3. **Recommendations:** Users receive structured, prioritized, actionable guidance instead of raw scores
 
 **The system is now:**
+
 - More unified (single source of recommendations)
 - More transparent (formula documentation)
 - More actionable (structured guidance)
@@ -445,8 +470,9 @@ Successfully resolved all three issues from SESSION_PAGE_ANALYSIS.md section 1.2
 - Better prepared for future migration
 
 **Impact:**
+
 - Users get better insights
-- Developers have better documentation  
+- Developers have better documentation
 - System has clearer architecture
 - Migration path is defined
 

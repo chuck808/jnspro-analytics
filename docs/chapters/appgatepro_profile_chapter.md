@@ -138,4 +138,4 @@ When you export session data to CSV, the export includes your name and weight (u
 
 ---
 
-*For help with specific profile fields, use the Help section on the profile page.*
+_For help with specific profile fields, use the Help section on the profile page._

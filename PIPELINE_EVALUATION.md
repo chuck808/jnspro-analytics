@@ -47,6 +47,7 @@ This document traces the complete data flow from user uploading a session JSON f
 **Location:** Firmware writes to `/session_[timestamp].json` on SD card root
 
 **Critical Data Fields:**
+
 ```json
 {
   "schemaVersion": 2,
@@ -101,8 +102,9 @@ This document traces the complete data flow from user uploading a session JSON f
 ### Key Observations
 
 ✅ **No conversions applied in SD card file** - This is the canonical raw archive
+
 - chartData stays as int16 × 100
-- Angles stay in radians  
+- Angles stay in radians
 - Times stay as raw milliseconds
 - Speeds stay in m/s
 - reactionTime is in SECONDS (firmware convention)
@@ -118,6 +120,7 @@ This document traces the complete data flow from user uploading a session JSON f
 **File:** `src/routes/api/upload/+server.ts`
 
 **Process:**
+
 1. Authenticates user via Supabase claims
 2. Parses JSON body from request
 3. Validates using `validateSDFile()`
@@ -130,7 +133,7 @@ This document traces the complete data flow from user uploading a session JSON f
 // Key flow
 const validation = validateSDFile(rawData);
 if (!validation.valid) {
-    return json({ success: false, errors: validation.errors }, { status: 422 });
+	return json({ success: false, errors: validation.errors }, { status: 422 });
 }
 
 const sdFile = rawData as SDCardFile;
@@ -142,14 +145,16 @@ const ingestData = transformSDFile(sdFile);
 **File:** `src/lib/services/ingest.ts`
 
 **Schema Version Check:**
+
 ```typescript
 const version = file.schemaVersion;
 if (version !== undefined && version !== SUPPORTED_SCHEMA_VERSION) {
-    errors.push('Unsupported schema version...');
+	errors.push('Unsupported schema version...');
 }
 ```
 
 **Required Field Validation:**
+
 - `reactionTime` (number)
 - `elapsedMs` (number)
 - `maxG` (number)
@@ -157,6 +162,7 @@ if (version !== undefined && version !== SUPPORTED_SCHEMA_VERSION) {
 - `chartData` (array)
 
 **Sanity Checks:**
+
 - Reaction time: 0-10 seconds
 - Max G: warns if > 4G (exceeds ±2G sensor range)
 - Chart data: warns if empty
@@ -168,20 +174,21 @@ if (version !== undefined && version !== SUPPORTED_SCHEMA_VERSION) {
 **Critical Conversions Applied:**
 
 #### ✅ chartData: int16 × 100 → float G-units
+
 ```typescript
-const chartData = Array.isArray(run.chartData)
-    ? run.chartData.map(v => v / 100)
-    : [];
+const chartData = Array.isArray(run.chartData) ? run.chartData.map((v) => v / 100) : [];
 // [285, 156, -45] → [2.85, 1.56, -0.45]
 ```
 
 #### ✅ reactionTime: seconds → milliseconds
+
 ```typescript
 reaction_time_ms: Math.round((run.reactionTime ?? 0) * 1000),
 // 0.245 → 245
 ```
 
 #### ✅ timeSeries angles: radians → degrees
+
 ```typescript
 const RAD_TO_DEG = 180 / Math.PI;
 
@@ -194,6 +201,7 @@ roll_deg: Array.isArray(ts.rollRad)
 ```
 
 #### ✅ All other fields: pass-through (no conversion)
+
 - `maxG`, `avgG` - already float G-units
 - `elapsedMs` - already milliseconds
 - `distance` - already meters
@@ -207,6 +215,7 @@ roll_deg: Array.isArray(ts.rollRad)
 ### 3.1 Database Schema
 
 **Tables:**
+
 - `sessions` - Session metadata
 - `runs` - Base run data
 - `gate_runs` - Gate-specific analytics (typed run)
@@ -230,6 +239,7 @@ roll_deg: Array.isArray(ts.rollRad)
 ### 3.3 Runs Table Insert
 
 **Stored Values:**
+
 ```typescript
 .from('runs')
 .insert({
@@ -294,6 +304,7 @@ roll_deg: Array.isArray(ts.rollRad)
 **File:** `src/routes/(protected)/sessions/[id]/+page.server.ts`
 
 **Query:**
+
 ```typescript
 .from('runs')
 .select(`
@@ -336,6 +347,7 @@ roll_deg: Array.isArray(ts.rollRad)
 **File:** `src/routes/(protected)/analytics/+page.server.ts`
 
 **Aggregations:**
+
 ```typescript
 // Session-level summaries
 best_reaction_ms:   Math.min(...reactionTimes),
@@ -345,9 +357,10 @@ best_peak_speed_ms: Math.max(...validRuns.map(g => g.peak_speed_ms)),
 ```
 
 **Trend Calculation:**
+
 ```typescript
 // Compare last 5 sessions vs previous 5
-const avgRecent   = recent.reduce((s, sess) => s + sess.avg_reaction_ms, 0) / recent.length;
+const avgRecent = recent.reduce((s, sess) => s + sess.avg_reaction_ms, 0) / recent.length;
 const avgPrevious = previous.reduce((s, sess) => s + sess.avg_reaction_ms, 0) / previous.length;
 trend.reaction = ((avgRecent - avgPrevious) / avgPrevious) * 100;
 ```
@@ -361,22 +374,23 @@ trend.reaction = ((avgRecent - avgPrevious) / avgPrevious) * 100;
 **File:** `src/lib/performance-engine/physics.ts`
 
 **Speed Curve Computation:**
+
 ```typescript
 export function computeSpeedCurve(
-    chartData: number[],   // ← float G-units (already converted)
-    elapsedMs: number,
-    biasCorrectionMs2: number,
-    actualPeakSpeedKmh: number | null
+	chartData: number[], // ← float G-units (already converted)
+	elapsedMs: number,
+	biasCorrectionMs2: number,
+	actualPeakSpeedKmh: number | null
 ): SpeedCurve {
-    const dt = (elapsedMs / 1000) / chartData.length;  // seconds per sample
-    let velocityMs = 0;
-    
-    chartData.forEach((g, i) => {
-        // chartData contains linearAccelG (forward-only, gravity-removed)
-        const accelMs2 = g * GRAVITY_MS2;  // Convert G to m/s²
-        velocityMs += accelMs2 * dt;       // Integrate to get speed
-        // ... store in curve
-    });
+	const dt = elapsedMs / 1000 / chartData.length; // seconds per sample
+	let velocityMs = 0;
+
+	chartData.forEach((g, i) => {
+		// chartData contains linearAccelG (forward-only, gravity-removed)
+		const accelMs2 = g * GRAVITY_MS2; // Convert G to m/s²
+		velocityMs += accelMs2 * dt; // Integrate to get speed
+		// ... store in curve
+	});
 }
 ```
 
@@ -388,22 +402,20 @@ export function computeSpeedCurve(
 
 ```typescript
 export function scoreTechnique(
-    reactionMs: number | null,
-    chartData: number[],        // ← float G-units
-    curve: SpeedCurve,
-    riderLevel: string
+	reactionMs: number | null,
+	chartData: number[], // ← float G-units
+	curve: SpeedCurve,
+	riderLevel: string
 ): TechniqueAnalysis {
-    // Explosiveness - first 30% of run
-    const driveWindow = Math.floor(chartData.length * 0.3);
-    const driveData = chartData.slice(0, driveWindow);
-    const peakG = Math.max(...chartData);
-    const peakInDrive = Math.max(...driveData);
-    
-    // Smoothness - jerk analysis
-    const jerkValues = chartData.slice(1).map((v, i) => 
-        Math.abs(v - chartData[i])
-    );
-    // ... score calculation
+	// Explosiveness - first 30% of run
+	const driveWindow = Math.floor(chartData.length * 0.3);
+	const driveData = chartData.slice(0, driveWindow);
+	const peakG = Math.max(...chartData);
+	const peakInDrive = Math.max(...driveData);
+
+	// Smoothness - jerk analysis
+	const jerkValues = chartData.slice(1).map((v, i) => Math.abs(v - chartData[i]));
+	// ... score calculation
 }
 ```
 
@@ -415,32 +427,33 @@ A critical feature of the speed curve computation is **firmware-anchored integra
 
 ```typescript
 export function computeSpeedCurve(
-    chartData: number[],           // float G-units (already converted)
-    elapsedMs: number,
-    biasMs2 = 0,                   // bias correction from firmware
-    actualPeakSpeedKmh?: number    // ⭐ Ground truth from firmware
+	chartData: number[], // float G-units (already converted)
+	elapsedMs: number,
+	biasMs2 = 0, // bias correction from firmware
+	actualPeakSpeedKmh?: number // ⭐ Ground truth from firmware
 ): SpeedCurve {
-    // Step 1: Integrate acceleration to get predicted speed curve
-    chartData.forEach((g, i) => {
-        const accelMs2 = g * GRAVITY_MS2 - biasMs2;
-        velocityMs += accelMs2 * dt;
-        // ... store curve
-    });
-    
-    // Step 2: Scale curve to match firmware-measured peak speed
-    if (actualPeakSpeedKmh && actualPeakSpeedKmh > 0) {
-        const predictedPeak = Math.max(...speeds);
-        const scaleFactor = actualPeakSpeedKmh / predictedPeak;
-        const scaledSpeeds = speeds.map(s => s * scaleFactor);
-        const scaledDistances = distances.map(d => d * scaleFactor);
-        return { times, speeds: scaledSpeeds, accels, distances: scaledDistances };
-    }
+	// Step 1: Integrate acceleration to get predicted speed curve
+	chartData.forEach((g, i) => {
+		const accelMs2 = g * GRAVITY_MS2 - biasMs2;
+		velocityMs += accelMs2 * dt;
+		// ... store curve
+	});
+
+	// Step 2: Scale curve to match firmware-measured peak speed
+	if (actualPeakSpeedKmh && actualPeakSpeedKmh > 0) {
+		const predictedPeak = Math.max(...speeds);
+		const scaleFactor = actualPeakSpeedKmh / predictedPeak;
+		const scaledSpeeds = speeds.map((s) => s * scaleFactor);
+		const scaledDistances = distances.map((d) => d * scaleFactor);
+		return { times, speeds: scaledSpeeds, accels, distances: scaledDistances };
+	}
 }
 ```
 
 **Why This Matters:**
 
 Integration of IMU data accumulates errors over time due to:
+
 - Sensor bias drift
 - Quantization noise (0.01G resolution)
 - Imperfect gravity removal
@@ -470,11 +483,13 @@ UI: Displays corrected speed curve chart
 **Validation:**
 
 Without anchoring:
+
 ```
 Integrated peak: 41.2 km/h (drift error: -7.2%)
 ```
 
 With anchoring:
+
 ```
 Scaled peak: 44.4 km/h (matches firmware: ✅)
 Curve shape: preserved (temporal dynamics intact)
@@ -488,19 +503,19 @@ This hybrid approach combines **IMU's high temporal resolution** with **firmware
 
 ```typescript
 export function estimatePower(
-    chartData: number[],
-    curve: SpeedCurve,
-    totalMassKg: number | null
+	chartData: number[],
+	curve: SpeedCurve,
+	totalMassKg: number | null
 ): PowerEstimate | null {
-    if (!totalMassKg || !curve.speeds.length) return null;
-    
-    const peakPowerW = curve.speeds.reduce((maxP, speed, i) => {
-        const accelMs2 = curve.accels[i];
-        const forceN = totalMassKg * accelMs2;
-        const powerW = forceN * speed;
-        return Math.max(maxP, powerW);
-    }, 0);
-    // ...
+	if (!totalMassKg || !curve.speeds.length) return null;
+
+	const peakPowerW = curve.speeds.reduce((maxP, speed, i) => {
+		const accelMs2 = curve.accels[i];
+		const forceN = totalMassKg * accelMs2;
+		const powerW = forceN * speed;
+		return Math.max(maxP, powerW);
+	}, 0);
+	// ...
 }
 ```
 
@@ -513,33 +528,34 @@ export function estimatePower(
 **File:** `src/routes/(protected)/sessions/[id]/+page.svelte`
 
 **G-Force Chart:**
+
 ```typescript
 // chartData is array of floats in G-units
-const gData = Array.isArray(selectedRun?.chart_data) 
-    ? selectedRun.chart_data 
-    : [];
+const gData = Array.isArray(selectedRun?.chart_data) ? selectedRun.chart_data : [];
 
 new Chart(gChartEl, {
-    type: 'line',
-    data: {
-        datasets: [{
-            data: gData,     // ← float[] [0.00, 2.85, 1.56, ...]
-            borderColor: 'rgb(245, 166, 35)',
-            tension: 0.3
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                title: { text: 'G-Force' },
-                min: 0,
-                max: 4,
-                ticks: {
-                    callback: (value) => value.toFixed(1) + 'G'
-                }
-            }
-        }
-    }
+	type: 'line',
+	data: {
+		datasets: [
+			{
+				data: gData, // ← float[] [0.00, 2.85, 1.56, ...]
+				borderColor: 'rgb(245, 166, 35)',
+				tension: 0.3
+			}
+		]
+	},
+	options: {
+		scales: {
+			y: {
+				title: { text: 'G-Force' },
+				min: 0,
+				max: 4,
+				ticks: {
+					callback: (value) => value.toFixed(1) + 'G'
+				}
+			}
+		}
+	}
 });
 ```
 
@@ -550,30 +566,32 @@ new Chart(gChartEl, {
 ```typescript
 // Speed curve computed from chartData by performance engine
 const curve = computeSpeedCurve(
-    chartData,              // float[] G-units
-    elapsedMs,
-    bias_correction_ms2,
-    actualPeakSpeedKmh
+	chartData, // float[] G-units
+	elapsedMs,
+	bias_correction_ms2,
+	actualPeakSpeedKmh
 );
 
 new Chart(sChartEl, {
-    data: {
-        datasets: [{
-            data: curve.speeds,  // ← m/s values
-            // Display layer converts m/s → km/h
-            yAxisID: 'y',
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                title: { text: 'Speed (km/h)' },
-                ticks: {
-                    callback: (value) => (value * 3.6).toFixed(1)  // m/s → km/h
-                }
-            }
-        }
-    }
+	data: {
+		datasets: [
+			{
+				data: curve.speeds, // ← m/s values
+				// Display layer converts m/s → km/h
+				yAxisID: 'y'
+			}
+		]
+	},
+	options: {
+		scales: {
+			y: {
+				title: { text: 'Speed (km/h)' },
+				ticks: {
+					callback: (value) => (value * 3.6).toFixed(1) // m/s → km/h
+				}
+			}
+		}
+	}
 });
 ```
 
@@ -582,26 +600,34 @@ new Chart(sChartEl, {
 ### 6.3 Metrics Display
 
 **Reaction Time:**
+
 ```typescript
 // Stored as integer ms, display as seconds
-{(run.gate_runs?.reaction_time_ms / 1000)?.toFixed(3)}s
+{
+	(run.gate_runs?.reaction_time_ms / 1000)?.toFixed(3);
+}
+s;
 // 245 → 0.245s
 ```
 
 **Speed:**
+
 ```typescript
 // Stored as float m/s, display as km/h
 function fmtSpeed(ms: number | null | undefined): string {
-    if (!ms) return '—';
-    return `${(ms * 3.6).toFixed(1)} km/h`;
+	if (!ms) return '—';
+	return `${(ms * 3.6).toFixed(1)} km/h`;
 }
 // 12.34 → 44.4 km/h
 ```
 
 **G-Force:**
+
 ```typescript
 // Stored as float G, display as-is
-{fmt(selectedGate.max_g, 2, 'G')}
+{
+	fmt(selectedGate.max_g, 2, 'G');
+}
 // 2.85 → 2.85G
 ```
 
@@ -610,22 +636,24 @@ function fmtSpeed(ms: number | null | undefined): string {
 ## Validation Test Case
 
 ### Input (SD Card)
+
 ```json
 {
-  "chartData": [0, 12, 285, 156, 123],
-  "reactionTime": 0.245,
-  "maxG": 2.85,
-  "firmwareAnalytics": {
-    "peakSpeedMs": 12.34,
-    "maxPitchDeg": 18.5
-  },
-  "timeSeries": {
-    "pitchRad": [0.0, 0.2094, 0.3229]
-  }
+	"chartData": [0, 12, 285, 156, 123],
+	"reactionTime": 0.245,
+	"maxG": 2.85,
+	"firmwareAnalytics": {
+		"peakSpeedMs": 12.34,
+		"maxPitchDeg": 18.5
+	},
+	"timeSeries": {
+		"pitchRad": [0.0, 0.2094, 0.3229]
+	}
 }
 ```
 
 ### After Ingestion
+
 ```typescript
 {
   chart_data: [0.00, 0.12, 2.85, 1.56, 1.23],  // ✅ ÷100
@@ -640,6 +668,7 @@ function fmtSpeed(ms: number | null | undefined): string {
 ```
 
 ### In Database
+
 ```sql
 chart_data:        [0.00, 0.12, 2.85, 1.56, 1.23]  -- float[]
 reaction_time_ms:  245                             -- integer
@@ -650,13 +679,15 @@ pitch_deg:         [0.0, 12.0, 18.5]              -- float[]
 ```
 
 ### Performance Engine Receives
+
 ```typescript
-const chartData = [0.00, 0.12, 2.85, 1.56, 1.23];  // ✅ Correct
-const reactionMs = 245;                             // ✅ Correct
-const maxG = 2.85;                                  // ✅ Correct
+const chartData = [0.0, 0.12, 2.85, 1.56, 1.23]; // ✅ Correct
+const reactionMs = 245; // ✅ Correct
+const maxG = 2.85; // ✅ Correct
 ```
 
 ### UI Displays
+
 ```
 Reaction Time:  0.245s
 Max G-Force:    2.85G
@@ -679,14 +710,14 @@ Max Pitch:      18.5°
 
 ### ✅ Data Accuracy Verification
 
-| Metric | SD Format | DB Format | Display Format | Status |
-|--------|-----------|-----------|----------------|--------|
-| chartData | int16 ×100 | float G | float G | ✅ Correct |
-| reactionTime | seconds | ms (int) | seconds | ✅ Correct |
-| maxG | float G | float G | float G | ✅ Correct |
-| peakSpeed | m/s | m/s | km/h | ✅ Correct |
-| pitch | radians | degrees | degrees | ✅ Correct |
-| elapsedTime | ms | ms | seconds | ✅ Correct |
+| Metric       | SD Format  | DB Format | Display Format | Status     |
+| ------------ | ---------- | --------- | -------------- | ---------- |
+| chartData    | int16 ×100 | float G   | float G        | ✅ Correct |
+| reactionTime | seconds    | ms (int)  | seconds        | ✅ Correct |
+| maxG         | float G    | float G   | float G        | ✅ Correct |
+| peakSpeed    | m/s        | m/s       | km/h           | ✅ Correct |
+| pitch        | radians    | degrees   | degrees        | ✅ Correct |
+| elapsedTime  | ms         | ms        | seconds        | ✅ Correct |
 
 ### 📊 Performance
 
@@ -739,11 +770,12 @@ The data pipeline from SD card upload to presentation is **correctly implemented
 ✅ Physically accurate values throughout  
 ✅ Type-safe data flow  
 ✅ Defensive error handling  
-✅ Separation of storage and display concerns  
+✅ Separation of storage and display concerns
 
 ### Data Integrity: ✅ **VERIFIED**
 
 All test cases confirm:
+
 - chartData correctly converted from int16 ×100 to float G-units
 - Angles correctly converted from radians to degrees
 - Reaction time correctly converted from seconds to milliseconds
@@ -760,5 +792,3 @@ Before adding new features:
 4. 📊 **Monitor data quality** - Track bias correction trends
 
 **The pipeline is ready for production use and can safely support new feature development.**
-
-

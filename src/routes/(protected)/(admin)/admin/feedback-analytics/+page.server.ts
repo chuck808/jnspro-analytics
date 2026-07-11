@@ -37,7 +37,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	}));
 
 	// Get user info for records with rider_id
-	const riderIds = [...new Set(insights.map(i => i.riderId).filter(Boolean))];
+	const riderIds = [...new Set(insights.map((i) => i.riderId).filter(Boolean))];
 	let userMap: Record<string, { email: string; name: string | null }> = {};
 
 	if (riderIds.length > 0) {
@@ -46,18 +46,21 @@ export const load: PageServerLoad = async ({ url }) => {
 			.select('id, email, full_name')
 			.in('id', riderIds);
 
-		userMap = (profiles || []).reduce((acc, p: any) => {
-			acc[p.id] = { email: p.email, name: p.full_name };
-			return acc;
-		}, {} as Record<string, { email: string; name: string | null }>);
+		userMap = (profiles || []).reduce(
+			(acc, p: any) => {
+				acc[p.id] = { email: p.email, name: p.full_name };
+				return acc;
+			},
+			{} as Record<string, { email: string; name: string | null }>
+		);
 	}
 
 	// Calculate time-based metrics
 	const last7Days = new Date();
 	last7Days.setDate(last7Days.getDate() - 7);
-	
-	const recentFeedback = insights.filter(i => new Date(i.timestamp) >= last7Days);
-	const olderFeedback = insights.filter(i => new Date(i.timestamp) < last7Days);
+
+	const recentFeedback = insights.filter((i) => new Date(i.timestamp) >= last7Days);
+	const olderFeedback = insights.filter((i) => new Date(i.timestamp) < last7Days);
 
 	return {
 		insights,

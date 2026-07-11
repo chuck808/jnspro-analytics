@@ -1,6 +1,6 @@
 /**
  * Goals UI Components
- * 
+ *
  * Svelte components for displaying advanced goals features including:
  * - Progress tracking with confidence intervals
  * - Health monitoring

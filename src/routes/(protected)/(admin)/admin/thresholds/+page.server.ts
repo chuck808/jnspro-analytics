@@ -7,10 +7,7 @@ export const load: PageServerLoad = async () => {
 
 	const [thresholdsResult, aggregatesResult, populationResult] = await Promise.all([
 		// Current threshold profiles
-		admin
-			.from('threshold_profiles')
-			.select('*')
-			.order('profile_level'),
+		admin.from('threshold_profiles').select('*').order('profile_level'),
 
 		// Current aggregate distributions (for context panel)
 		admin
@@ -23,7 +20,7 @@ export const load: PageServerLoad = async () => {
 		admin
 			.from('rider_performance_snapshots')
 			.select('experience_level, participation_type')
-			.not('experience_level', 'is', null),
+			.not('experience_level', 'is', null)
 	]);
 
 	const thresholds = thresholdsResult.data ?? [];
@@ -47,33 +44,32 @@ export const load: PageServerLoad = async () => {
 		thresholds,
 		aggregatesByMetric,
 		populationSummary,
-		totalRiders: population.length,
+		totalRiders: population.length
 	};
 };
 
 export const actions: Actions = {
-
 	// Manual override of a specific profile level
 	updateThreshold: async ({ request }) => {
 		const admin = createSupabaseAdminClient();
-		const form  = await request.formData();
+		const form = await request.formData();
 
 		const profileLevel = form.get('profile_level') as string;
-		const notes        = (form.get('notes') as string) || null;
+		const notes = (form.get('notes') as string) || null;
 
 		const fields = {
-			reaction_ms_excellent:  parseFloat(form.get('reaction_ms_excellent')  as string),
-			reaction_ms_good:       parseFloat(form.get('reaction_ms_good')        as string),
+			reaction_ms_excellent: parseFloat(form.get('reaction_ms_excellent') as string),
+			reaction_ms_good: parseFloat(form.get('reaction_ms_good') as string),
 			reaction_ms_needs_work: parseFloat(form.get('reaction_ms_needs_work') as string),
-			peak_g_good:            parseFloat(form.get('peak_g_good')             as string),
-			peak_g_excellent:       parseFloat(form.get('peak_g_excellent')        as string),
-			impulse_90_excellent:   parseFloat(form.get('impulse_90_excellent')    as string),
-			impulse_90_good:        parseFloat(form.get('impulse_90_good')         as string),
-			impulse_90_needs_work:  parseFloat(form.get('impulse_90_needs_work')   as string),
-			smoothness_good:        parseFloat(form.get('smoothness_good')         as string),
-			smoothness_excellent:   parseFloat(form.get('smoothness_excellent')    as string),
-			speed_carry_good:       parseFloat(form.get('speed_carry_good')        as string),
-			speed_carry_excellent:  parseFloat(form.get('speed_carry_excellent')   as string),
+			peak_g_good: parseFloat(form.get('peak_g_good') as string),
+			peak_g_excellent: parseFloat(form.get('peak_g_excellent') as string),
+			impulse_90_excellent: parseFloat(form.get('impulse_90_excellent') as string),
+			impulse_90_good: parseFloat(form.get('impulse_90_good') as string),
+			impulse_90_needs_work: parseFloat(form.get('impulse_90_needs_work') as string),
+			smoothness_good: parseFloat(form.get('smoothness_good') as string),
+			smoothness_excellent: parseFloat(form.get('smoothness_excellent') as string),
+			speed_carry_good: parseFloat(form.get('speed_carry_good') as string),
+			speed_carry_excellent: parseFloat(form.get('speed_carry_excellent') as string)
 		};
 
 		// Validate — no NaN values
@@ -104,7 +100,7 @@ export const actions: Actions = {
 	// Reset a profile level back to auto-derivation
 	resetToAuto: async ({ request }) => {
 		const admin = createSupabaseAdminClient();
-		const form  = await request.formData();
+		const form = await request.formData();
 		const profileLevel = form.get('profile_level') as string;
 
 		// Mark as hardcoded — next refresh_performance_aggregates() call will
@@ -112,9 +108,9 @@ export const actions: Actions = {
 		const { error } = await admin
 			.from('threshold_profiles')
 			.update({
-				source:      'hardcoded',
-				notes:       'Reset to auto by admin — will update on next aggregate refresh',
-				computed_at: new Date().toISOString(),
+				source: 'hardcoded',
+				notes: 'Reset to auto by admin — will update on next aggregate refresh',
+				computed_at: new Date().toISOString()
 			})
 			.eq('profile_level', profileLevel);
 
@@ -128,5 +124,5 @@ export const actions: Actions = {
 		const { error } = await admin.rpc('refresh_performance_aggregates');
 		if (error) return fail(500, { error: error.message });
 		return { refreshSuccess: true };
-	},
+	}
 };

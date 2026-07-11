@@ -1,14 +1,17 @@
 <script lang="ts">
-    type TemplateKey = 'welcome' | 'verification' | 'passwordReset' | 'sessionSummary';
-    
-    let selectedTemplate = $state<TemplateKey>('welcome');
-    
-    const templates: Record<TemplateKey, { name: string; subject: string; description: string; html: string }> = {
-        welcome: {
-            name: 'Welcome Email',
-            subject: 'Welcome to AppGatePro Analytics',
-            description: 'Sent when a new user signs up',
-            html: `<!DOCTYPE html>
+	type TemplateKey = 'welcome' | 'verification' | 'passwordReset' | 'sessionSummary';
+
+	let selectedTemplate = $state<TemplateKey>('welcome');
+
+	const templates: Record<
+		TemplateKey,
+		{ name: string; subject: string; description: string; html: string }
+	> = {
+		welcome: {
+			name: 'Welcome Email',
+			subject: 'Welcome to AppGatePro Analytics',
+			description: 'Sent when a new user signs up',
+			html: `<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -42,12 +45,12 @@
     </div>
 </body>
 </html>`
-        },
-        verification: {
-            name: 'Email Verification',
-            subject: 'Verify your email address',
-            description: 'Sent to verify user email addresses',
-            html: `<!DOCTYPE html>
+		},
+		verification: {
+			name: 'Email Verification',
+			subject: 'Verify your email address',
+			description: 'Sent to verify user email addresses',
+			html: `<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -81,12 +84,12 @@
     </div>
 </body>
 </html>`
-        },
-        passwordReset: {
-            name: 'Password Reset',
-            subject: 'Reset your password',
-            description: 'Sent when user requests password reset',
-            html: `<!DOCTYPE html>
+		},
+		passwordReset: {
+			name: 'Password Reset',
+			subject: 'Reset your password',
+			description: 'Sent when user requests password reset',
+			html: `<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -122,12 +125,12 @@
     </div>
 </body>
 </html>`
-        },
-        sessionSummary: {
-            name: 'Weekly Session Summary',
-            subject: 'Your weekly training summary',
-            description: 'Weekly digest of user activity (future feature)',
-            html: `<!DOCTYPE html>
+		},
+		sessionSummary: {
+			name: 'Weekly Session Summary',
+			subject: 'Your weekly training summary',
+			description: 'Weekly digest of user activity (future feature)',
+			html: `<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -181,145 +184,170 @@
     </div>
 </body>
 </html>`
-        }
-    };
+		}
+	};
 
-    function copyToClipboard(text: string) {
-        navigator.clipboard.writeText(text);
-        alert('Template HTML copied to clipboard!');
-    }
+	function copyToClipboard(text: string) {
+		navigator.clipboard.writeText(text);
+		alert('Template HTML copied to clipboard!');
+	}
 </script>
 
 <svelte:head>
-    <title>Email Templates — AppGatePro Admin</title>
+	<title>Email Templates — AppGatePro Admin</title>
 </svelte:head>
 
 <div class="space-y-6">
-    <!-- Header -->
-    <div>
-        <h2 class="text-lg font-bold text-[#f0ece4]">Email Templates</h2>
-        <p class="text-sm text-[#9a8f7a] mt-0.5">Manage transactional email templates</p>
-    </div>
+	<!-- Header -->
+	<div>
+		<h2 class="text-lg font-bold text-[#f0ece4]">Email Templates</h2>
+		<p class="mt-0.5 text-sm text-[#9a8f7a]">Manage transactional email templates</p>
+	</div>
 
-    <!-- Info Banner -->
-    <div class="bg-[#131010] border border-[#f5a623]/20 rounded-xl p-5">
-        <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-[#f5a623] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div class="flex-1">
-                <p class="text-sm text-[#f0ece4] font-medium mb-1">Template Integration Required</p>
-                <p class="text-xs text-[#9a8f7a]">
-                    These templates are examples. To use them in production, you'll need to integrate with Supabase Email Templates or a service like SendGrid, Postmark, or Resend.
-                </p>
-            </div>
-        </div>
-    </div>
+	<!-- Info Banner -->
+	<div class="rounded-xl border border-[#f5a623]/20 bg-[#131010] p-5">
+		<div class="flex items-start gap-3">
+			<svg
+				class="mt-0.5 h-5 w-5 flex-shrink-0 text-[#f5a623]"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+				/>
+			</svg>
+			<div class="flex-1">
+				<p class="mb-1 text-sm font-medium text-[#f0ece4]">Template Integration Required</p>
+				<p class="text-xs text-[#9a8f7a]">
+					These templates are examples. To use them in production, you'll need to integrate with
+					Supabase Email Templates or a service like SendGrid, Postmark, or Resend.
+				</p>
+			</div>
+		</div>
+	</div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Template List -->
-        <div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-            <h3 class="text-sm font-semibold text-[#f0ece4] mb-4">Templates</h3>
-            <div class="space-y-2">
-                {#each Object.entries(templates) as [key, template]}
-                    <button
-                        onclick={() => selectedTemplate = key as TemplateKey}
-                        class="w-full text-left p-3 rounded-lg transition-all
-                               {selectedTemplate === key 
-                                   ? 'bg-[#f5a623]/10 border border-[#f5a623]/20' 
-                                   : 'bg-[#0a0809] border border-transparent hover:border-[#221c18]'}">
-                        <p class="text-sm font-medium {selectedTemplate === key ? 'text-[#f5a623]' : 'text-[#f0ece4]'}">
-                            {template.name}
-                        </p>
-                        <p class="text-xs text-[#4a4038] mt-0.5">{template.description}</p>
-                    </button>
-                {/each}
-            </div>
-        </div>
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+		<!-- Template List -->
+		<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+			<h3 class="mb-4 text-sm font-semibold text-[#f0ece4]">Templates</h3>
+			<div class="space-y-2">
+				{#each Object.entries(templates) as [key, template]}
+					<button
+						onclick={() => (selectedTemplate = key as TemplateKey)}
+						class="w-full rounded-lg p-3 text-left transition-all
+                               {selectedTemplate === key
+							? 'border border-[#f5a623]/20 bg-[#f5a623]/10'
+							: 'border border-transparent bg-[#0a0809] hover:border-[#221c18]'}"
+					>
+						<p
+							class="text-sm font-medium {selectedTemplate === key
+								? 'text-[#f5a623]'
+								: 'text-[#f0ece4]'}"
+						>
+							{template.name}
+						</p>
+						<p class="mt-0.5 text-xs text-[#4a4038]">{template.description}</p>
+					</button>
+				{/each}
+			</div>
+		</div>
 
-        <!-- Template Preview -->
-        <div class="lg:col-span-2 bg-[#131010] border border-[#221c18] rounded-xl p-5">
-            {#if selectedTemplate}
-                {@const template = templates[selectedTemplate]}
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <h3 class="text-sm font-semibold text-[#f0ece4]">{template.name}</h3>
-                        <p class="text-xs text-[#9a8f7a] mt-0.5">Subject: {template.subject}</p>
-                    </div>
-                    <button
-                        onclick={() => copyToClipboard(template.html)}
-                        class="px-3 py-1.5 text-xs bg-[#f5a623] text-[#0a0809] rounded-lg hover:bg-[#c97e0a] transition-colors font-medium">
-                        Copy HTML
-                    </button>
-                </div>
+		<!-- Template Preview -->
+		<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5 lg:col-span-2">
+			{#if selectedTemplate}
+				{@const template = templates[selectedTemplate]}
+				<div class="mb-4 flex items-start justify-between">
+					<div>
+						<h3 class="text-sm font-semibold text-[#f0ece4]">{template.name}</h3>
+						<p class="mt-0.5 text-xs text-[#9a8f7a]">Subject: {template.subject}</p>
+					</div>
+					<button
+						onclick={() => copyToClipboard(template.html)}
+						class="rounded-lg bg-[#f5a623] px-3 py-1.5 text-xs font-medium text-[#0a0809] transition-colors hover:bg-[#c97e0a]"
+					>
+						Copy HTML
+					</button>
+				</div>
 
-                <!-- HTML Preview -->
-                <div class="mb-4">
-                    <div class="text-xs font-medium text-[#9a8f7a] block mb-2">HTML Code</div>
-                    <div class="bg-[#0a0809] border border-[#221c18] rounded-lg p-4 max-h-96 overflow-auto">
-                        <pre class="text-xs text-[#9a8f7a] font-mono">{template.html}</pre>
-                    </div>
-                </div>
+				<!-- HTML Preview -->
+				<div class="mb-4">
+					<div class="mb-2 block text-xs font-medium text-[#9a8f7a]">HTML Code</div>
+					<div class="max-h-96 overflow-auto rounded-lg border border-[#221c18] bg-[#0a0809] p-4">
+						<pre class="font-mono text-xs text-[#9a8f7a]">{template.html}</pre>
+					</div>
+				</div>
 
-                <!-- Visual Preview -->
-                <div>
-                    <div class="text-xs font-medium text-[#9a8f7a] block mb-2">Visual Preview</div>
-                    <div class="bg-white border border-[#221c18] rounded-lg overflow-hidden">
-                        <iframe
-                            title="Email Preview"
-                            srcdoc={template.html}
-                            class="w-full h-[500px] border-0"
-                            sandbox="allow-same-origin"
-                        ></iframe>
-                    </div>
-                </div>
+				<!-- Visual Preview -->
+				<div>
+					<div class="mb-2 block text-xs font-medium text-[#9a8f7a]">Visual Preview</div>
+					<div class="overflow-hidden rounded-lg border border-[#221c18] bg-white">
+						<iframe
+							title="Email Preview"
+							srcdoc={template.html}
+							class="h-[500px] w-full border-0"
+							sandbox="allow-same-origin"
+						></iframe>
+					</div>
+				</div>
 
-                <!-- Template Variables -->
-                <div class="mt-4 p-4 bg-[#0a0809] rounded-lg">
-                    <p class="text-xs font-medium text-[#f0ece4] mb-2">Available Variables:</p>
-                    <div class="flex flex-wrap gap-2">
-                        {#each template.html.match(/\{\{[A-Z_]+\}\}/g) || [] as variable}
-                            <code class="px-2 py-1 bg-[#131010] border border-[#221c18] rounded text-xs text-[#f5a623]">
-                                {variable}
-                            </code>
-                        {/each}
-                    </div>
-                </div>
-            {/if}
-        </div>
-    </div>
+				<!-- Template Variables -->
+				<div class="mt-4 rounded-lg bg-[#0a0809] p-4">
+					<p class="mb-2 text-xs font-medium text-[#f0ece4]">Available Variables:</p>
+					<div class="flex flex-wrap gap-2">
+						{#each template.html.match(/\{\{[A-Z_]+\}\}/g) || [] as variable}
+							<code
+								class="rounded border border-[#221c18] bg-[#131010] px-2 py-1 text-xs text-[#f5a623]"
+							>
+								{variable}
+							</code>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	</div>
 
-    <!-- Integration Guide -->
-    <div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-[#f0ece4] mb-4">Integration Guide</h3>
-        <div class="space-y-4">
-            <div>
-                <p class="text-sm font-medium text-[#f0ece4] mb-2">1. Using Supabase Email Templates</p>
-                <p class="text-xs text-[#9a8f7a] mb-2">
-                    Configure in your Supabase project dashboard under Authentication → Email Templates
-                </p>
-                <pre class="bg-[#0a0809] border border-[#221c18] rounded-lg p-3 text-xs text-[#9a8f7a] overflow-x-auto">Dashboard → Authentication → Email Templates → Customize HTML</pre>
-            </div>
+	<!-- Integration Guide -->
+	<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+		<h3 class="mb-4 text-sm font-semibold text-[#f0ece4]">Integration Guide</h3>
+		<div class="space-y-4">
+			<div>
+				<p class="mb-2 text-sm font-medium text-[#f0ece4]">1. Using Supabase Email Templates</p>
+				<p class="mb-2 text-xs text-[#9a8f7a]">
+					Configure in your Supabase project dashboard under Authentication → Email Templates
+				</p>
+				<pre
+					class="overflow-x-auto rounded-lg border border-[#221c18] bg-[#0a0809] p-3 text-xs text-[#9a8f7a]">Dashboard → Authentication → Email Templates → Customize HTML</pre>
+			</div>
 
-            <div>
-                <p class="text-sm font-medium text-[#f0ece4] mb-2">2. Using a Third-Party Service</p>
-                <p class="text-xs text-[#9a8f7a] mb-2">
-                    For transactional emails (welcome, summaries), integrate Resend, SendGrid, or Postmark
-                </p>
-                <pre class="bg-[#0a0809] border border-[#221c18] rounded-lg p-3 text-xs text-[#9a8f7a] overflow-x-auto">npm install resend
+			<div>
+				<p class="mb-2 text-sm font-medium text-[#f0ece4]">2. Using a Third-Party Service</p>
+				<p class="mb-2 text-xs text-[#9a8f7a]">
+					For transactional emails (welcome, summaries), integrate Resend, SendGrid, or Postmark
+				</p>
+				<pre
+					class="overflow-x-auto rounded-lg border border-[#221c18] bg-[#0a0809] p-3 text-xs text-[#9a8f7a]">npm install resend
 // src/lib/server/email.ts
 import {'{ Resend }'} from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);</pre>
-            </div>
+			</div>
 
-            <div>
-                <p class="text-sm font-medium text-[#f0ece4] mb-2">3. Testing Templates</p>
-                <p class="text-xs text-[#9a8f7a]">
-                    Use <a href="https://mailtrap.io" target="_blank" class="text-[#f5a623] hover:underline">Mailtrap</a> or 
-                    <a href="https://ethereal.email" target="_blank" class="text-[#f5a623] hover:underline">Ethereal</a> for testing emails in development
-                </p>
-            </div>
-        </div>
-    </div>
+			<div>
+				<p class="mb-2 text-sm font-medium text-[#f0ece4]">3. Testing Templates</p>
+				<p class="text-xs text-[#9a8f7a]">
+					Use <a href="https://mailtrap.io" target="_blank" class="text-[#f5a623] hover:underline"
+						>Mailtrap</a
+					>
+					or
+					<a href="https://ethereal.email" target="_blank" class="text-[#f5a623] hover:underline"
+						>Ethereal</a
+					> for testing emails in development
+				</p>
+			</div>
+		</div>
+	</div>
 </div>

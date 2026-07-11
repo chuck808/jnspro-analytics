@@ -15,9 +15,11 @@ Successfully transformed the analytics page from a 704-line monolithic component
 ## ✅ What Was Built
 
 ### 1. **PerformanceOverview.svelte** (178 lines)
+
 **Purpose:** Decision layer — "What's happening?"
 
 **Features:**
+
 - ✅ Dynamic headline generation based on cross-session intelligence
 - ✅ Confidence level indicator (high/medium/low)
 - ✅ Top 3 recommendations display
@@ -25,6 +27,7 @@ Successfully transformed the analytics page from a 704-line monolithic component
 - ✅ Personal bests with BMX threshold ratings
 
 **Props:**
+
 ```typescript
 {
   sessionCount: number;
@@ -38,11 +41,13 @@ Successfully transformed the analytics page from a 704-line monolithic component
 ---
 
 ### 2. **PerformancePatternsSection.svelte** (339 lines) ⭐ NEW
+
 **Purpose:** Core coaching insights — "What patterns explain this?"
 
 **4 New Charts Built:**
 
 #### Chart 1: Best vs Average Gap Trend
+
 - **Type:** Line chart with color-coded points
 - **Data:** `bestVsAvgGapPercent` from v7.2 intelligence
 - **Y-axis:** Reversed (lower = better)
@@ -50,22 +55,26 @@ Successfully transformed the analytics page from a 704-line monolithic component
 - **Purpose:** Shows consistency evolution
 
 #### Chart 2: Optimal Set Length Trend
+
 - **Type:** Bar chart
 - **Data:** `optimalSetLength` from v7.2 intelligence
 - **Colors:** Green (8+ runs), Amber (5-7), Red (<5)
 - **Purpose:** Training volume prescription
 
 #### Chart 3: Drop-Off Position Trend
+
 - **Type:** Line chart with color-coded points
 - **Data:** `dropOffRun` from v7.2 intelligence
 - **Purpose:** Identifies where fatigue hits
 
 #### Chart 4: Speed vs Consistency Overlay
+
 - **Type:** Dual-axis line chart
 - **Data:** Peak speed (left axis) + Consistency CV (right axis, reversed)
 - **Purpose:** Shows trade-offs between speed and consistency
 
 **All charts:**
+
 - Mobile responsive (smaller on mobile)
 - Color-coded by performance thresholds
 - Explanatory text below each chart
@@ -74,9 +83,11 @@ Successfully transformed the analytics page from a 704-line monolithic component
 ---
 
 ### 3. **RawPerformanceTrendsSection.svelte** (246 lines)
+
 **Purpose:** Data view — "Show me the raw numbers"
 
 **Features:**
+
 - ✅ Reaction time trend (dual line: best + avg)
 - ✅ Peak speed trend
 - ✅ Consistency CV bar chart
@@ -85,9 +96,11 @@ Successfully transformed the analytics page from a 704-line monolithic component
 ---
 
 ### 4. **AdvancedAnalyticsSection.svelte** (362 lines) ⭐ COLLAPSIBLE
+
 **Purpose:** Deep-dive tools — "Advanced analysis"
 
 **Features:**
+
 - ✅ Collapsible header with expand/collapse button
 - ✅ Speed distribution heatmap
 - ✅ Quickness correlation analysis
@@ -100,9 +113,11 @@ Successfully transformed the analytics page from a 704-line monolithic component
 ---
 
 ### 5. **SessionHistoryPanel.svelte** (57 lines)
+
 **Purpose:** Reference log — "Session list"
 
 **Features:**
+
 - ✅ Chronological session list (reversed, newest first)
 - ✅ Links to individual session pages
 - ✅ Moved to bottom of page (where it belongs!)
@@ -110,37 +125,33 @@ Successfully transformed the analytics page from a 704-line monolithic component
 ---
 
 ### 6. **Updated +page.svelte** (302 lines)
+
 **Purpose:** Orchestration — Clean, readable structure
 
 **Reduced from 704 lines to 302 lines** (-57% code!)
 
 **New Structure:**
-```svelte
-[HEADER]
-[UNLOCK PROGRESS]
 
-[1. PERFORMANCE OVERVIEW] ← Decision layer
-[2. SESSION NARRATIVE] ← v8.3
-[3. TRAINING INSIGHTS PANEL] ← v7.2 + v8.1 (unchanged, perfect)
-[4. PERFORMANCE PATTERNS] ⭐ NEW — Core coaching charts
-[5. RAW PERFORMANCE TRENDS] ← Labeled data view
-[6. ADVANCED ANALYTICS] ← Collapsible
-[7. SESSION HISTORY] ← Bottom
+```svelte
+[HEADER] [UNLOCK PROGRESS] [1. PERFORMANCE OVERVIEW] ← Decision layer [2. SESSION NARRATIVE] ← v8.3
+[3. TRAINING INSIGHTS PANEL] ← v7.2 + v8.1 (unchanged, perfect) [4. PERFORMANCE PATTERNS] ⭐ NEW —
+Core coaching charts [5. RAW PERFORMANCE TRENDS] ← Labeled data view [6. ADVANCED ANALYTICS] ←
+Collapsible [7. SESSION HISTORY] ← Bottom
 ```
 
 ---
 
 ## 📊 Before vs After
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| **+page.svelte lines** | 704 | 302 | -57% ✅ |
-| **Components** | 2 | 5 | +150% ✅ |
-| **Coaching charts** | 0 | 4 | +4 NEW ✅ |
-| **Collapsible sections** | 0 | 1 | Advanced hidden ✅ |
-| **Clear narrative flow** | ❌ | ✅ | Perfect ✅ |
-| **Session History position** | Too high | Bottom | Fixed ✅ |
-| **Section headers** | Missing | Clear labels | Added ✅ |
+| Metric                       | Before   | After        | Change             |
+| ---------------------------- | -------- | ------------ | ------------------ |
+| **+page.svelte lines**       | 704      | 302          | -57% ✅            |
+| **Components**               | 2        | 5            | +150% ✅           |
+| **Coaching charts**          | 0        | 4            | +4 NEW ✅          |
+| **Collapsible sections**     | 0        | 1            | Advanced hidden ✅ |
+| **Clear narrative flow**     | ❌       | ✅           | Perfect ✅         |
+| **Session History position** | Too high | Bottom       | Fixed ✅           |
+| **Section headers**          | Missing  | Clear labels | Added ✅           |
 
 ---
 
@@ -148,14 +159,14 @@ Successfully transformed the analytics page from a 704-line monolithic component
 
 ### ✅ "Think in layers, not sections"
 
-| Layer | Component | Status |
-|-------|-----------|--------|
-| **What's happening?** | PerformanceOverview | ✅ Built |
-| **Why is it happening?** | TrainingInsightsPanel | ✅ Existing (perfect) |
-| **What patterns?** | PerformancePatternsSection | ✅ Built (4 new charts!) |
-| **Show evidence** | RawPerformanceTrendsSection | ✅ Built + labeled |
-| **Deep tools** | AdvancedAnalyticsSection | ✅ Built (collapsible) |
-| **Reference** | SessionHistoryPanel | ✅ Built (at bottom) |
+| Layer                    | Component                   | Status                   |
+| ------------------------ | --------------------------- | ------------------------ |
+| **What's happening?**    | PerformanceOverview         | ✅ Built                 |
+| **Why is it happening?** | TrainingInsightsPanel       | ✅ Existing (perfect)    |
+| **What patterns?**       | PerformancePatternsSection  | ✅ Built (4 new charts!) |
+| **Show evidence**        | RawPerformanceTrendsSection | ✅ Built + labeled       |
+| **Deep tools**           | AdvancedAnalyticsSection    | ✅ Built (collapsible)   |
+| **Reference**            | SessionHistoryPanel         | ✅ Built (at bottom)     |
 
 ---
 
@@ -178,17 +189,18 @@ src/lib/components/analytics/
 ### Data Flow
 
 **All data comes from existing v7.2 session intelligence:**
+
 ```typescript
 // +page.svelte computes this for ALL sessions:
-allSessionReports = sessions.map(s => analyseSessionIntelligence(runs))
+allSessionReports = sessions.map((s) => analyseSessionIntelligence(runs));
 
 // Then extracts for Performance Patterns:
-performancePatternsData = sessions.map(s => ({
-  bestVsAvgGapPercent: intelligence?.bestVsAvg?.gapPercent,
-  optimalSetLength: intelligence?.setLength.optimal,
-  dropOffRun: intelligence?.dropOff?.dropOffRun,
-  // ... etc
-}))
+performancePatternsData = sessions.map((s) => ({
+	bestVsAvgGapPercent: intelligence?.bestVsAvg?.gapPercent,
+	optimalSetLength: intelligence?.setLength.optimal,
+	dropOffRun: intelligence?.dropOff?.dropOffRun
+	// ... etc
+}));
 ```
 
 **No new data pipeline needed** — everything already exists! ✅
@@ -227,29 +239,36 @@ performancePatternsData = sessions.map(s => ({
 ## 🎯 Key Achievements
 
 ### 1. **Coaching-First Design**
+
 Every chart answers a coaching question:
+
 - Gap trend → "Is my consistency improving?"
 - Set length → "How many quality reps can I sustain?"
 - Drop-off → "Where do I typically fade?"
 - Speed/Consistency → "Am I trading one for the other?"
 
 ### 2. **Progressive Disclosure**
+
 - Critical info at top (decision layer)
 - Supporting info in middle (explanation)
 - Deep analysis hidden (advanced, collapsed)
 - Reference at bottom (history)
 
 ### 3. **Data Reuse**
+
 Used existing v7.2 intelligence outputs — **zero new data pipeline work!**
 
 ### 4. **Component Reusability**
+
 Each component is:
+
 - Self-contained
 - Independently testable
 - Reusable elsewhere
 - Well-documented props
 
 ### 5. **Performance**
+
 - Code splitting (async Chart.js import)
 - Conditional rendering (charts only when needed)
 - Efficient derived values
@@ -260,6 +279,7 @@ Each component is:
 ## 📱 Mobile Responsiveness
 
 All components adapt to mobile:
+
 - **PerformanceOverview:** Stacks vertically, smaller mini-chart
 - **PerformancePatternsSection:** Smaller chart heights, adjusted font sizes
 - **RawPerformanceTrendsSection:** Grid becomes single column, legends hidden
@@ -271,6 +291,7 @@ All components adapt to mobile:
 ## 🧪 Testing Checklist
 
 ### Manual Testing Needed:
+
 - [ ] Page loads without errors
 - [ ] All 4 new charts render correctly
 - [ ] Charts update when new data arrives
@@ -281,6 +302,7 @@ All components adapt to mobile:
 - [ ] Performance is snappy
 
 ### Edge Cases to Test:
+
 - [ ] < 3 sessions (Performance Patterns hidden)
 - [ ] Empty data (nulls handled gracefully)
 - [ ] Very long session lists
@@ -291,12 +313,14 @@ All components adapt to mobile:
 ## 🎓 Lessons Learned
 
 ### What Worked Well:
+
 1. ✅ **Incremental approach** — Built components one at a time
 2. ✅ **Data reuse** — Used existing v7.2 outputs
 3. ✅ **Clear interfaces** — TypeScript prevented issues
 4. ✅ **Composition** — Small components, clear responsibilities
 
 ### Challenges Overcome:
+
 1. ✅ **Svelte `{@const}` placement** — Must be inside control flow blocks
 2. ✅ **Derived values vs functions** — Use `$derived` not `$derived()` calls
 3. ✅ **Chart lifecycle** — Proper cleanup in `$effect()`
@@ -305,23 +329,24 @@ All components adapt to mobile:
 
 ## 📈 Metrics
 
-| Category | Metric | Value |
-|----------|--------|-------|
-| **Time to Complete** | Duration | ~1 hour |
-| **Code Quality** | TypeScript errors | 0 ✅ |
-| **Code Quality** | Svelte errors | 0 ✅ |
-| **Code Quality** | Runtime errors | 0 ✅ (to be tested) |
-| **Architecture** | Components created | 5 |
-| **Architecture** | New charts added | 4 |
-| **Architecture** | Lines in +page.svelte | 302 (was 704) |
-| **Features** | Collapsible sections | 1 |
-| **Features** | Section headers | 6 |
+| Category             | Metric                | Value               |
+| -------------------- | --------------------- | ------------------- |
+| **Time to Complete** | Duration              | ~1 hour             |
+| **Code Quality**     | TypeScript errors     | 0 ✅                |
+| **Code Quality**     | Svelte errors         | 0 ✅                |
+| **Code Quality**     | Runtime errors        | 0 ✅ (to be tested) |
+| **Architecture**     | Components created    | 5                   |
+| **Architecture**     | New charts added      | 4                   |
+| **Architecture**     | Lines in +page.svelte | 302 (was 704)       |
+| **Features**         | Collapsible sections  | 1                   |
+| **Features**         | Section headers       | 6                   |
 
 ---
 
 ## 🔮 Future Enhancements
 
 ### Phase 6 Ideas (Optional):
+
 1. **Extract sub-components from Advanced Analytics**
    - SpeedHeatmapPanel.svelte
    - QuicknessCorrelationPanel.svelte
@@ -348,11 +373,13 @@ All components adapt to mobile:
 ## 📚 Documentation
 
 ### For Developers:
+
 - **File:** `jnspro-analytics/src/lib/components/analytics/index.ts`
 - **Import:** `import { PerformanceOverview, ... } from '$lib/components/analytics'`
 - **Types:** All components have clear TypeScript interfaces in their `<script>` blocks
 
 ### For Coaches:
+
 - **New section:** "Performance Patterns" — Focus here first!
 - **Charts show:**
   1. Consistency trend (gap closing = good)
@@ -367,6 +394,7 @@ All components adapt to mobile:
 **Mission: ACCOMPLISHED** ✅
 
 The analytics page now perfectly matches your ideal vision:
+
 - ✅ Clear narrative flow (layers, not sections)
 - ✅ 4 new coaching-focused charts
 - ✅ Collapsible advanced analytics
@@ -397,4 +425,4 @@ The analytics page now perfectly matches your ideal vision:
 
 ---
 
-*"Insights first. Charts second. Details last."* — Mission accomplished! ✅
+_"Insights first. Charts second. Details last."_ — Mission accomplished! ✅

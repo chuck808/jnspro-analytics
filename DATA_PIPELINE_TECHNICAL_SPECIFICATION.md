@@ -53,11 +53,13 @@ Time (s)  | G-Force | int16 ×100 | Hex     | Binary
 ### Full Profile Statistics
 
 **Phase breakdown:**
+
 - **Launch (0-0.5s):** Peak acceleration zone (0-2.85G)
 - **Power (0.5-1.5s):** Sustained acceleration (1.5-2.0G)
 - **Coast (1.5-3.0s):** Gradual decline (0.8-1.2G)
 
 **Data characteristics:**
+
 - Min value: 0 (start)
 - Max value: 285 (2.85G at 0.150s)
 - Average: 142 (1.42G)
@@ -148,6 +150,7 @@ Time (s)  | G-Force | int16 ×100 | Hex     | Binary
 ### Bandwidth Analysis
 
 **Before (float transmission):**
+
 ```
 608 samples × 4 bytes (float32) = 2,432 bytes
 + JSON overhead ~500 bytes
@@ -155,6 +158,7 @@ Time (s)  | G-Force | int16 ×100 | Hex     | Binary
 ```
 
 **After (int16 ×100 downsampled):**
+
 ```
 300 samples × 2 bytes (int16) = 600 bytes
 + JSON overhead ~500 bytes
@@ -248,6 +252,7 @@ Offset | Hex Values                                      | Decoded
 ```
 
 **Notes:**
+
 - Little-endian format (ESP32 native)
 - 2 bytes per sample (int16)
 - Example: `0x011D` = 285 decimal = 2.85G
@@ -362,17 +367,17 @@ When direct upload is enabled post-beta:
 
 ## Side-by-Side Data Comparison Table
 
-| Metric | Old (×1000 bug) | New (×100 unified) | Result |
-|--------|-----------------|-------------------|--------|
-| **Dashboard receives** | `float[]` direct | `int16[] ×100` | ✓ Same after ÷100 |
-| **Dashboard displays** | 2.85G at 0.150s | 2.85G at 0.150s | ✓ Identical |
-| **SD card stores** | `int16[] ×1000` ❌ | `int16[] ×100` ✓ | ✅ FIXED |
-| **ingest.ts converts** | `÷100` (wrong!) | `÷100` (correct) | ✅ FIXED |
-| **Supabase stores** | 28.50G ❌ | 2.85G ✓ | ✅ FIXED |
-| **Performance Engine receives** | 28.50G ❌ | 2.85G ✓ | ✅ FIXED |
-| **Dashboard payload** | 2.9 KB (float) | 1.1 KB (int16) | ✅ 62% smaller |
-| **Data consistency** | 3 different formats ❌ | 1 unified format ✓ | ✅ FIXED |
-| **Precision** | 0.001G overkill | 0.01G sufficient | ✓ Appropriate |
+| Metric                          | Old (×1000 bug)        | New (×100 unified) | Result            |
+| ------------------------------- | ---------------------- | ------------------ | ----------------- |
+| **Dashboard receives**          | `float[]` direct       | `int16[] ×100`     | ✓ Same after ÷100 |
+| **Dashboard displays**          | 2.85G at 0.150s        | 2.85G at 0.150s    | ✓ Identical       |
+| **SD card stores**              | `int16[] ×1000` ❌     | `int16[] ×100` ✓   | ✅ FIXED          |
+| **ingest.ts converts**          | `÷100` (wrong!)        | `÷100` (correct)   | ✅ FIXED          |
+| **Supabase stores**             | 28.50G ❌              | 2.85G ✓            | ✅ FIXED          |
+| **Performance Engine receives** | 28.50G ❌              | 2.85G ✓            | ✅ FIXED          |
+| **Dashboard payload**           | 2.9 KB (float)         | 1.1 KB (int16)     | ✅ 62% smaller    |
+| **Data consistency**            | 3 different formats ❌ | 1 unified format ✓ | ✅ FIXED          |
+| **Precision**                   | 0.001G overkill        | 0.01G sufficient   | ✓ Appropriate     |
 
 ---
 
@@ -381,16 +386,19 @@ When direct upload is enabled post-beta:
 ### int16 ×100 Format Specifications
 
 **Range:**
+
 - Min: -32768 → -327.68G
 - Max: +32767 → +327.67G
 - **BMX typical:** 0-4G (well within range)
 
 **Precision:**
+
 - Step size: 0.01G
 - **BMX requirement:** 0.05G minimum resolution
 - **Margin:** 5× better than required ✓
 
 **Example values:**
+
 ```
 G-Force  | int16 ×100 | Stored Value
 ---------|------------|-------------
@@ -416,15 +424,14 @@ G-Force  | int16 ×100 | Stored Value
 
 ```json
 {
-  "chartData": [0, 12, 34, 58, 89, 124, 165, 212, 245, 278]
+	"chartData": [0, 12, 34, 58, 89, 124, 165, 212, 245, 278]
 }
 ```
 
 ### After ingest.ts conversion
 
 ```typescript
-const chartData = [0, 12, 34, 58, 89, 124, 165, 212, 245, 278]
-    .map(v => v / 100);
+const chartData = [0, 12, 34, 58, 89, 124, 165, 212, 245, 278].map((v) => v / 100);
 // → [0.00, 0.12, 0.34, 0.58, 0.89, 1.24, 1.65, 2.12, 2.45, 2.78]
 ```
 
@@ -438,7 +445,7 @@ chart_data: [0.00, 0.12, 0.34, 0.58, 0.89, 1.24, 1.65, 2.12, 2.45, 2.78]
 
 ```typescript
 // RunLike.chart_data — already float G-units, no further conversion needed
-chartData: [0.00, 0.12, 0.34, 0.58, 0.89, 1.24, 1.65, 2.12, 2.45, 2.78]
+chartData: [0.0, 0.12, 0.34, 0.58, 0.89, 1.24, 1.65, 2.12, 2.45, 2.78];
 ```
 
 ### Verification
@@ -447,22 +454,22 @@ chartData: [0.00, 0.12, 0.34, 0.58, 0.89, 1.24, 1.65, 2.12, 2.45, 2.78]
 ✅ ingest.ts converts correctly (÷100)  
 ✅ Supabase stores correct float G values  
 ✅ Performance Engine receives physically accurate data  
-✅ Dashboard converts correctly (÷100 in JavaScript)  
+✅ Dashboard converts correctly (÷100 in JavaScript)
 
 ---
 
 ## Tech Stack Summary
 
-| Layer | Technology |
-|-------|-----------|
-| **Firmware** | ESP32 / M5Stack CoreS3, C++ |
-| **Device dashboard** | index_html.h (embedded HTML/JS) |
-| **Upload endpoint** | SvelteKit (`src/routes/api/upload/+server.ts`) |
-| **Ingest / conversion** | TypeScript (`src/lib/services/ingest.ts`) |
-| **Database** | Supabase (PostgreSQL + RLS) |
-| **Analytics web app** | SvelteKit 2 / Svelte 5 / Tailwind CSS 4 |
-| **Performance Engine** | TypeScript (`src/lib/performance-engine/`) |
-| **Hosting** | Vercel |
+| Layer                   | Technology                                     |
+| ----------------------- | ---------------------------------------------- |
+| **Firmware**            | ESP32 / M5Stack CoreS3, C++                    |
+| **Device dashboard**    | index_html.h (embedded HTML/JS)                |
+| **Upload endpoint**     | SvelteKit (`src/routes/api/upload/+server.ts`) |
+| **Ingest / conversion** | TypeScript (`src/lib/services/ingest.ts`)      |
+| **Database**            | Supabase (PostgreSQL + RLS)                    |
+| **Analytics web app**   | SvelteKit 2 / Svelte 5 / Tailwind CSS 4        |
+| **Performance Engine**  | TypeScript (`src/lib/performance-engine/`)     |
+| **Hosting**             | Vercel                                         |
 
 ---
 
@@ -478,4 +485,3 @@ The unified int16 ×100 format provides:
 6. **Reliability:** No mixing of formats or scales
 
 **Status:** Production-ready for field testing ✅
-

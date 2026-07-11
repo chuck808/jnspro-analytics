@@ -1,4 +1,5 @@
 # Analytics Page Comprehensive Audit
+
 **Date:** April 27, 2026  
 **Context:** 21 Session files uploaded - ready for production audit  
 **Scope:** Complete review of `/analytics` page implementation
@@ -18,13 +19,13 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 ### 1.1 Performance Engine Components (NEW SYSTEM)
 
 **✅ IMPLEMENTED:**
+
 - **v7.2 Session Intelligence** (`sessionIntelligence.ts`)
   - Repeatability analysis
   - Fatigue detection
   - Best vs average analysis
   - Drop-off detection
   - Set length suggestions
-  
 - **v8.1 Cross-Session Intelligence** (`crossSession/crossSessionIntelligence.ts`)
   - Performance progression tracking
   - Consistency trends
@@ -51,13 +52,13 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 
 **Still in use from** `src/lib/utils/analytics.ts`:
 
-| Function | Purpose | Status | Recommendation |
-|----------|---------|--------|----------------|
-| `scoreConsistency()` | CV calculation | 🟡 Used | Keep - simple utility |
-| `computeSpeedCurve()` | Speed integration | ❌ Not used on Analytics page | N/A |
-| `estimatePower()` | Power estimation | ❌ Not used on Analytics page | N/A |
-| `analyseImpulse()` | Impulse calculation | ❌ Not used on Analytics page | N/A |
-| `scoreTechnique()` | Technique scoring | ❌ Not used on Analytics page | N/A |
+| Function              | Purpose             | Status                        | Recommendation        |
+| --------------------- | ------------------- | ----------------------------- | --------------------- |
+| `scoreConsistency()`  | CV calculation      | 🟡 Used                       | Keep - simple utility |
+| `computeSpeedCurve()` | Speed integration   | ❌ Not used on Analytics page | N/A                   |
+| `estimatePower()`     | Power estimation    | ❌ Not used on Analytics page | N/A                   |
+| `analyseImpulse()`    | Impulse calculation | ❌ Not used on Analytics page | N/A                   |
+| `scoreTechnique()`    | Technique scoring   | ❌ Not used on Analytics page | N/A                   |
 
 **Note:** These old system functions are still used on individual session detail pages (`/sessions/[id]`), which is appropriate.
 
@@ -68,9 +69,11 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 ### 2.1 What's Performance Engine Driven ✅
 
 **Data Fetching:**
+
 - `+page.server.ts` - 100% raw Supabase queries (appropriate for server-side)
 
 **Intelligence & Insights:**
+
 1. **TrainingInsightsPanel Component** (lines 322-330)
    - Session Intelligence (v7.2) - `analyseSessionIntelligence()`
    - Cross-Session Intelligence (v8.1) - `analyseCrossSessionIntelligence()`
@@ -195,12 +198,12 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 
 ### 4.1 Existing Charts ✅
 
-| Chart | Data Source | Status | Notes |
-|-------|-------------|--------|-------|
-| Reaction Time Trend | Manual Chart.js | ✅ Working | Shows best + avg with color coding |
-| Peak Speed Trend | Manual Chart.js | ✅ Working | Shows warning for IMU estimated |
-| Consistency CV Bars | Manual Chart.js | ✅ Working | Color coded by quality |
-| Speed Heatmap | Custom div rendering | ✅ Working | Nice visual, shows distribution |
+| Chart               | Data Source          | Status     | Notes                              |
+| ------------------- | -------------------- | ---------- | ---------------------------------- |
+| Reaction Time Trend | Manual Chart.js      | ✅ Working | Shows best + avg with color coding |
+| Peak Speed Trend    | Manual Chart.js      | ✅ Working | Shows warning for IMU estimated    |
+| Consistency CV Bars | Manual Chart.js      | ✅ Working | Color coded by quality             |
+| Speed Heatmap       | Custom div rendering | ✅ Working | Nice visual, shows distribution    |
 
 ### 4.2 Chart Improvements Needed 🔧
 
@@ -258,6 +261,7 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 ### 5.1 Information Architecture ✅ Mostly Good
 
 **Current Structure:**
+
 ```
 1. Header + Export
 2. Analytics Unlocked Progress Bar
@@ -274,12 +278,14 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 ```
 
 **Strengths:**
+
 - Progressive disclosure (features unlock with more data) ✅
 - Clear visual hierarchy ✅
 - Consistent styling ✅
 - Mobile-first design ✅
 
 **Weaknesses:**
+
 - Too much scrolling on desktop
 - No "jump to section" navigation
 - Training Insights Panel could be more prominent
@@ -333,6 +339,7 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 ### 5.3 Messaging & Language 📝
 
 **Current Issues:**
+
 1. **Too Technical**
    - "CV %" might confuse casual users
    - "Pearson r" correlation coefficient shown
@@ -360,25 +367,28 @@ The Analytics page is in **hybrid mode** - successfully combining the new Perfor
 ### 6.1 Server-Side (+page.server.ts)
 
 **Current Approach:**
+
 - Raw Supabase queries ✅
 - Manual aggregation and CV calculation
 - Returns session summaries
 
 **Missing:**
+
 - Not running v7.2 session intelligence per session
 - Not caching Performance Engine outputs
 - Not using Performance Engine utility functions
 - Duplicating calculations client-side
 
 **Recommendation:**
+
 ```typescript
 // Option A: Run session intelligence server-side
 const sessionSummaries = await Promise.all(
-  sessions.map(async (session) => {
-    const runs = transformRunsForEngine(session.runs);
-    const intelligence = analyseSessionIntelligence(runs);
-    return { ...session, intelligence };
-  })
+	sessions.map(async (session) => {
+		const runs = transformRunsForEngine(session.runs);
+		const intelligence = analyseSessionIntelligence(runs);
+		return { ...session, intelligence };
+	})
 );
 
 // Option B: Cache session intelligence in database
@@ -389,12 +399,15 @@ const sessionSummaries = await Promise.all(
 ### 6.2 Client-Side (+page.svelte)
 
 **Current Approach:**
+
 - Transforms server data for Performance Engine
 - Runs intelligence analysis client-side
 - Estimates missing values (repeatabilityScore, sessionQuality)
 
 **Issues:**
+
 1. **Inaccurate Estimates** (lines 206-213)
+
 ```typescript
 // ❌ Estimating from CV instead of using real analysis
 sessionQuality: s.reaction_cv !== null ? Math.max(0, 100 - s.reaction_cv * 10) : null,
@@ -402,12 +415,14 @@ repeatabilityScore: s.reaction_cv !== null ? Math.max(0, 100 - s.reaction_cv * 1
 ```
 
 2. **Missing Context**
+
 ```typescript
 // ❌ Not passing technique data, fatigue analysis, etc.
 // v8.1 needs full SessionIntelligenceReport, not estimates
 ```
 
 **Recommendation:**
+
 - Run full v7.2 analysis per session server-side
 - Pass complete reports to client
 - Client just displays, doesn't recalculate
@@ -419,15 +434,17 @@ repeatabilityScore: s.reaction_cv !== null ? Math.max(0, 100 - s.reaction_cv * 1
 ### 7.1 Type Safety 🟡
 
 **Issue:** Derived state with complex transformations
+
 ```typescript
 // Line 196: Complex derived calculation
 let crossSessionReport = $derived.by(() => {
-  if (data.sessionCount < 3) return null;
-  // ... 30 lines of transformation
+	if (data.sessionCount < 3) return null;
+	// ... 30 lines of transformation
 });
 ```
 
 **Recommendation:**
+
 - Extract to utility function with explicit types
 - Add unit tests for transformation logic
 - Consider computing server-side
@@ -447,21 +464,25 @@ const THRESHOLDS = $derived([
 ```
 
 **Recommendation:**
+
 - Get user level from profile (already available in parent layout)
 - Move thresholds to configuration file
 
 ### 7.3 Inconsistent Null Handling 🟠
 
 Multiple patterns for handling null/missing data:
+
 ```typescript
 // Pattern 1: Optional chaining with nullish coalescing
-selectedGate?.analytics_valid ?? false
+selectedGate?.analytics_valid ?? false;
 
 // Pattern 2: Ternary
-session.reaction_cv !== null ? session.reaction_cv.toFixed(1)+'%' : '—'
+session.reaction_cv !== null
+	? session.reaction_cv.toFixed(1) + '%'
+	: '—'
 
-// Pattern 3: Filter then map
-.filter((v): v is number => v !== null)
+			// Pattern 3: Filter then map
+			.filter((v): v is number => v !== null);
 ```
 
 **Recommendation:** Standardize on pattern with type guards
@@ -469,12 +490,14 @@ session.reaction_cv !== null ? session.reaction_cv.toFixed(1)+'%' : '—'
 ### 7.4 Large Component 📏
 
 `+page.svelte` is **650 lines** with:
+
 - Data transformation logic
 - Chart rendering
 - Multiple derived calculations
 - UI rendering
 
 **Recommendation:**
+
 - Extract chart components (ReactionTrendChart.svelte, etc.)
 - Extract calculation logic to utilities
 - Keep page component focused on layout
@@ -486,11 +509,13 @@ session.reaction_cv !== null ? session.reaction_cv.toFixed(1)+'%' : '—'
 ### 8.1 Error Handling ❌
 
 **Current State:**
+
 - No try-catch around chart rendering
 - No error boundaries
 - Server errors return empty arrays (silent failure)
 
 **Recommendation:**
+
 ```typescript
 // Add error boundaries
 {#catch error}
@@ -509,30 +534,34 @@ try {
 ### 8.2 Loading States ⏳
 
 **Current State:**
+
 - Charts render immediately (may flash)
 - No skeleton loaders
 - Data fetching on server (good) but no loading indicator
 
 **Recommendation:**
+
 ```svelte
 {#if loading}
-  <SkeletonChart />
+	<SkeletonChart />
 {:else if chartData}
-  <canvas bind:this={reactionChartEl} />
+	<canvas bind:this={reactionChartEl} />
 {:else}
-  <EmptyState />
+	<EmptyState />
 {/if}
 ```
 
 ### 8.3 Accessibility ♿
 
 **Current Issues:**
+
 1. Canvas charts not accessible to screen readers
 2. No keyboard navigation for chart interactions
 3. Color-only differentiation (CV chart colors)
 4. Missing ARIA labels on complex visualizations
 
 **Recommendations:**
+
 - Add aria-label to all canvas elements
 - Provide data table alternatives
 - Use patterns + colors for differentiation
@@ -541,24 +570,26 @@ try {
 ### 8.4 Testing 🧪
 
 **Current State:**
+
 - No unit tests for transformation logic
 - No component tests
 - No E2E tests for analytics page
 
 **Recommendations:**
+
 ```typescript
 // Unit tests for transformations
 describe('crossSessionReport transformation', () => {
-  it('should handle missing data gracefully', () => {
-    // ...
-  });
+	it('should handle missing data gracefully', () => {
+		// ...
+	});
 });
 
 // Component tests
 describe('Analytics Page', () => {
-  it('should show Training Insights Panel when data available', () => {
-    // ...
-  });
+	it('should show Training Insights Panel when data available', () => {
+		// ...
+	});
 });
 ```
 
@@ -572,7 +603,6 @@ describe('Analytics Page', () => {
    - Add narrative summary at top of Training Insights Panel
    - Use controlled language system
    - Surface trust indicators and warnings
-   
 2. **Fix Session Intelligence Calculations** (2 hours)
    - Stop estimating from CV
    - Run full v7.2 analysis server-side OR client-side correctly
@@ -705,15 +735,16 @@ describe('Analytics Page', () => {
 
 ## 11. Estimated Effort
 
-| Category | Tasks | Effort | Priority |
-|----------|-------|--------|----------|
-| Critical Fixes | 3 tasks | 5-7 hours | 🔴 |
-| High Priority | 4 tasks | 12-16 hours | 🟠 |
-| Medium Priority | 3 tasks | 8-10 hours | 🟡 |
-| Low Priority | 3 tasks | 10-13 hours | 🔵 |
-| **Total** | **13 tasks** | **35-46 hours** | |
+| Category        | Tasks        | Effort          | Priority |
+| --------------- | ------------ | --------------- | -------- |
+| Critical Fixes  | 3 tasks      | 5-7 hours       | 🔴       |
+| High Priority   | 4 tasks      | 12-16 hours     | 🟠       |
+| Medium Priority | 3 tasks      | 8-10 hours      | 🟡       |
+| Low Priority    | 3 tasks      | 10-13 hours     | 🔵       |
+| **Total**       | **13 tasks** | **35-46 hours** |          |
 
 **Phased Approach:**
+
 - **Phase 1 (Critical):** 1 week - v8.3 integration, fix calculations, data quality
 - **Phase 2 (High):** 2 weeks - Chart migration, new visualizations, refactoring
 - **Phase 3 (Medium):** 2 weeks - Technique trends, user level switching, feedback
@@ -724,6 +755,7 @@ describe('Analytics Page', () => {
 ## 12. Comparison: Before vs After
 
 ### Current State 📊
+
 - ✅ Functional analytics page
 - ✅ Performance Engine partially integrated (v7.2, v8.1, v8.2)
 - ⚠️ Mixing old and new systems
@@ -733,6 +765,7 @@ describe('Analytics Page', () => {
 - ⚠️ Large monolithic component
 
 ### Desired State 🚀
+
 - ✅ Fully Performance Engine driven
 - ✅ v8.3 coaching narrative prominent
 - ✅ All calculations standardized
@@ -749,6 +782,7 @@ describe('Analytics Page', () => {
 The Analytics page is **functionally solid** but has significant opportunities for improvement. The Performance Engine infrastructure is excellent and mostly complete - the main work is integrating it fully into the UI and removing duplicate logic.
 
 **Key Insights:**
+
 1. v8.3 language system is ready but not integrated - **quick win**
 2. Session intelligence estimations are inaccurate - **needs fixing**
 3. Charts could use Performance Engine utilities - **reduces duplication**

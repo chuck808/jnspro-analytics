@@ -12,10 +12,12 @@ Successfully migrated **5 legacy-unique analytics features** from the legacy ana
 ## Problem Statement
 
 The system was running **two parallel calculation engines**:
+
 - **Legacy System** (analytics.ts + analyticsExtended.ts)
 - **Performance Engine** (analyseSession.ts)
 
 Both computed the same metrics (technique scores, jerk, impulse, power) through different code paths, creating:
+
 - ❌ Computational waste
 - ❌ Maintenance burden (duplicate logic)
 - ❌ Risk of diverging results
@@ -26,18 +28,21 @@ Both computed the same metrics (technique scores, jerk, impulse, power) through 
 ## What Was Migrated
 
 ### 1. **Speed Splits Calculation** (`calculateSpeedSplits`)
+
 - **From:** `analytics.ts` lines 81-103
 - **To:** `performance-engine/physics.ts`
 - **Purpose:** Time and distance to reach speed milestones (10, 20, 30, 40, 50, 60 km/h)
 - **Used for:** Speed splits table in session UI
 
 ### 2. **Speed Profile Classification** (`classifySpeedProfile`)
+
 - **From:** `analytics.ts` lines 127-133
 - **To:** `performance-engine/physics.ts`
 - **Purpose:** Classify acceleration pattern as "Explosive", "Balanced", or "Late Peak"
 - **Used for:** Speed profile badge in session UI
 
 ### 3. **Enhanced Data Quality Assessment** (`assessDataQuality`)
+
 - **From:** `analytics.ts` lines 114-123
 - **To:** `performance-engine/dataQuality.ts` (enhanced existing function)
 - **Purpose:** IMU calibration quality with color-coded badge system
@@ -45,6 +50,7 @@ Both computed the same metrics (technique scores, jerk, impulse, power) through 
 - **Used for:** Data quality badge in run cards
 
 ### 4. **Session Stability Analysis** (`computeSessionStability`)
+
 - **From:** `analyticsExtended.ts` lines 690-702
 - **To:** `performance-engine/sessionAnalysis.ts`
 - **Purpose:** First 500ms G-force consistency across all runs in a session
@@ -52,6 +58,7 @@ Both computed the same metrics (technique scores, jerk, impulse, power) through 
 - **Used for:** Session-wide consistency comparison
 
 ### 5. **Full Consistency Scoring** (`scoreConsistency`)
+
 - **From:** `analytics.ts` lines 301-319
 - **To:** `performance-engine/technique.ts`
 - **Purpose:** Complete CV-based consistency result with color coding
@@ -63,6 +70,7 @@ Both computed the same metrics (technique scores, jerk, impulse, power) through 
 ## Files Modified
 
 ### Core Engine Files
+
 1. **`performance-engine/physics.ts`**
    - Added `SpeedSplit` interface
    - Added `calculateSpeedSplits()` function
@@ -129,16 +137,19 @@ Both computed the same metrics (technique scores, jerk, impulse, power) through 
 ### 📊 What Still Exists
 
 **Legacy System (`analytics.ts` / `analyticsExtended.ts`)**
+
 - ✅ Kept intact as backup/reference
 - ✅ Can be deprecated gradually
 - ✅ No longer called by bridge layer (after Phase 2)
 
 **Bridge System (`performance-bridge/`)**
+
 - ⏭️ Next phase: Update to use Performance Engine features
 - ⏭️ Stop calling legacy analytics
 - ⏭️ Simplify to pure presentation/formatting layer
 
 **Session Intelligence (`sessionIntelligence.ts`)**
+
 - ✅ Already separate — provides insights ON TOP of engine data
 - ✅ No duplication — unique features (drop-off, optimal sets, etc.)
 
@@ -147,6 +158,7 @@ Both computed the same metrics (technique scores, jerk, impulse, power) through 
 ## Next Steps: Phase 2
 
 ### Update Bridge Layer
+
 The bridge layer (`performance-bridge/`) currently calls legacy analytics. Next:
 
 1. **Update `legacyIntegration.ts`**
@@ -207,12 +219,14 @@ The bridge layer (`performance-bridge/`) currently calls legacy analytics. Next:
 ## Architectural Decision
 
 **Why Keep Legacy Code?**
+
 - ✅ Safety net during transition
 - ✅ Reference for validation
 - ✅ Easy rollback if issues found
 - ✅ Gradual deprecation less risky
 
 **Future State (Post-Phase 2):**
+
 ```
 Session Data
     ↓
@@ -228,6 +242,7 @@ Presentation Layer (transform for UI, no duplication)
 ## Code Quality Notes
 
 All migrated functions:
+
 - ✅ Maintain exact same logic as legacy
 - ✅ Use consistent naming conventions
 - ✅ Include JSDoc comments with migration notes

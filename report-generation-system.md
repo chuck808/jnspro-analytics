@@ -13,6 +13,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Button:** Generate Session Report
 
 **Default:**
+
 - Type: Coach Session Report
 - Scope: this session
 
@@ -21,10 +22,12 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Button:** Generate Progress Report
 
 **Default:**
+
 - Type: Progress Report
 - Scope: last 5 / 10 / all sessions
 
 **Later:**
+
 - Generate Rider Report
 - Generate Club Report
 - Generate Diagnostic Report
@@ -34,6 +37,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Button:** Generate Goals Report
 
 **Default:**
+
 - Type: Goals Progress Report
 - Scope: all active goals
 - Includes: AI predictions, milestones, health check
@@ -41,6 +45,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Button:** Generate Health Report
 
 **Default:**
+
 - Type: Health & Safety Report
 - Scope: recent training load
 - Includes: fatigue assessment, injury risk, recommendations
@@ -54,6 +59,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** What happened in this session?
 
 **Includes:**
+
 - Coach summary
 - Session quality
 - Repeatability
@@ -72,6 +78,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** How is the rider progressing over time?
 
 **Includes:**
+
 - Progress summary
 - Speed/reaction trends
 - Consistency trend
@@ -89,6 +96,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** Can we trust this data?
 
 **Includes:**
+
 - Bias correction
 - Calibration status
 - Blocked metrics
@@ -104,6 +112,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** What should the rider understand?
 
 **Includes:**
+
 - Plain-language summary
 - Best achievements
 - One or two focus points
@@ -118,6 +127,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** What should change in training?
 
 **Includes:**
+
 - Session + progress intelligence
 - Technique → outcome links
 - Drop-off/set length
@@ -133,6 +143,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** How is the rider progressing toward their goals?
 
 **Includes:**
+
 - Active goals summary with AI predictions
 - Progress percentage and status (ahead/on track/behind)
 - Milestone timeline for each goal
@@ -143,6 +154,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 - Historical milestone achievements
 
 **Data Sources:**
+
 - `training_goals` table (active + completed)
 - `goal_milestones` table (auto-created progress points)
 - AI prediction engine (polynomial/exponential fitting)
@@ -155,6 +167,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 **Answers:** Is the rider training safely?
 
 **Includes:**
+
 - Overall health status (healthy/monitor/caution/critical)
 - Fatigue score (0-100) with trend
 - Injury risk assessment (low/moderate/high/critical)
@@ -166,6 +179,7 @@ One Report Engine → multiple report types → multiple entry points → shared
 - Alert summary (critical/warning/info)
 
 **Data Sources:**
+
 - Anomaly detection service
 - Fatigue analysis module
 - Injury risk assessment
@@ -223,24 +237,24 @@ The report engine consumes existing outputs — it does not recalculate separate
 
 ```typescript
 export interface GeneratedReport {
-  id: string;
-  type: ReportType;
-  title: string;
-  subtitle?: string;
-  generatedAt: string;
+	id: string;
+	type: ReportType;
+	title: string;
+	subtitle?: string;
+	generatedAt: string;
 
-  subject: {
-    riderName?: string;
-    sessionId?: string;
-    dateRange?: string;
-    sessionCount?: number;
-  };
+	subject: {
+		riderName?: string;
+		sessionId?: string;
+		dateRange?: string;
+		sessionCount?: number;
+	};
 
-  summary: ReportSummary;
-  sections: ReportSection[];
-  charts: ReportChart[];
-  recommendations: ReportRecommendation[];
-  appendices?: ReportAppendix[];
+	summary: ReportSummary;
+	sections: ReportSection[];
+	charts: ReportChart[];
+	recommendations: ReportRecommendation[];
+	appendices?: ReportAppendix[];
 }
 ```
 
@@ -252,36 +266,36 @@ export interface GeneratedReport {
 
 ```typescript
 type ReportSectionType =
-  | 'executive-summary'
-  | 'key-findings'
-  | 'session-quality'
-  | 'progress-trends'
-  | 'technique-analysis'
-  | 'data-quality'
-  | 'recommendations'
-  | 'watch-for'
-  | 'charts'
-  | 'appendix'
-  | 'goals-summary'           // NEW: Goals overview
-  | 'milestones-timeline'     // NEW: Achievement history
-  | 'ai-predictions'          // NEW: Prediction details
-  | 'health-status'           // NEW: Health dashboard
-  | 'fatigue-analysis'        // NEW: Fatigue details
-  | 'injury-risk'             // NEW: Risk assessment
-  | 'training-load'           // NEW: Load analysis
-  | 'adaptive-suggestions';   // NEW: AI recommendations
+	| 'executive-summary'
+	| 'key-findings'
+	| 'session-quality'
+	| 'progress-trends'
+	| 'technique-analysis'
+	| 'data-quality'
+	| 'recommendations'
+	| 'watch-for'
+	| 'charts'
+	| 'appendix'
+	| 'goals-summary' // NEW: Goals overview
+	| 'milestones-timeline' // NEW: Achievement history
+	| 'ai-predictions' // NEW: Prediction details
+	| 'health-status' // NEW: Health dashboard
+	| 'fatigue-analysis' // NEW: Fatigue details
+	| 'injury-risk' // NEW: Risk assessment
+	| 'training-load' // NEW: Load analysis
+	| 'adaptive-suggestions'; // NEW: AI recommendations
 ```
 
 ### Section Shape
 
 ```typescript
 export interface ReportSection {
-  id: string;
-  type: ReportSectionType;
-  title: string;
-  priority: 'high' | 'medium' | 'low';
-  content: string[];
-  metrics?: ReportMetric[];
+	id: string;
+	type: ReportSectionType;
+	title: string;
+	priority: 'high' | 'medium' | 'low';
+	content: string[];
+	metrics?: ReportMetric[];
 }
 ```
 
@@ -333,11 +347,13 @@ User exports / copies / saves
 ## 8. Export Options
 
 **Start with:**
+
 - Print / Save as PDF
 - Copy summary
 - Export report JSON
 
 **Then add:**
+
 - PDF generation
 - CSV appendix
 - Share link
@@ -370,6 +386,7 @@ Or modal first: `ReportBuilder modal`
 ## 10. What Each Report Should Avoid
 
 **Do not include:**
+
 - Every metric
 - Every chart
 - Debug values by default
@@ -377,6 +394,7 @@ Or modal first: `ReportBuilder modal`
 - Contradictory recommendations
 
 **Every report should answer:**
+
 - What happened?
 - Why does it matter?
 - What should we do next?
@@ -473,6 +491,7 @@ This keeps the system clean, useful, and future-ready.
 The Goals system (completed in Phase 1 & 2) provides rich data for reports:
 
 **From `training_goals` table:**
+
 - `metric` - Which performance metric (reactionTime, maxG, peakSpeed, consistency, etc.)
 - `start_value`, `current_value`, `target_value` - Progress tracking
 - `deadline` - Target completion date
@@ -480,11 +499,13 @@ The Goals system (completed in Phase 1 & 2) provides rich data for reports:
 - `user_id` - Owner
 
 **From `goal_milestones` table:**
+
 - `goal_id` - Links to parent goal
 - `value` - Achieved value at this milestone
 - `achieved_at` - When milestone was created (uses session timestamp for accuracy)
 
 **Computed on Goals Page:**
+
 - `percentComplete` - Progress percentage (0-100)
 - `progressStatus` - 'way_ahead' | 'ahead' | 'on_track' | 'behind' | 'way_behind'
 - `prediction` - AI prediction object with:
@@ -494,6 +515,7 @@ The Goals system (completed in Phase 1 & 2) provides rich data for reports:
   - `metadata.reason` - Plain language explanation
 
 **Health Check Data:**
+
 - `overallStatus` - 'healthy' | 'monitor' | 'caution' | 'critical'
 - `shouldRest` - Boolean recommendation
 - `fatigueAssessment` - Score, trend, recommendations
@@ -504,11 +526,13 @@ The Goals system (completed in Phase 1 & 2) provides rich data for reports:
 ### Report Integration Points
 
 **Session Report Enhancement:**
+
 - Show if session improved any active goals
 - Display "⭐ MILESTONE" badge when significant improvement (>0.5%)
 - Link to goals page for details
 
 **Progress Report Enhancement:**
+
 - Include goals progress summary
 - Show which metrics have active goals
 - Display milestone timeline in appendix
@@ -530,33 +554,39 @@ The Goals system (completed in Phase 1 & 2) provides rich data for reports:
 ### Implementation Notes
 
 **Data Fetching:**
+
 ```typescript
 // In buildGoalsReport.ts
 import { supabase } from '$lib/server/supabase';
 
 const { data: goals } = await supabase
-  .from('training_goals')
-  .select(`
+	.from('training_goals')
+	.select(
+		`
     *,
     goal_milestones(id, value, achieved_at)
-  `)
-  .eq('user_id', userId)
-  .order('created_at', { ascending: false });
+  `
+	)
+	.eq('user_id', userId)
+	.order('created_at', { ascending: false });
 ```
 
 **Milestone Auto-Creation:**
+
 - Milestones are created automatically on session page load
 - Uses `src/lib/server/goalMilestones.ts` functions
 - Threshold: 0.5% improvement required
 - Timestamp uses session.timestamp (not current time)
 
 **AI Predictions:**
+
 - Use existing prediction logic from goals page
 - Located in goals intelligence service
 - Requires ≥3 data points (milestones) for accuracy
 - Falls back to simple linear if insufficient data
 
 **Health Check Integration:**
+
 ```typescript
 // In buildHealthReport.ts
 import { performHealthCheck } from '$lib/services/anomalyDetection';
@@ -574,6 +604,7 @@ import { renderCoachMessage, renderTrustSummary } from '$lib/performance-engine/
 ```
 
 This ensures:
+
 - ✅ Consistent coach voice across all reports
 - ✅ No conflicting recommendations
 - ✅ Proper trust indicators for metrics
@@ -582,6 +613,7 @@ This ensures:
 ### Report-Specific Considerations
 
 **Goals Report Should:**
+
 - Celebrate achievements (milestones, completed goals)
 - Be motivating and forward-looking
 - Include AI predictions with confidence intervals
@@ -589,13 +621,15 @@ This ensures:
 - Show health status if caution/critical
 
 **Health Report Should:**
+
 - Be clear and directive about safety
 - Use color coding (green/amber/orange/red)
 - Prioritize critical alerts first
-- Explain *why* rest is recommended
+- Explain _why_ rest is recommended
 - Link fatigue patterns to specific sessions
 
 **Both Should Avoid:**
+
 - Technical jargon in executive summary
 - Showing debug data by default
 - Contradicting session/progress reports

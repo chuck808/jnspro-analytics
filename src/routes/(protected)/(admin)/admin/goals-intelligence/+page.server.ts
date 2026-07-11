@@ -10,7 +10,8 @@ export const load: PageServerLoad = async () => {
 	// Fetch all goals with user data
 	const { data: goals } = await admin
 		.from('training_goals')
-		.select(`
+		.select(
+			`
 			id,
 			user_id,
 			metric,
@@ -23,7 +24,8 @@ export const load: PageServerLoad = async () => {
 			created_at,
 			updated_at,
 			profiles!inner(name, email)
-		`)
+		`
+		)
 		.order('created_at', { ascending: false });
 
 	// Fetch gate sessions only (not archived) for overtraining detection.
@@ -62,9 +64,7 @@ export const load: PageServerLoad = async () => {
 
 	activeGoals.forEach((goal: any) => {
 		const userSessions = sessionsByUser[goal.user_id] || [];
-		const recentSessions = userSessions.filter(
-			(s) => new Date(s.timestamp) >= thirtyDaysAgo
-		);
+		const recentSessions = userSessions.filter((s) => new Date(s.timestamp) >= thirtyDaysAgo);
 
 		const sessionsLast7Days = userSessions.filter(
 			(s) => new Date(s.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -87,17 +87,21 @@ export const load: PageServerLoad = async () => {
 		// For lower-is-better metrics (reaction time etc), progress means
 		// current_value going DOWN toward target.
 		const lowerIsBetter = LOWER_IS_BETTER_METRICS.includes(goal.metric);
-		const start   = goal.start_value ?? 0;
-		const target  = goal.target_value ?? 0;
+		const start = goal.start_value ?? 0;
+		const target = goal.target_value ?? 0;
 		const current = goal.current_value ?? start;
 
 		let progress = 0;
 		if (start !== target) {
-			progress = Math.min(100, Math.max(0,
-				lowerIsBetter
-					? ((start - current) / (start - target)) * 100
-					: ((current - start) / (target - start)) * 100
-			));
+			progress = Math.min(
+				100,
+				Math.max(
+					0,
+					lowerIsBetter
+						? ((start - current) / (start - target)) * 100
+						: ((current - start) / (target - start)) * 100
+				)
+			);
 		}
 
 		recentGoalActivity.push({

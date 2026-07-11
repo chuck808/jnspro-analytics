@@ -193,4 +193,4 @@ The detailed analytics are there for investigation, not for routine consumption.
 
 ---
 
-*For help with specific sections of the session page, use the Help buttons throughout the page.*
+_For help with specific sections of the session page, use the Help buttons throughout the page._

@@ -19,32 +19,36 @@ Phase 2 fixed the **Analytics page data flow** to use real Performance Engine an
 **File:** `src/routes/(protected)/analytics/+page.svelte` (lines 179-203)
 
 **BEFORE:**
+
 ```typescript
 // Only computed for latest session
 let latestSessionReport = analyseSessionIntelligence(latestRuns);
 ```
 
 **AFTER:**
+
 ```typescript
 // Compute intelligence for ALL sessions
 let allSessionReports = $derived.by(() => {
-    return data.sessions.map(session => {
-        const runs = data.allRuns
-            .filter(r => r.session_id === session.id)
-            .map(r => ({
-                reactionMs: r.reaction_time_ms,
-                peakSpeed: r.peak_speed_ms ? r.peak_speed_ms * 3.6 : null,
-                maxG: r.max_g
-            }));
-        
-        if (runs.length === 0) return null;
-        
-        const intelligence = analyseSessionIntelligence(runs);
-        return {
-            sessionId: session.id,
-            intelligence
-        };
-    }).filter(Boolean);
+	return data.sessions
+		.map((session) => {
+			const runs = data.allRuns
+				.filter((r) => r.session_id === session.id)
+				.map((r) => ({
+					reactionMs: r.reaction_time_ms,
+					peakSpeed: r.peak_speed_ms ? r.peak_speed_ms * 3.6 : null,
+					maxG: r.max_g
+				}));
+
+			if (runs.length === 0) return null;
+
+			const intelligence = analyseSessionIntelligence(runs);
+			return {
+				sessionId: session.id,
+				intelligence
+			};
+		})
+		.filter(Boolean);
 });
 ```
 
@@ -55,6 +59,7 @@ let allSessionReports = $derived.by(() => {
 ### 2. Stop Estimating from CV ❌→✅
 
 **BEFORE (INCORRECT):**
+
 ```typescript
 // ❌ Guessing scores from CV
 sessionQuality: s.reaction_cv !== null ? Math.max(0, 100 - s.reaction_cv * 10) : null,
@@ -65,6 +70,7 @@ optimalSetLength: null,
 ```
 
 **AFTER (CORRECT):**
+
 ```typescript
 // ✅ Using real v7.2 session intelligence outputs
 sessionQuality: intelligence?.sessionQuality ?? null,
@@ -75,6 +81,7 @@ optimalSetLength: intelligence?.setLength.optimal ?? null,
 ```
 
 **Impact:**
+
 - Cross-session intelligence now receives REAL analysis data
 - No more inaccurate CV-based guessing
 - Proper repeatability, fatigue, and drop-off detection
@@ -84,13 +91,15 @@ optimalSetLength: intelligence?.setLength.optimal ?? null,
 ### 3. Use Real Scores in Threshold Ratings 🎯
 
 **BEFORE:**
+
 ```typescript
-repeatabilityScore: latest.reaction_cv !== null 
-    ? Math.max(0, 100 - latest.reaction_cv * 10) 
+repeatabilityScore: latest.reaction_cv !== null
+    ? Math.max(0, 100 - latest.reaction_cv * 10)
     : null,
 ```
 
 **AFTER:**
+
 ```typescript
 repeatabilityScore: latestIntelligence?.repeatability.overall ?? null,
 bestVsAvgGapPercent: latestIntelligence?.bestVsAvg?.gapPercent ?? null
@@ -103,27 +112,29 @@ bestVsAvgGapPercent: latestIntelligence?.bestVsAvg?.gapPercent ?? null
 ### 4. Added v8.3 Session Narrative ✨
 
 **NEW Addition:**
+
 ```typescript
 let latestSessionNarrative = $derived.by(() => {
-    if (data.sessions.length === 0 || !latestSessionReport) return null;
-    const latest = data.sessions[data.sessions.length - 1];
-    
-    return buildSessionNarrative({
-        runCount: latest.run_count,
-        consistencyScore: latestSessionReport.repeatability.overall,
-        reactionCvPercent: latest.reaction_cv,
-        dataQualityRating: null, // TODO: Add data quality assessment
-        speedBlocked: false, // TODO: Determine from data quality
-        powerBlocked: false, // TODO: Determine from data quality
-        hasCalibrationWarnings: false, // TODO: Add calibration check
-        fatigueDetected: latestSessionReport.fatigue.trend === 'declining',
-        dropOffRun: latestSessionReport.dropOff?.dropOffRun ?? null,
-        bestVsAvgGapPercent: latestSessionReport.bestVsAvg?.gapPercent ?? null
-    });
+	if (data.sessions.length === 0 || !latestSessionReport) return null;
+	const latest = data.sessions[data.sessions.length - 1];
+
+	return buildSessionNarrative({
+		runCount: latest.run_count,
+		consistencyScore: latestSessionReport.repeatability.overall,
+		reactionCvPercent: latest.reaction_cv,
+		dataQualityRating: null, // TODO: Add data quality assessment
+		speedBlocked: false, // TODO: Determine from data quality
+		powerBlocked: false, // TODO: Determine from data quality
+		hasCalibrationWarnings: false, // TODO: Add calibration check
+		fatigueDetected: latestSessionReport.fatigue.trend === 'declining',
+		dropOffRun: latestSessionReport.dropOff?.dropOffRun ?? null,
+		bestVsAvgGapPercent: latestSessionReport.bestVsAvg?.gapPercent ?? null
+	});
 });
 ```
 
-**Status:** 
+**Status:**
+
 - ✅ Calculation implemented
 - ⚠️ UI display not yet added (Phase 2b)
 - The narrative is ready to be displayed in TrainingInsightsPanel
@@ -175,12 +186,14 @@ import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative'
 **Scenario:** Session with 8% CV, but good consistency pattern
 
 **BEFORE:**
+
 ```
 Estimated: 100 - (8 * 10) = 20/100 ❌
 Message: "Poor repeatability" (FALSE)
 ```
 
 **AFTER:**
+
 ```
 Calculated: 72/100 ✅ (from actual analysis)
 Message: "Good repeatability" (CORRECT)
@@ -193,12 +206,14 @@ Message: "Good repeatability" (CORRECT)
 **Scenario:** Session where quality drops at run 4
 
 **BEFORE:**
+
 ```
 dropOffRun: null ❌
 optimalSetLength: null
 ```
 
 **AFTER:**
+
 ```
 dropOffRun: 4 ✅
 optimalSetLength: 3
@@ -212,12 +227,14 @@ Message: "Performance drops after run 4"
 **Scenario:** Inconsistent execution with 18% gap
 
 **BEFORE:**
+
 ```
 Manual calculation from speed values
 May not match v7.2 logic
 ```
 
 **AFTER:**
+
 ```
 bestVsAvgGapPercent: 18.3 ✅
 Properly classified as "inconsistent"
@@ -228,16 +245,16 @@ Recommendations: "Focus on repeatability over peak runs"
 
 ## 🎯 What This Achieves
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Session Intelligence | Latest only | All sessions |
-| Repeatability Score | Estimated from CV | Real v7.2 calculation |
-| Session Quality | Estimated from CV | Real v7.2 calculation |
-| Drop-Off Detection | null | Real detection |
-| Optimal Set Length | null | Real suggestion |
-| Best vs Avg Gap | Manual calc | v7.2 algorithm |
-| Cross-Session Data | Inaccurate estimates | Real analysis outputs |
-| v8.3 Narrative | Not available | Calculated (ready for display) |
+| Aspect               | Before               | After                          |
+| -------------------- | -------------------- | ------------------------------ |
+| Session Intelligence | Latest only          | All sessions                   |
+| Repeatability Score  | Estimated from CV    | Real v7.2 calculation          |
+| Session Quality      | Estimated from CV    | Real v7.2 calculation          |
+| Drop-Off Detection   | null                 | Real detection                 |
+| Optimal Set Length   | null                 | Real suggestion                |
+| Best vs Avg Gap      | Manual calc          | v7.2 algorithm                 |
+| Cross-Session Data   | Inaccurate estimates | Real analysis outputs          |
+| v8.3 Narrative       | Not available        | Calculated (ready for display) |
 
 ---
 
@@ -278,6 +295,7 @@ Recommendations: "Focus on repeatability over peak runs"
 ### Verification Steps
 
 1. **Test with 21 Sessions**
+
    ```typescript
    // Should see in browser console (if you add logging):
    // allSessionReports: Array(21)
@@ -285,6 +303,7 @@ Recommendations: "Focus on repeatability over peak runs"
    ```
 
 2. **Check Cross-Session Report**
+
    ```typescript
    // Should now have real values:
    console.log(crossSessionReport.sessionSummaries[0]);
@@ -296,7 +315,7 @@ Recommendations: "Focus on repeatability over peak runs"
 3. **Verify Threshold Ratings**
    ```typescript
    // Should use real scores:
-   latestSessionRatings.find(r => r.metric === 'repeatabilityScore')
+   latestSessionRatings.find((r) => r.metric === 'repeatabilityScore');
    // Uses intelligence.repeatability.overall, not CV estimate
    ```
 
@@ -319,6 +338,7 @@ Raw Data → Engine Analysis → Reports → UI Display
 ```
 
 This is the correct separation of concerns:
+
 - **Engine**: Does the heavy lifting
 - **UI**: Displays results only
 
@@ -331,11 +351,13 @@ This is the correct separation of concerns:
 **Current:** All session intelligence computed client-side in $derived
 
 **Impact:**
+
 - 21 sessions × ~5 runs = ~105 analyses
 - Runs on every reactive update
 - Could be expensive for large datasets
 
 **Future Optimization (Phase 3):**
+
 1. Server-side: Pre-compute during ingest
 2. Database: Store session_intelligence_json column
 3. Client: Just display cached results

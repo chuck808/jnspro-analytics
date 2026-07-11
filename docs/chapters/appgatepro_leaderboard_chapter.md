@@ -110,4 +110,4 @@ For privacy concerns or data rights requests that can't be handled via Settings,
 
 ---
 
-*For help with the leaderboard page specifically, use the Help section on that page.*
+_For help with the leaderboard page specifically, use the Help section on that page._

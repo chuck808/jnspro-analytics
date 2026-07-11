@@ -1,6 +1,6 @@
 /**
  * v8.3 Controlled Language System
- * 
+ *
  * Export all language components
  */
 

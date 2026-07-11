@@ -21,6 +21,7 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 **Features Implemented:**
 
 #### Visual Design
+
 - **Color-coded border** - Priority level indication (critical/important/watch/info)
 - **Confidence badge** - Shows low/moderate/high confidence with color
 - **Data badge** - Displays number of runs analyzed
@@ -28,6 +29,7 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 - **Professional styling** - Matches AppGatePro design system
 
 #### Content Sections
+
 1. **Headline** - Main coaching message
 2. **Impact** - What the pattern means
 3. **Why This Matters** - Connects to rider goals (hidden for 'grom' level)
@@ -37,8 +39,9 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 7. **Warnings** - Calibration/data issues prominently displayed
 
 #### Trust Indicators
+
 - ✓ **Trusted metrics** - Green color
-- ⚠ **Caution metrics** - Amber color  
+- ⚠ **Caution metrics** - Amber color
 - ✗ **Blocked metrics** - Red color
 - **Confidence explanation** - Contextual based on confidence level
 
@@ -49,6 +52,7 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 **File:** `src/routes/(protected)/analytics/+page.svelte`
 
 **Changes:**
+
 - Added `SessionNarrativeCard` import (line 9)
 - Added new section displaying v8.3 narrative (lines 343-358)
 - Positioned above Training Insights Panel for prominence
@@ -134,17 +138,20 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 ### Color System
 
 **Priority Border Colors:**
+
 - 🔴 Critical: `#ff4444` - Red
 - 🟠 Important: `#f5a623` - Amber
 - 🟡 Watch: `#ffcc44` - Yellow
 - 🟢 Info: `#3de8c8` - Mint
 
 **Confidence Badge Colors:**
+
 - 🟡 Low: `#ffcc44` - Yellow
 - 🟠 Moderate: `#f5a623` - Amber
 - 🟢 High: `#3de8c8` - Mint
 
 **Trust Indicator Colors:**
+
 - ✓ Trusted: `#3de8c8` - Mint green
 - ⚠ Caution: `#f5a623` - Amber
 - ✗ Blocked: `#ff4444` - Red
@@ -152,18 +159,21 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 ### Action & Watch Boxes
 
 **Action Box:**
+
 - Background: `rgba(245, 166, 35, 0.08)` - Amber tint
 - Border: `rgba(245, 166, 35, 0.2)` - Amber
 - Icon: 💡 (lightbulb)
 - Purpose: Actionable guidance
 
 **Watch For Box:**
+
 - Background: `rgba(61, 232, 200, 0.08)` - Mint tint
 - Border: `rgba(61, 232, 200, 0.2)` - Mint
 - Icon: 👁️ (eye)
 - Purpose: Observable outcomes
 
 **Warning Items:**
+
 - Background: `rgba(255, 68, 68, 0.08)` - Red tint
 - Border: `rgba(255, 68, 68, 0.2)` - Red
 - Icon: ⚠️ (warning)
@@ -174,6 +184,7 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 ## 🔄 User Flow
 
 ### First Session View
+
 1. User uploads first session
 2. v7.2 analyzes session quality
 3. v8.3 builds narrative based on CV, consistency, etc.
@@ -181,6 +192,7 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 5. User sees coaching summary immediately
 
 ### Multiple Sessions
+
 1. Latest session gets v8.3 narrative
 2. All sessions get v7.2 intelligence
 3. Cross-session gets v8.1 intelligence
@@ -190,6 +202,7 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 ### Detail Levels
 
 **Grom:**
+
 - Simple headline
 - Impact
 - Action only
@@ -197,11 +210,13 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 - No advanced trust context
 
 **Rider (Default):**
+
 - Full narrative
 - All sections except advanced trust
 - Best balance of detail
 
 **Elite/Coach:**
+
 - Everything visible
 - Advanced trust context shown
 - Data quality details
@@ -215,8 +230,8 @@ Phase 3 implemented the **user interface** for the v8.3 Session Narrative system
 
 ```typescript
 interface Props {
-  narrative: SessionNarrative;
-  detailLevel?: 'grom' | 'rider' | 'elite' | 'coach';
+	narrative: SessionNarrative;
+	detailLevel?: 'grom' | 'rider' | 'elite' | 'coach';
 }
 ```
 
@@ -224,23 +239,23 @@ interface Props {
 
 ```typescript
 interface SessionNarrative {
-  message: {
-    headline: string;
-    impact: string;
-    whyThisMatters: string;
-    action: string;
-    watchFor: string | null;
-    confidence: 'low' | 'moderate' | 'high';
-    priority: 'critical' | 'important' | 'watch' | 'info';
-  };
-  trust: {
-    confidence: 'low' | 'moderate' | 'high';
-    basedOnRuns: number;
-    trustedMetrics: string[];
-    cautionMetrics: string[];
-    blockedMetrics: string[];
-  };
-  warnings: string[];
+	message: {
+		headline: string;
+		impact: string;
+		whyThisMatters: string;
+		action: string;
+		watchFor: string | null;
+		confidence: 'low' | 'moderate' | 'high';
+		priority: 'critical' | 'important' | 'watch' | 'info';
+	};
+	trust: {
+		confidence: 'low' | 'moderate' | 'high';
+		basedOnRuns: number;
+		trustedMetrics: string[];
+		cautionMetrics: string[];
+		blockedMetrics: string[];
+	};
+	warnings: string[];
 }
 ```
 
@@ -248,40 +263,44 @@ interface SessionNarrative {
 
 ## 🎯 What This Achieves
 
-| Aspect | Before | After |
-|--------|--------|-------|
+| Aspect           | Before           | After                 |
+| ---------------- | ---------------- | --------------------- |
 | Coaching Message | Raw metrics only | Narrative explanation |
-| Confidence Level | Hidden | Visible badge |
-| Data Trust | Implicit | Explicit indicators |
-| Action Guidance | Generic | Specific & contextual |
-| Watch Targets | None | Observable outcomes |
-| Priority | Unclear | Color-coded border |
-| Mobile UX | N/A | Fully responsive |
-| Detail Levels | One size | 4 adaptable levels |
+| Confidence Level | Hidden           | Visible badge         |
+| Data Trust       | Implicit         | Explicit indicators   |
+| Action Guidance  | Generic          | Specific & contextual |
+| Watch Targets    | None             | Observable outcomes   |
+| Priority         | Unclear          | Color-coded border    |
+| Mobile UX        | N/A              | Fully responsive      |
+| Detail Levels    | One size         | 4 adaptable levels    |
 
 ---
 
 ## 💡 Key Improvements
 
 ### 1. Trust Protection ✅
+
 - Users see which metrics are trustworthy
 - Blocked metrics clearly indicated
 - Confidence level always visible
 - No false confidence in bad data
 
 ### 2. Actionable Guidance ✅
+
 - Specific actions, not vague advice
 - "Watch for" creates feedback loop
 - Icons make sections scannable
 - Humble, evidence-based tone
 
 ### 3. Progressive Disclosure ✅
+
 - Core info always visible
 - Advanced details collapsible
 - Detail level adapts to user type
 - Mobile-optimized layout
 
 ### 4. Visual Hierarchy ✅
+
 - Priority indicated by border color
 - Confidence badge prominent
 - Action box stands out
@@ -294,6 +313,7 @@ interface SessionNarrative {
 ### Before Phase 3
 
 **What users saw:**
+
 ```
 Training Insights Panel
 ├── Session Quality: 72/100
@@ -308,6 +328,7 @@ Training Insights Panel
 ### After Phase 3
 
 **What users see:**
+
 ```
 v8.3 Coach Summary
 ├── Headline: "Good consistency"
@@ -330,6 +351,7 @@ Training Insights Panel
 ## 📚 Files Created/Modified
 
 ### Created
+
 1. **`src/lib/components/performance-insights/SessionNarrativeCard.svelte`**
    - 472 lines
    - Complete v8.3 narrative component
@@ -337,6 +359,7 @@ Training Insights Panel
    - Detail level adaptation
 
 ### Modified
+
 2. **`src/routes/(protected)/analytics/+page.svelte`**
    - Added import (line 9)
    - Added narrative section (lines 343-358)
@@ -366,6 +389,7 @@ Training Insights Panel
 ## 🧪 Testing Recommendations
 
 ### Visual Testing
+
 1. **Test all priority levels**
    - Critical (red border)
    - Important (amber border)
@@ -384,6 +408,7 @@ Training Insights Panel
    - Coach (with advanced)
 
 ### Functional Testing
+
 4. **Test trust indicators**
    - Trusted metrics show green
    - Caution metrics show amber
@@ -405,12 +430,14 @@ Training Insights Panel
 ## 🚀 Performance Impact
 
 ### Bundle Size
+
 - SessionNarrativeCard: ~15KB (estimated)
 - No external dependencies
 - Uses only native CSS
 - Minimal runtime overhead
 
 ### Rendering
+
 - Pure Svelte component
 - No reactive overhead (derived values only)
 - Conditional rendering optimized
@@ -421,24 +448,28 @@ Training Insights Panel
 ## 🎓 Design Principles Applied
 
 ### 1. Information Hierarchy
+
 - Most important info first (headline)
 - Supporting details follow
 - Advanced info collapsible
 - Progressive disclosure
 
 ### 2. Visual Affordances
+
 - Color indicates priority
 - Icons aid scanning
 - Borders create separation
 - Badges show metadata
 
 ### 3. Trust Building
+
 - Confidence always visible
 - Data quality explicit
 - Limitations stated clearly
 - Humble language
 
 ### 4. Action Orientation
+
 - Specific guidance
 - Observable outcomes
 - Feedback loop created
@@ -449,9 +480,11 @@ Training Insights Panel
 ## 💬 User Experience Impact
 
 ### Before
+
 "I see my session quality is 72/100, but what does that mean? Should I change something?"
 
 ### After
+
 "My session had good consistency (moderate confidence, 5 runs). Most runs landed in a tight band showing reliable technique. This matters because consistency builds confidence. I should focus on maintaining this quality and watch for continued tight grouping."
 
 **Difference:** Context, trust, and action.
@@ -460,11 +493,11 @@ Training Insights Panel
 
 ## 📊 Completion Status
 
-| Phase | Status | Files | Lines | Impact |
-|-------|--------|-------|-------|--------|
-| Phase 1 | ✅ Complete | 3 | ~90 | Core logic fixed |
-| Phase 2 | ✅ Complete | 1 | ~90 | Data flow corrected |
-| Phase 3 | ✅ Complete | 2 | ~487 | UI integrated |
+| Phase     | Status          | Files | Lines    | Impact               |
+| --------- | --------------- | ----- | -------- | -------------------- |
+| Phase 1   | ✅ Complete     | 3     | ~90      | Core logic fixed     |
+| Phase 2   | ✅ Complete     | 1     | ~90      | Data flow corrected  |
+| Phase 3   | ✅ Complete     | 2     | ~487     | UI integrated        |
 | **Total** | **✅ Complete** | **6** | **~667** | **Production ready** |
 
 ---
@@ -472,18 +505,21 @@ Training Insights Panel
 ## 🎯 What's Next (Optional Future Work)
 
 ### Phase 4: Server-Side Optimization (Future)
+
 - Pre-compute session intelligence
 - Cache in database
 - Reduce client computation
 - Improve performance at scale
 
 ### Phase 5: Additional Features (Future)
+
 - Technique trends visualization
 - User level switching in UI
 - Feedback integration
 - Email/notification summaries
 
 ### Phase 6: Advanced Analytics (Future)
+
 - Statistical significance testing
 - Period comparisons
 - Predictive insights
@@ -498,6 +534,7 @@ Training Insights Panel
 From raw data → accurate calculations → trustworthy coaching → beautiful UI
 
 The system now:
+
 - **Calculates correctly** (Phase 1)
 - **Uses real data** (Phase 2)
 - **Displays beautifully** (Phase 3)

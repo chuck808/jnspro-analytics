@@ -16,6 +16,7 @@ Phase 3 integrates Training Goals deeply into the analytics system, providing vi
 ### 1. Server-Side Goal Data Preparation ✅
 
 **File Modified:**
+
 - `src/routes/(protected)/analytics/+page.server.ts`
 
 **Changes:**
@@ -23,29 +24,33 @@ Phase 3 integrates Training Goals deeply into the analytics system, providing vi
 ```typescript
 // Fetch active goals with full details
 const { data: goals } = await supabase
-    .from('training_goals')
-    .select('metric, target_value, start_value, current_value, deadline')
-    .eq('user_id', profile.id)
-    .is('completed_at', null);
+	.from('training_goals')
+	.select('metric, target_value, start_value, current_value, deadline')
+	.eq('user_id', profile.id)
+	.is('completed_at', null);
 
 // Format goals for chart overlays
-const goalTargets = (goals ?? []).reduce((acc, goal) => {
-    acc[goal.metric] = {
-        target: goal.target_value,
-        start: goal.start_value,
-        current: goal.current_value,
-        deadline: goal.deadline
-    };
-    return acc;
-}, {} as Record<string, any>);
+const goalTargets = (goals ?? []).reduce(
+	(acc, goal) => {
+		acc[goal.metric] = {
+			target: goal.target_value,
+			start: goal.start_value,
+			current: goal.current_value,
+			deadline: goal.deadline
+		};
+		return acc;
+	},
+	{} as Record<string, any>
+);
 
-return { 
-    // ... other data
-    goalTargets  // ← New: goal targets for charts
+return {
+	// ... other data
+	goalTargets // ← New: goal targets for charts
 };
 ```
 
 **Purpose:**
+
 - Fetches active goal details including target values
 - Formats data structure for easy chart consumption
 - Passes to frontend for visualization
@@ -53,6 +58,7 @@ return {
 ### 2. Chart Component Integration ✅
 
 **Files Modified:**
+
 - `src/routes/(protected)/analytics/+page.svelte` - Pass goal data to chart component
 - `src/lib/components/analytics/RawPerformanceTrendsSection.svelte` - Render goal overlays
 
@@ -60,11 +66,11 @@ return {
 
 ```typescript
 interface Props {
-    sessions: SessionSummary[];
-    trend: Trend;
-    goalTargets?: Record<string, any>;  // ← New prop
-    isMobile: boolean;
-    onOpenHelp: (key: string) => void;
+	sessions: SessionSummary[];
+	trend: Trend;
+	goalTargets?: Record<string, any>; // ← New prop
+	isMobile: boolean;
+	onOpenHelp: (key: string) => void;
 }
 ```
 
@@ -75,36 +81,38 @@ interface Props {
 Charts now display goal targets as dashed teal lines:
 
 #### Reaction Time Chart
+
 ```typescript
 // Add goal target line if exists
 if (goalTargets.reactionTime?.target) {
-    datasets.push({
-        label: '🎯 Goal target',
-        data: Array(sessions.length).fill(goalTargets.reactionTime.target / 1000),
-        borderColor: teal,          // #3de8c8
-        borderWidth: 2,
-        borderDash: [8, 4],         // Dashed line
-        fill: false,
-        pointRadius: 0,             // No point markers
-        tension: 0                  // Straight line
-    });
+	datasets.push({
+		label: '🎯 Goal target',
+		data: Array(sessions.length).fill(goalTargets.reactionTime.target / 1000),
+		borderColor: teal, // #3de8c8
+		borderWidth: 2,
+		borderDash: [8, 4], // Dashed line
+		fill: false,
+		pointRadius: 0, // No point markers
+		tension: 0 // Straight line
+	});
 }
 ```
 
 #### Speed Chart
+
 ```typescript
 // Add goal target line if exists
 if (goalTargets.peakSpeed?.target) {
-    speedDatasets.push({
-        label: '🎯 Goal target',
-        data: Array(sessions.length).fill(goalTargets.peakSpeed.target * 3.6),
-        borderColor: teal,
-        borderWidth: 2,
-        borderDash: [8, 4],
-        fill: false,
-        pointRadius: 0,
-        tension: 0
-    });
+	speedDatasets.push({
+		label: '🎯 Goal target',
+		data: Array(sessions.length).fill(goalTargets.peakSpeed.target * 3.6),
+		borderColor: teal,
+		borderWidth: 2,
+		borderDash: [8, 4],
+		fill: false,
+		pointRadius: 0,
+		tension: 0
+	});
 }
 ```
 
@@ -113,6 +121,7 @@ if (goalTargets.peakSpeed?.target) {
 ## Visual Examples
 
 ### Before Phase 3:
+
 ```
 Reaction Time Trend
 ┌────────────────────────┐
@@ -123,6 +132,7 @@ Reaction Time Trend
 ```
 
 ### After Phase 3:
+
 ```
 Reaction Time Trend
 ┌────────────────────────┐
@@ -134,6 +144,7 @@ Legend: ━ Performance  ┅ Goal Target
 ```
 
 The dashed teal line shows exactly where the goal target is, making it instantly clear:
+
 - How close you are to your goal
 - Whether you're trending toward or away from it
 - How performance fluctuates around the target
@@ -143,12 +154,14 @@ The dashed teal line shows exactly where the goal target is, making it instantly
 ## User Experience Improvements
 
 ### Before Phase 3:
+
 - Charts showed performance trends only
 - No visual connection between goals and charts
 - Users had to mentally compare values
 - Goal progress was abstract
 
 ### After Phase 3:
+
 - ✅ Goal targets visible as chart overlays
 - ✅ Direct visual comparison of performance vs goal
 - ✅ Easy to see gap-to-goal at a glance
@@ -160,36 +173,42 @@ The dashed teal line shows exactly where the goal target is, making it instantly
 ## Technical Highlights
 
 ### 1. Conditional Rendering
+
 Goal lines only appear when a goal exists for that metric:
 
 ```typescript
 if (goalTargets.reactionTime?.target) {
-    // Add goal line
+	// Add goal line
 }
 ```
 
 This prevents empty/null data from causing chart errors.
 
 ### 2. Unit Conversion
+
 Properly handles metric conversions:
 
 ```typescript
 // Reaction time: ms → seconds
-goalTargets.reactionTime.target / 1000
+goalTargets.reactionTime.target / 1000;
 
-// Speed: m/s → km/h  
-goalTargets.peakSpeed.target * 3.6
+// Speed: m/s → km/h
+goalTargets.peakSpeed.target * 3.6;
 ```
 
 ### 3. Chart.js Integration
+
 Uses Chart.js dataset system for seamless integration:
+
 - Same legend as other data
 - Proper scaling
 - Responsive to chart resize
 - Tooltip integration
 
 ### 4. Visual Distinction
+
 Goal lines are clearly distinguishable:
+
 - **Color:** Teal (#3de8c8) - different from performance metrics
 - **Style:** Dashed [8, 4] pattern
 - **Label:** 🎯 emoji prefix
@@ -200,16 +219,19 @@ Goal lines are clearly distinguishable:
 ## Supported Metrics
 
 Currently integrated metrics:
+
 - ✅ **Reaction Time** (reactionTime) - Lower is better
 - ✅ **Peak Speed** (peakSpeed) - Higher is better
 
 **Ready for future integration:**
+
 - ⏳ Max G-Force (maxG)
 - ⏳ Consistency Score (consistency)
 - ⏳ Elapsed Time (elapsedTime)
 - ⏳ Acceleration Phase (accelerationPhase)
 
 Adding support for additional metrics requires:
+
 1. Add goal target check in chart rendering
 2. Handle proper unit conversion
 3. Test with sample data
@@ -219,15 +241,18 @@ Adding support for additional metrics requires:
 ## Performance Considerations
 
 **Chart Rendering:**
+
 - ✅ No additional API calls (data already fetched)
 - ✅ Minimal computation (simple array fill)
 - ✅ No performance degradation
 
 **Data Transfer:**
+
 - Additional data per page load: ~100-200 bytes
 - Negligible impact on load times
 
 **Memory:**
+
 - Goal target arrays are small (length = number of sessions)
 - Properly cleaned up when charts are destroyed
 
@@ -236,37 +261,45 @@ Adding support for additional metrics requires:
 ## Example Use Cases
 
 ### Use Case 1: Reaction Time Goal
+
 **Scenario:** User has goal "Reaction Time < 0.200s"
 
 **Chart Display:**
+
 ```
 Current: 0.235s ●─────●──●─●────●
 Target:  0.200s  ┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅
 ```
 
 **User sees:**
+
 - They're currently 0.035s above target
 - Trend is improving (downward slope)
 - Gap is closing with each session
 
 ### Use Case 2: Speed Goal
+
 **Scenario:** User has goal "Peak Speed > 45 km/h"
 
 **Chart Display:**
+
 ```
 Target:  45 km/h  ┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅
 Current: 42 km/h ●──●─●────●─────●
 ```
 
 **User sees:**
+
 - They're 3 km/h below target
 - Performance is fluctuating
 - Need consistent improvement to reach goal
 
 ### Use Case 3: Multiple Goals
+
 **Scenario:** User has both reaction time AND speed goals
 
 **Result:**
+
 - Reaction time chart shows reaction goal line
 - Speed chart shows speed goal line
 - Each chart independently displays relevant goal
@@ -277,13 +310,14 @@ Current: 42 km/h ●──●─●────●─────●
 ## Code Quality
 
 ### Type Safety
+
 ```typescript
 interface Props {
-    sessions: SessionSummary[];
-    trend: Trend;
-    goalTargets?: Record<string, any>;  // Optional
-    isMobile: boolean;
-    onOpenHelp: (key: string) => void;
+	sessions: SessionSummary[];
+	trend: Trend;
+	goalTargets?: Record<string, any>; // Optional
+	isMobile: boolean;
+	onOpenHelp: (key: string) => void;
 }
 
 let { sessions, trend, goalTargets = {}, isMobile, onOpenHelp }: Props = $props();
@@ -294,9 +328,10 @@ let { sessions, trend, goalTargets = {}, isMobile, onOpenHelp }: Props = $props(
 - Safe null/undefined checks
 
 ### Defensive Programming
+
 ```typescript
 if (goalTargets.reactionTime?.target) {
-    // Only execute if goal exists AND has target value
+	// Only execute if goal exists AND has target value
 }
 ```
 
@@ -304,6 +339,7 @@ if (goalTargets.reactionTime?.target) {
 - Graceful fallback (no goal line if data missing)
 
 ### Maintainability
+
 - Clear variable names (`goalTargets`, `speedDatasets`)
 - Commented code sections
 - Consistent styling with existing charts
@@ -347,6 +383,7 @@ if (goalTargets.reactionTime?.target) {
 ### Manual Testing Checklist
 
 **Chart Rendering:**
+
 - [ ] View analytics with 0 goals → no goal lines shown
 - [ ] Create reaction time goal → teal dashed line appears on reaction chart
 - [ ] Create speed goal → teal dashed line appears on speed chart
@@ -354,6 +391,7 @@ if (goalTargets.reactionTime?.target) {
 - [ ] Delete goal → goal line disappears from chart
 
 **Visual Quality:**
+
 - [ ] Goal line is distinguishable from data line
 - [ ] Goal line appears in legend
 - [ ] Goal line scales properly with Y-axis
@@ -361,12 +399,14 @@ if (goalTargets.reactionTime?.target) {
 - [ ] Mobile view renders correctly
 
 **Edge Cases:**
+
 - [ ] Very high goal target (outside current data range)
 - [ ] Very low goal target (outside current data range)
 - [ ] Goal target exactly matching current performance
 - [ ] Multiple metrics with similar values
 
 **Performance:**
+
 - [ ] Charts load quickly (< 500ms)
 - [ ] No console errors
 - [ ] Chart interactions remain smooth
@@ -377,18 +417,21 @@ if (goalTargets.reactionTime?.target) {
 ## Metrics & Success Criteria
 
 **Technical Success:**
+
 - ✅ Goal lines render correctly
 - ✅ No performance degradation
 - ✅ Proper unit conversions
 - ✅ TypeScript type safety
 
 **User Experience Success:**
+
 - ✅ Clear visual distinction between performance and goal
 - ✅ Easy to understand progress at a glance
 - ✅ Motivating visualization
 - ✅ No chart clutter
 
 **Integration Success:**
+
 - ✅ Seamless integration with existing charts
 - ✅ Consistent with design system
 - ✅ Works across all screen sizes
@@ -430,11 +473,13 @@ Phase 3 successfully bridges the gap between goal tracking and performance visua
 The implementation is clean, performant, and ready for production use.
 
 **Combined with Phases 1 & 2:**
+
 - Phase 1: Goals visible throughout system
 - Phase 2: Automatic milestone tracking
 - Phase 3: Visual goal integration in charts
 
 **Together, these create a complete, motivating goal system that:**
+
 - Tracks progress automatically
 - Shows progress visually
 - Celebrates achievements
@@ -447,12 +492,14 @@ The implementation is clean, performant, and ready for production use.
 ## Next Steps
 
 **Potential Phase 4 - Intelligence Layer:**
+
 - Goal-aware performance engine recommendations
 - Predictive goal achievement forecasting
 - Smart goal suggestions based on trends
 - Goal alignment scoring in insights
 
 **Potential Phase 5 - Advanced Features:**
+
 - Multi-level goals (stretch goals, minimum targets)
 - Team/comparative goals
 - Historical goal tracking

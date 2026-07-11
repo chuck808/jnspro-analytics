@@ -170,4 +170,4 @@ Used consistently and honestly, the goals system should help you train more inte
 
 ---
 
-*For help with specific aspects of the goals system, use the Help section on the goals page.*
+_For help with specific aspects of the goals system, use the Help section on the goals page._

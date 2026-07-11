@@ -5,9 +5,7 @@ export const load: PageServerLoad = async () => {
 	const admin = createSupabaseAdminClient();
 
 	// Fetch all user preferences to see leaderboard opt-in status
-	const { data: preferences } = await admin
-		.from('user_preferences')
-		.select(`
+	const { data: preferences } = await admin.from('user_preferences').select(`
 			user_id,
 			show_on_leaderboard,
 			leaderboard_display_name,

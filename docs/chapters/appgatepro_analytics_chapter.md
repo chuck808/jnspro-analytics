@@ -184,4 +184,4 @@ What the system can tell you is what your data shows right now and what directio
 
 ---
 
-*For help with specific sections of the analytics page, use the Help buttons throughout the page.*
+_For help with specific sections of the analytics page, use the Help buttons throughout the page._

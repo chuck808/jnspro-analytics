@@ -31,36 +31,38 @@ All 5 missing analytics features have been implemented as **standalone, reusable
 **File:** `src/lib/components/CrossRunProgression.svelte`
 
 ### Purpose
+
 Visualizes performance trends across all runs in a session to detect fatigue, improvement, or consistency patterns.
 
 ### Features
+
 - **Interactive metric selection:** Switch between Reaction Time, Max G-Force, Peak Speed, and Technique Score
 - **Trend analysis:** Automatically detects if performance is improving or degrading
 - **Fatigue detection:** Highlights when metrics drop off (e.g., G-force declining = power endurance issue)
 - **Mobile responsive:** Adapts chart height and controls for mobile devices
 
 ### Usage
+
 ```svelte
-<CrossRunProgression
-    data={progressionData}
-    bind:selectedMetric={metricChoice}
-    isMobile={isMobile}
-/>
+<CrossRunProgression data={progressionData} bind:selectedMetric={metricChoice} {isMobile} />
 ```
 
 ### Data Structure
+
 ```typescript
 interface ProgressionDataPoint {
-    runNumber: number;
-    reactionMs: number | null;
-    maxG: number | null;
-    peakSpeedKmh: number | null;
-    techniqueScore: number | null;
+	runNumber: number;
+	reactionMs: number | null;
+	maxG: number | null;
+	peakSpeedKmh: number | null;
+	techniqueScore: number | null;
 }
 ```
 
 ### Addresses Gap
+
 ✅ **4.1.A - Cross-Run Progression Within Session**
+
 - Shows metric trends across run 1→2→3→4
 - Detects reaction time degradation (fatigue)
 - Detects G-force drop-off (power endurance)
@@ -73,9 +75,11 @@ interface ProgressionDataPoint {
 **File:** `src/lib/components/RunComparison.svelte`
 
 ### Purpose
+
 Provides detailed side-by-side comparison of two runs to answer "why was run 3 better than run 5?"
 
 ### Features
+
 - **Dual run selectors:** Pick any two runs from the session
 - **Percentage differences:** See exact % change between runs
 - **Winner detection:** Automatically highlights which run performed better
@@ -83,29 +87,29 @@ Provides detailed side-by-side comparison of two runs to answer "why was run 3 b
 - **Smart comparison:** Understands "lower is better" for reaction time
 
 ### Usage
+
 ```svelte
-<RunComparison
-    runs={comparisonRuns}
-    bind:selectedRun1={run1Index}
-    bind:selectedRun2={run2Index}
-/>
+<RunComparison runs={comparisonRuns} bind:selectedRun1={run1Index} bind:selectedRun2={run2Index} />
 ```
 
 ### Data Structure
+
 ```typescript
 interface RunData {
-    runNumber: number;
-    reactionMs: number | null;
-    maxG: number | null;
-    peakSpeedKmh: number | null;
-    techniqueScore: number | null;
-    elapsedMs: number;
-    speedProfile: string | null;
+	runNumber: number;
+	reactionMs: number | null;
+	maxG: number | null;
+	peakSpeedKmh: number | null;
+	techniqueScore: number | null;
+	elapsedMs: number;
+	speedProfile: string | null;
 }
 ```
 
 ### Addresses Gap
+
 ✅ **4.1.B - Comparative View**
+
 - Side-by-side metric comparison
 - Detailed percentage differences
 - Explains why one run outperformed another
@@ -118,9 +122,11 @@ interface RunData {
 **File:** `src/lib/components/PerformanceTargets.svelte`
 
 ### Purpose
+
 Shows personalized performance goals based on rider level, helping users understand what "good" means for their skill level.
 
 ### Features
+
 - **Level-based targets:** Different goals for grom/intermediate/club/elite/pro
 - **Progress visualization:** Progress bars show how close to target
 - **Gap analysis:** Shows exact gap to target (e.g., "+30ms to target")
@@ -128,28 +134,32 @@ Shows personalized performance goals based on rider level, helping users underst
 - **Actionable advice:** Specific tips for each metric
 
 ### Usage
+
 ```svelte
 <PerformanceTargets
-    reactionMs={currentReaction}
-    maxG={currentMaxG}
-    techniqueScore={currentTechnique}
-    riderLevel={riderLevel}
+	reactionMs={currentReaction}
+	maxG={currentMaxG}
+	techniqueScore={currentTechnique}
+	{riderLevel}
 />
 ```
 
 ### Target Benchmarks
+
 ```typescript
 const levelTargets = {
-    grom:         { reaction: 350, maxG: 2.0, technique: 60 },
-    intermediate: { reaction: 280, maxG: 2.3, technique: 70 },
-    club:         { reaction: 250, maxG: 2.5, technique: 75 },
-    elite:        { reaction: 220, maxG: 2.8, technique: 80 },
-    pro:          { reaction: 200, maxG: 3.0, technique: 85 },
+	grom: { reaction: 350, maxG: 2.0, technique: 60 },
+	intermediate: { reaction: 280, maxG: 2.3, technique: 70 },
+	club: { reaction: 250, maxG: 2.5, technique: 75 },
+	elite: { reaction: 220, maxG: 2.8, technique: 80 },
+	pro: { reaction: 200, maxG: 3.0, technique: 85 }
 };
 ```
 
 ### Addresses Gap
+
 ✅ **4.1.C - Target Setting**
+
 - Provides "Aim for X reaction time" goals
 - Defines what "good" means for each level
 - Shows progress toward targets
@@ -162,9 +172,11 @@ const levelTargets = {
 **File:** `src/lib/components/HistoricalContext.svelte`
 
 ### Purpose
+
 Links current session performance to all-time bests and recent trends, providing context like "This is your 3rd best reaction time ever."
 
 ### Features
+
 - **All-time best tracking:** Shows personal records for key metrics
 - **Recent average comparison:** Compares to last 5 sessions
 - **Trend detection:** "Trending Up" or "Trending Down" indicators
@@ -172,29 +184,33 @@ Links current session performance to all-time bests and recent trends, providing
 - **Ranking system:** "Personal Best", "Excellent", "Good", or "Average"
 
 ### Usage
+
 ```svelte
 <HistoricalContext
-    currentReactionMs={reactionMs}
-    currentMaxG={maxG}
-    currentPeakSpeedKmh={peakSpeed}
-    historical={historicalStats}
+	currentReactionMs={reactionMs}
+	currentMaxG={maxG}
+	currentPeakSpeedKmh={peakSpeed}
+	historical={historicalStats}
 />
 ```
 
 ### Data Structure
+
 ```typescript
 interface HistoricalStats {
-    allTimeBestReactionMs: number | null;
-    allTimeBestMaxG: number | null;
-    allTimeBestPeakSpeedKmh: number | null;
-    recentAverageReactionMs: number | null;
-    recentAverageMaxG: number | null;
-    sessionCount: number;
+	allTimeBestReactionMs: number | null;
+	allTimeBestMaxG: number | null;
+	allTimeBestPeakSpeedKmh: number | null;
+	recentAverageReactionMs: number | null;
+	recentAverageMaxG: number | null;
+	sessionCount: number;
 }
 ```
 
 ### Addresses Gap
+
 ✅ **4.1.D - Historical Context**
+
 - Shows "This is your Xth best reaction time ever"
 - Trending up/down vs last 5 sessions
 - Links to all-time bests
@@ -207,9 +223,11 @@ interface HistoricalStats {
 **File:** `src/lib/components/DataDrillDown.svelte`
 
 ### Purpose
+
 Allows users to inspect raw data samples, view detailed statistics, and export data for external analysis.
 
 ### Features
+
 - **Expandable panel:** Click to reveal detailed data
 - **Quick stats:** Max, Min, Average, Time at Peak
 - **Data table:** View all samples with values and timestamps
@@ -218,27 +236,31 @@ Allows users to inspect raw data samples, view detailed statistics, and export d
 - **Accessibility:** Proper ARIA labels and keyboard navigation
 
 ### Usage
+
 ```svelte
 <DataDrillDown
-    title="G-Force Data - Run {runNumber}"
-    data={drillDownData}
-    unit="G"
-    runNumber={runNumber}
-    metric="G-Force"
+	title="G-Force Data - Run {runNumber}"
+	data={drillDownData}
+	unit="G"
+	{runNumber}
+	metric="G-Force"
 />
 ```
 
 ### Data Structure
+
 ```typescript
 interface DataSample {
-    timeS: number;
-    value: number;
-    label?: string;
+	timeS: number;
+	value: number;
+	label?: string;
 }
 ```
 
 ### Addresses Gap
+
 ✅ **4.1.E - Drill-Down Data**
+
 - Click to see exact sample values
 - Table of raw acceleration samples
 - CSV export of run chart data
@@ -266,30 +288,36 @@ Transform existing run data into the formats needed by each component:
 
 ```typescript
 // Cross-Run Progression Data
-let progressionData = $derived(data.runs.map(r => ({
-    runNumber: r.run_number,
-    reactionMs: r.gate_runs?.reaction_time_ms ?? null,
-    maxG: r.gate_runs?.max_g ?? null,
-    peakSpeedKmh: r.gate_runs?.peak_speed_ms ? r.gate_runs.peak_speed_ms * 3.6 : null,
-    techniqueScore: techniqueScores?.overall ?? null,
-})));
+let progressionData = $derived(
+	data.runs.map((r) => ({
+		runNumber: r.run_number,
+		reactionMs: r.gate_runs?.reaction_time_ms ?? null,
+		maxG: r.gate_runs?.max_g ?? null,
+		peakSpeedKmh: r.gate_runs?.peak_speed_ms ? r.gate_runs.peak_speed_ms * 3.6 : null,
+		techniqueScore: techniqueScores?.overall ?? null
+	}))
+);
 
 // Run Comparison Data
-let comparisonRuns = $derived(data.runs.map(r => ({
-    runNumber: r.run_number,
-    reactionMs: r.gate_runs?.reaction_time_ms ?? null,
-    maxG: r.gate_runs?.max_g ?? null,
-    peakSpeedKmh: r.gate_runs?.peak_speed_ms ? r.gate_runs.peak_speed_ms * 3.6 : null,
-    techniqueScore: null, // Calculate per run if available
-    elapsedMs: r.elapsed_time_ms,
-    speedProfile: speedProfile,
-})));
+let comparisonRuns = $derived(
+	data.runs.map((r) => ({
+		runNumber: r.run_number,
+		reactionMs: r.gate_runs?.reaction_time_ms ?? null,
+		maxG: r.gate_runs?.max_g ?? null,
+		peakSpeedKmh: r.gate_runs?.peak_speed_ms ? r.gate_runs.peak_speed_ms * 3.6 : null,
+		techniqueScore: null, // Calculate per run if available
+		elapsedMs: r.elapsed_time_ms,
+		speedProfile: speedProfile
+	}))
+);
 
 // Drill-Down Data
-let drillDownData = $derived(chartData.map((value, idx) => ({
-    timeS: (idx / chartData.length) * (elapsedMs / 1000),
-    value: value,
-})));
+let drillDownData = $derived(
+	chartData.map((value, idx) => ({
+		timeS: (idx / chartData.length) * (elapsedMs / 1000),
+		value: value
+	}))
+);
 ```
 
 ### Step 3: Add Historical Data Fetching
@@ -322,32 +350,32 @@ Insert components in strategic locations within the session page:
 ```svelte
 <!-- After the run selector, before detailed analysis -->
 {#if data.runs.length > 1}
-    <CrossRunProgression data={progressionData} {isMobile} />
-    <RunComparison runs={comparisonRuns} />
+	<CrossRunProgression data={progressionData} {isMobile} />
+	<RunComparison runs={comparisonRuns} />
 {/if}
 
 <!-- After Performance Engine panel -->
 <PerformanceTargets
-    reactionMs={selectedGate?.reaction_time_ms}
-    maxG={selectedGate?.max_g}
-    techniqueScore={techniqueScores?.overall}
-    riderLevel={riderLevel}
+	reactionMs={selectedGate?.reaction_time_ms}
+	maxG={selectedGate?.max_g}
+	techniqueScore={techniqueScores?.overall}
+	{riderLevel}
 />
 
 <HistoricalContext
-    currentReactionMs={selectedGate?.reaction_time_ms}
-    currentMaxG={selectedGate?.max_g}
-    currentPeakSpeedKmh={selectedGate?.peak_speed_ms ? selectedGate.peak_speed_ms * 3.6 : null}
-    historical={data.historical}
+	currentReactionMs={selectedGate?.reaction_time_ms}
+	currentMaxG={selectedGate?.max_g}
+	currentPeakSpeedKmh={selectedGate?.peak_speed_ms ? selectedGate.peak_speed_ms * 3.6 : null}
+	historical={data.historical}
 />
 
 <!-- Replace or augment existing charts -->
 <DataDrillDown
-    title="G-Force Data - Run {selectedRun.run_number}"
-    data={drillDownData}
-    unit="G"
-    runNumber={selectedRun.run_number}
-    metric="G-Force"
+	title="G-Force Data - Run {selectedRun.run_number}"
+	data={drillDownData}
+	unit="G"
+	runNumber={selectedRun.run_number}
+	metric="G-Force"
 />
 ```
 
@@ -356,41 +384,45 @@ Insert components in strategic locations within the session page:
 ## Benefits & Impact
 
 ### User Experience
+
 ✅ **Fatigue detection** - Users can see when performance drops across runs  
 ✅ **Goal clarity** - Clear targets for improvement based on skill level  
 ✅ **Performance context** - "Am I improving?" answered with data  
 ✅ **Detailed insights** - Deep dive into specific runs for troubleshooting  
-✅ **Data ownership** - Export capability for external analysis  
+✅ **Data ownership** - Export capability for external analysis
 
 ### Analytics Coverage
+
 ✅ **Closes all Section 4 gaps** - Every identified missing feature implemented  
 ✅ **Complements existing systems** - Works alongside Performance Engine and legacy analytics  
-✅ **Future-proof architecture** - Reusable components for other pages  
+✅ **Future-proof architecture** - Reusable components for other pages
 
 ### Technical Quality
+
 ✅ **Type-safe** - Full TypeScript interfaces  
 ✅ **Accessible** - ARIA labels, keyboard navigation, semantic HTML  
 ✅ **Responsive** - Mobile-optimized layouts  
 ✅ **Performance** - Derived state, efficient reactivity  
-✅ **Maintainable** - Clean separation of concerns  
+✅ **Maintainable** - Clean separation of concerns
 
 ---
 
 ## Component Comparison Matrix
 
-| Gap | Component | Addresses | Priority | Status |
-|-----|-----------|-----------|----------|--------|
-| **4.1.A** | CrossRunProgression | Fatigue detection, trend analysis | HIGH | ✅ Complete |
-| **4.1.B** | RunComparison | Side-by-side detailed comparison | HIGH | ✅ Complete |
-| **4.1.C** | PerformanceTargets | Goal setting, benchmarks | MEDIUM | ✅ Complete |
-| **4.1.D** | HistoricalContext | All-time bests, trending | MEDIUM | ✅ Complete |
-| **4.1.E** | DataDrillDown | Raw data, CSV export | LOW | ✅ Complete |
+| Gap       | Component           | Addresses                         | Priority | Status      |
+| --------- | ------------------- | --------------------------------- | -------- | ----------- |
+| **4.1.A** | CrossRunProgression | Fatigue detection, trend analysis | HIGH     | ✅ Complete |
+| **4.1.B** | RunComparison       | Side-by-side detailed comparison  | HIGH     | ✅ Complete |
+| **4.1.C** | PerformanceTargets  | Goal setting, benchmarks          | MEDIUM   | ✅ Complete |
+| **4.1.D** | HistoricalContext   | All-time bests, trending          | MEDIUM   | ✅ Complete |
+| **4.1.E** | DataDrillDown       | Raw data, CSV export              | LOW      | ✅ Complete |
 
 ---
 
 ## Next Steps
 
 ### Immediate (This Sprint)
+
 1. ✅ Create all 5 components (COMPLETE)
 2. 🔄 Integrate into session page
 3. 🔄 Add historical data fetching to `+page.server.ts`
@@ -398,12 +430,14 @@ Insert components in strategic locations within the session page:
 5. 🔄 Collect user feedback
 
 ### Short-Term (Next Sprint)
+
 - Add help tooltips for new components
 - Integrate with Performance Engine insights
 - Add analytics tracking (component usage metrics)
 - Create demo video/screenshots for docs
 
 ### Long-Term
+
 - ML-based performance prediction using historical trends
 - Comparative analytics across multiple sessions
 - Social features (compare with friends)

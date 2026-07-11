@@ -1,6 +1,6 @@
 /**
  * Server Actions for Session Detail Pages
- * 
+ *
  * Note: These actions are available to all child routes (/, /analysis, /detail)
  * because they're defined at the parent route level.
  */
@@ -9,192 +9,187 @@ import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    /**
-     * Update run tags
-     * Allows users to categorize runs (warmup, best-effort, etc.)
-     */
-    updateRunTags: async ({ request, locals: { supabase, session } }) => {
-        // Auth check — session is set by authGuard in hooks.server.ts
-        if (!session) return fail(401, { error: 'Not authenticated' });
+	/**
+	 * Update run tags
+	 * Allows users to categorize runs (warmup, best-effort, etc.)
+	 */
+	updateRunTags: async ({ request, locals: { supabase, session } }) => {
+		// Auth check — session is set by authGuard in hooks.server.ts
+		if (!session) return fail(401, { error: 'Not authenticated' });
 
-        const data = await request.formData();
-        const runId = data.get('runId') as string;
-        const sessionId = data.get('sessionId') as string;
-        const tagsJson = data.get('tags') as string;
-        
-        if (!runId || !sessionId) {
-            return fail(400, { error: 'Missing runId or sessionId' });
-        }
-        
-        let tags: string[] = [];
-        try {
-            tags = JSON.parse(tagsJson);
-        } catch (e) {
-            return fail(400, { error: 'Invalid tags format' });
-        }
-        
-        // Verify the run belongs to a session owned by this user before updating.
-        // The join ensures neither runId nor sessionId can be forged independently.
-        const { data: ownership, error: ownershipError } = await supabase
-            .from('runs')
-            .select('id, sessions!inner(user_id)')
-            .eq('id', runId)
-            .eq('session_id', sessionId)
-            .eq('sessions.user_id', session.user.id)
-            .maybeSingle();
+		const data = await request.formData();
+		const runId = data.get('runId') as string;
+		const sessionId = data.get('sessionId') as string;
+		const tagsJson = data.get('tags') as string;
 
-        if (ownershipError || !ownership) {
-            return fail(403, { error: 'Run not found or access denied' });
-        }
+		if (!runId || !sessionId) {
+			return fail(400, { error: 'Missing runId or sessionId' });
+		}
 
-        const { error } = await supabase
-            .from('runs')
-            .update({ tags })
-            .eq('id', runId);
-        
-        if (error) {
-            console.error('Error updating run tags:', error);
-            return fail(500, { error: 'Failed to update run tags' });
-        }
-        
-        return { success: true, runId, tags };
-    },
+		let tags: string[] = [];
+		try {
+			tags = JSON.parse(tagsJson);
+		} catch (e) {
+			return fail(400, { error: 'Invalid tags format' });
+		}
 
-    /**
-     * Update session context (weather, surface, focus)
-     */
-    updateSessionContext: async ({ request, locals: { supabase, getSession } }) => {
-        const session = await getSession();
-        if (!session) {
-            return fail(401, { error: 'Not authenticated' });
-        }
+		// Verify the run belongs to a session owned by this user before updating.
+		// The join ensures neither runId nor sessionId can be forged independently.
+		const { data: ownership, error: ownershipError } = await supabase
+			.from('runs')
+			.select('id, sessions!inner(user_id)')
+			.eq('id', runId)
+			.eq('session_id', sessionId)
+			.eq('sessions.user_id', session.user.id)
+			.maybeSingle();
 
-        const data = await request.formData();
-        const sessionId = data.get('sessionId') as string;
-        const weather = data.get('weather') as string | null;
-        const surface = data.get('surface') as string | null;
-        const focus = data.get('focus') as string | null;
-        const feel = data.get('feel') as string | null;
-        
-        if (!sessionId) {
-            return fail(400, { error: 'Missing sessionId' });
-        }
-        
-        // Update session context
-        const { error } = await supabase
-            .from('sessions')
-            .update({
-                weather_conditions: weather || null,
-                track_surface: surface || null,
-                session_focus: focus || null,
-                ride_feel: feel || null,
-            })
-            .eq('id', sessionId)
-            .eq('user_id', session.user.id); // Security: Verify ownership
-        
-        if (error) {
-            console.error('Error updating session context:', error);
-            return fail(500, { error: 'Failed to update session context' });
-        }
-        
-        return { success: true, sessionId };
-    },
+		if (ownershipError || !ownership) {
+			return fail(403, { error: 'Run not found or access denied' });
+		}
 
-    // ========================================
-    // Session Notes Actions
-    // ========================================
-    
-    addNote: async ({ request, locals: { supabase, session } }) => {
-        if (!session) return fail(401, { error: 'Not authenticated' });
+		const { error } = await supabase.from('runs').update({ tags }).eq('id', runId);
 
-        const data = await request.formData();
-        const sessionId = data.get('session_id') as string;
-        const noteType = data.get('note_type') as string;
-        const content = data.get('content') as string;
-        const authorRole = data.get('author_role') as string;
+		if (error) {
+			console.error('Error updating run tags:', error);
+			return fail(500, { error: 'Failed to update run tags' });
+		}
 
-        if (!sessionId || !noteType || !content) {
-            return fail(400, { error: 'Missing required fields' });
-        }
+		return { success: true, runId, tags };
+	},
 
-        // Verify session ownership
-        const { data: sessionData } = await supabase
-            .from('sessions')
-            .select('user_id')
-            .eq('id', sessionId)
-            .single();
+	/**
+	 * Update session context (weather, surface, focus)
+	 */
+	updateSessionContext: async ({ request, locals: { supabase, getSession } }) => {
+		const session = await getSession();
+		if (!session) {
+			return fail(401, { error: 'Not authenticated' });
+		}
 
-        if (!sessionData || sessionData.user_id !== session.user.id) {
-            return fail(403, { error: 'Unauthorized' });
-        }
+		const data = await request.formData();
+		const sessionId = data.get('sessionId') as string;
+		const weather = data.get('weather') as string | null;
+		const surface = data.get('surface') as string | null;
+		const focus = data.get('focus') as string | null;
+		const feel = data.get('feel') as string | null;
 
-        // Insert note
-        const { error } = await supabase
-            .from('session_notes')
-            .insert({
-                session_id: sessionId,
-                user_id: session.user.id,
-                note_type: noteType,
-                content,
-                author_role: authorRole || null,
-            });
+		if (!sessionId) {
+			return fail(400, { error: 'Missing sessionId' });
+		}
 
-        if (error) {
-            console.error('Error adding note:', error);
-            return fail(500, { error: 'Failed to add note' });
-        }
+		// Update session context
+		const { error } = await supabase
+			.from('sessions')
+			.update({
+				weather_conditions: weather || null,
+				track_surface: surface || null,
+				session_focus: focus || null,
+				ride_feel: feel || null
+			})
+			.eq('id', sessionId)
+			.eq('user_id', session.user.id); // Security: Verify ownership
 
-        return { success: true };
-    },
+		if (error) {
+			console.error('Error updating session context:', error);
+			return fail(500, { error: 'Failed to update session context' });
+		}
 
-    updateNote: async ({ request, locals: { supabase, session } }) => {
-        if (!session) return fail(401, { error: 'Not authenticated' });
+		return { success: true, sessionId };
+	},
 
-        const data = await request.formData();
-        const noteId = data.get('note_id') as string;
-        const content = data.get('content') as string;
+	// ========================================
+	// Session Notes Actions
+	// ========================================
 
-        if (!noteId || !content) {
-            return fail(400, { error: 'Missing required fields' });
-        }
+	addNote: async ({ request, locals: { supabase, session } }) => {
+		if (!session) return fail(401, { error: 'Not authenticated' });
 
-        // Update note (RLS will ensure ownership)
-        const { error } = await supabase
-            .from('session_notes')
-            .update({ content })
-            .eq('id', noteId)
-            .eq('user_id', session.user.id);
+		const data = await request.formData();
+		const sessionId = data.get('session_id') as string;
+		const noteType = data.get('note_type') as string;
+		const content = data.get('content') as string;
+		const authorRole = data.get('author_role') as string;
 
-        if (error) {
-            console.error('Error updating note:', error);
-            return fail(500, { error: 'Failed to update note' });
-        }
+		if (!sessionId || !noteType || !content) {
+			return fail(400, { error: 'Missing required fields' });
+		}
 
-        return { success: true };
-    },
+		// Verify session ownership
+		const { data: sessionData } = await supabase
+			.from('sessions')
+			.select('user_id')
+			.eq('id', sessionId)
+			.single();
 
-    deleteNote: async ({ request, locals: { supabase, session } }) => {
-        if (!session) return fail(401, { error: 'Not authenticated' });
+		if (!sessionData || sessionData.user_id !== session.user.id) {
+			return fail(403, { error: 'Unauthorized' });
+		}
 
-        const data = await request.formData();
-        const noteId = data.get('note_id') as string;
+		// Insert note
+		const { error } = await supabase.from('session_notes').insert({
+			session_id: sessionId,
+			user_id: session.user.id,
+			note_type: noteType,
+			content,
+			author_role: authorRole || null
+		});
 
-        if (!noteId) {
-            return fail(400, { error: 'Missing note ID' });
-        }
+		if (error) {
+			console.error('Error adding note:', error);
+			return fail(500, { error: 'Failed to add note' });
+		}
 
-        // Delete note (RLS will ensure ownership)
-        const { error } = await supabase
-            .from('session_notes')
-            .delete()
-            .eq('id', noteId)
-            .eq('user_id', session.user.id);
+		return { success: true };
+	},
 
-        if (error) {
-            console.error('Error deleting note:', error);
-            return fail(500, { error: 'Failed to delete note' });
-        }
+	updateNote: async ({ request, locals: { supabase, session } }) => {
+		if (!session) return fail(401, { error: 'Not authenticated' });
 
-        return { success: true };
-    },
+		const data = await request.formData();
+		const noteId = data.get('note_id') as string;
+		const content = data.get('content') as string;
+
+		if (!noteId || !content) {
+			return fail(400, { error: 'Missing required fields' });
+		}
+
+		// Update note (RLS will ensure ownership)
+		const { error } = await supabase
+			.from('session_notes')
+			.update({ content })
+			.eq('id', noteId)
+			.eq('user_id', session.user.id);
+
+		if (error) {
+			console.error('Error updating note:', error);
+			return fail(500, { error: 'Failed to update note' });
+		}
+
+		return { success: true };
+	},
+
+	deleteNote: async ({ request, locals: { supabase, session } }) => {
+		if (!session) return fail(401, { error: 'Not authenticated' });
+
+		const data = await request.formData();
+		const noteId = data.get('note_id') as string;
+
+		if (!noteId) {
+			return fail(400, { error: 'Missing note ID' });
+		}
+
+		// Delete note (RLS will ensure ownership)
+		const { error } = await supabase
+			.from('session_notes')
+			.delete()
+			.eq('id', noteId)
+			.eq('user_id', session.user.id);
+
+		if (error) {
+			console.error('Error deleting note:', error);
+			return fail(500, { error: 'Failed to delete note' });
+		}
+
+		return { success: true };
+	}
 };

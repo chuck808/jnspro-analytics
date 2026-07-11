@@ -6,21 +6,21 @@ type Theme = 'light' | 'dark';
 // Initialize theme from localStorage or system preference
 function getInitialTheme(): Theme {
 	if (!browser) return 'dark';
-	
+
 	const stored = localStorage.getItem('theme') as Theme | null;
 	if (stored === 'light' || stored === 'dark') return stored;
-	
+
 	// Check system preference
 	if (window.matchMedia('(prefers-color-scheme: light)').matches) {
 		return 'light';
 	}
-	
+
 	return 'dark';
 }
 
 function createThemeStore() {
 	const { subscribe, set: setStore, update } = writable<Theme>(getInitialTheme());
-	
+
 	const setTheme = (theme: Theme) => {
 		if (browser) {
 			localStorage.setItem('theme', theme);
@@ -28,12 +28,12 @@ function createThemeStore() {
 		}
 		setStore(theme);
 	};
-	
+
 	return {
 		subscribe,
 		set: setTheme,
 		toggle: () => {
-			update(current => {
+			update((current) => {
 				const next = current === 'light' ? 'dark' : 'light';
 				if (browser) {
 					localStorage.setItem('theme', next);

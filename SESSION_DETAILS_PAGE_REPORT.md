@@ -11,6 +11,7 @@
 The Session details page is the most comprehensive and feature-rich page in the application. It provides an in-depth analysis of individual BMX gate training sessions, combining multiple analytics engines, data visualization layers, and intelligent reporting systems.
 
 **Key Statistics:**
+
 - **1,459 lines** of Svelte component code
 - **330 lines** of server-side data processing
 - **25+ distinct sections/components** displayed
@@ -22,6 +23,7 @@ The Session details page is the most comprehensive and feature-rich page in the 
 ## 🗂️ Page Structure Overview
 
 ### Navigation Flow
+
 1. User navigates to `/sessions/[id]` where `[id]` is the session UUID
 2. Server loads session data from database (`+page.server.ts`)
 3. Page renders with all analytics computed client-side (`+page.svelte`)
@@ -36,17 +38,20 @@ The Session details page is the most comprehensive and feature-rich page in the 
 #### Database Tables Queried:
 
 **Sessions Table**
+
 ```sql
 SELECT id, session_type, timestamp, notes, archived,
        bikes(...), rider_profiles(...)
 FROM sessions
 WHERE id = [sessionId] AND user_id = [userId]
 ```
+
 - **Source:** Supabase `sessions` table
 - **Related:** Joined with `bikes` and `rider_profiles`
 - **Purpose:** Session metadata, bike configuration, rider demographics
 
 **Runs Table**
+
 ```sql
 SELECT id, run_number, elapsed_time_ms, distance_m, chart_data,
        gate_runs(...), run_timeseries(...)
@@ -54,31 +59,37 @@ FROM runs
 WHERE session_id = [sessionId]
 ORDER BY run_number ASC
 ```
+
 - **Source:** Supabase `runs` table
 - **Related:** Joined with `gate_runs` and `run_timeseries`
 - **Purpose:** Individual run data, G-force timeseries, analytics results
 
 **Training Goals**
+
 ```sql
 SELECT id, metric, target_value, start_value, current_value, deadline
 FROM training_goals
 WHERE user_id = [userId] AND completed_at IS NULL
 ```
+
 - **Source:** Supabase `training_goals` table
 - **Purpose:** Active goals to check for improvements
 
 **Recent Sessions (Advanced Analytics)**
+
 ```sql
 SELECT id, timestamp FROM sessions
 WHERE user_id = [userId] AND session_type = 'gate' AND archived = false
 ORDER BY timestamp DESC LIMIT 30
 ```
+
 - **Source:** Supabase `sessions` table
 - **Purpose:** Cross-session trending and historical context
 
 #### Computed Server-Side Metrics:
 
 **Session Statistics** (`sessionStats` object):
+
 - `run_count` - Total runs in session
 - `best_reaction_ms` - Fastest reaction time across all runs
 - `avg_reaction_ms` - Mean reaction time
@@ -90,12 +101,14 @@ ORDER BY timestamp DESC LIMIT 30
 - `has_valid_speed` - Boolean flag for speed data availability
 
 **Goal Progress** (`goalProgress` array):
+
 - Calculates improvements from this session
 - Determines if improvements are significant (≥0.5%)
 - Auto-creates milestones via `processGoalImprovements()`
 - Returns progress percentages toward goal targets
 
 **Advanced Analytics Data** (`advancedAnalytics` object):
+
 - `sessions` - Summary metrics for last 30 sessions
 - `allRuns` - Flattened array of all runs from recent sessions
 - `sessionCount` - Total sessions available for analysis
@@ -107,6 +120,7 @@ ORDER BY timestamp DESC LIMIT 30
 #### Reactive Derived State ($derived):
 
 **From Server Data:**
+
 - `selectedRun` - Currently selected run object
 - `selectedGate` - Gate analytics for selected run
 - `chartData` - G-force timeseries array
@@ -243,15 +257,18 @@ ORDER BY timestamp DESC LIMIT 30
 ## 🎨 DISPLAYED SECTIONS
 
 ### Section 1: Session Header
+
 **Location:** Lines 598-625  
 **Purpose:** Session metadata and navigation  
 **Data Sources:**
+
 - `session.timestamp` → formatted as sessionDate
 - `sessionStats.run_count`
 - `session.bikes.name`
 - `uciCategory.name` (if rider DOB available)
 
 **Display:**
+
 - "Gate Session" badge
 - UCI category badge (if applicable)
 - Session date (formatted: "Friday, 1st May 2026")
@@ -261,13 +278,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 2: Goal Progress Alert
+
 **Location:** Lines 627-698  
 **Purpose:** Show achievements and goal tracking  
 **Data Sources:**
+
 - Server: `data.goalProgress` array
 - Server: `data.hasActiveGoals` boolean
 
 **Conditional Display:**
+
 - **If progress exists:** Green success banner with progress bars
   - Each goal shows: metric label, improvement amount, % to target, milestone badge (if significant)
   - Link to /goals page
@@ -277,9 +297,11 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 3: Session Summary Stats
+
 **Location:** Lines 701-716  
 **Purpose:** 6 key metrics at-a-glance  
 **Data Sources:**
+
 - `sessionStats.best_reaction_ms`
 - `sessionStats.avg_reaction_ms`
 - `sessionStats.best_peak_speed_ms` (grayed if invalid)
@@ -292,13 +314,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 4: Session Narrative Card (v8.3)
+
 **Location:** Lines 718-735  
 **Purpose:** Natural language session summary  
 **Data Sources:**
+
 - `sessionNarrative` (derived from buildSessionNarrative)
 - Inputs: runCount, consistencyScore, reactionCV%, dataQuality, speed/power blocked flags, fatigue detection
 
 **Display:**
+
 - "Session Summary" header
 - Natural language message with headline, impact, action, watch-for items
 - Confidence indicator
@@ -309,14 +334,17 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 5: Training Insights Panel
+
 **Location:** Lines 737-755  
 **Purpose:** Performance Engine insights - session + technique only  
 **Component:** `TrainingInsightsPanel` from `$lib/components/performance-insights`  
 **Data Sources:**
+
 - `sessionIntelligence` (from analyseSessionIntelligence)
 - `data.runs` (mapped to simplified format)
 
 **Display Sections:**
+
 - Session Analysis: repeatability, fatigue, drop-off detection
 - Technique Analysis: reaction quality, explosiveness, smoothness
 - **NOT shown:** Progress section (showProgressSection={false})
@@ -326,13 +354,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 6: All Runs Comparison Table
+
 **Location:** Lines 758-800  
 **Purpose:** Overview of all runs in session  
 **Data Sources:**
+
 - `data.runs` array
 - Each run: run_number, reaction_time_ms, elapsed_time_ms, max_g, peak_speed_ms, front_wheel_lifted
 
 **Display:**
+
 - Table with columns: Run, Reaction, Elapsed, Max G, Peak Speed, Wheelie
 - Rows are clickable/keyboard accessible to select run
 - Selected run highlighted in amber
@@ -343,12 +374,14 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 7: Run Selector (Mobile Swipeable / Desktop Pills)
+
 **Location:** Lines 803-833  
 **Purpose:** Select which run to analyze in detail  
 **Component:** `SwipeableRunSelector` (mobile) or button pills (desktop)  
 **Data Sources:** `data.runs` array
 
 **Display:**
+
 - **Mobile (<640px):** Swipeable carousel
 - **Desktop:** Horizontal pill buttons with run number + reaction time
 - Selected run highlighted in amber
@@ -358,16 +391,19 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 8: Performance Engine Panel
+
 **Location:** Lines 838-846  
 **Purpose:** Comprehensive Performance Engine analysis  
 **Component:** `SessionPerformancePanel`  
 **Data Sources:**
+
 - `data.session`
 - `data.runs`
 - `data.riderWeight`, `data.bikeWeight`, `data.crankLength`
 - `selectedRunIdx`
 
 **Display:**
+
 - Performance metrics from unified engine
 - Contextual insights
 - Benchmarked scores
@@ -377,9 +413,11 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 9: Charts (Left Column)
+
 **Location:** Lines 849-909  
 **Purpose:** Visual representation of run data  
 **Data Sources:**
+
 - `chartData` - G-force array
 - `curve` - Speed curve (if analytics valid)
 - `jerkProfile` - Jerk analysis
@@ -387,6 +425,7 @@ ORDER BY timestamp DESC LIMIT 30
 **Charts Displayed:**
 
 **9a. G-Force Chart**
+
 - Library: Chart.js
 - Type: Line chart
 - X-axis: Time (seconds)
@@ -395,6 +434,7 @@ ORDER BY timestamp DESC LIMIT 30
 - Always shown if chartData exists
 
 **9b. Performance Curves (Speed + Acceleration)**
+
 - Library: Chart.js
 - Type: Dual-axis line chart
 - Left Y-axis: Speed (km/h) - Orange
@@ -404,6 +444,7 @@ ORDER BY timestamp DESC LIMIT 30
 - **Only if:** `analytics_valid === true`
 
 **9c. Force Application (Jerk)**
+
 - Library: Chart.js
 - Type: Line chart
 - Y-axis: Jerk (m/s³)
@@ -415,13 +456,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 10: Run Metrics (Right Column)
+
 **Location:** Lines 916-944  
 **Purpose:** Numeric metrics for selected run  
 **Data Sources:**
+
 - `selectedGate` object (all gate_runs fields)
 - `selectedRun` object (elapsed_time_ms)
 
 **Metrics Displayed (2×4 grid):**
+
 1. Reaction time (highlighted in amber)
 2. Elapsed time
 3. Max G-force
@@ -436,13 +480,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 11: Technique Scores
+
 **Location:** Lines 946-986  
 **Purpose:** Multi-dimensional technique assessment  
 **Data Sources:**
+
 - `techniqueScores` (from scoreTechnique function)
 - Benchmarked against `riderLevel`
 
 **Display:**
+
 - Circular gauge showing overall score (0-100)
 - 4 horizontal progress bars:
   - Reaction
@@ -460,9 +507,11 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 12: Technique Indicators
+
 **Location:** Lines 988-1010  
 **Purpose:** IMU orientation data  
 **Data Sources:**
+
 - `selectedGate.max_pitch_deg`
 - `selectedGate.avg_pitch_deg`
 - `selectedGate.pitch_at_peak_g_deg`
@@ -477,25 +526,30 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 13: Detailed Phase Analysis
+
 **Location:** Lines 1015-1080  
 **Purpose:** Break down start into 3 phases  
 **Data Sources:**
+
 - `phaseMetrics` (from computeDetailedPhases)
 
 **Display:** 3 cards (Drive / Transition / Velocity)
 
 **Drive Phase (Amber):**
+
 - Duration (s)
 - Peak acceleration (m/s²)
 - Time to peak (s)
 - Efficiency (%)
 
 **Transition Phase (Yellow):**
+
 - Duration (s)
 - Velocity at end (m/s)
 - Efficiency (%)
 
 **Velocity Phase (Teal):**
+
 - Duration (s)
 - Peak velocity (m/s)
 - Time to max (s)
@@ -508,12 +562,15 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 14: Acceleration Splits Table
+
 **Location:** Lines 1082-1109  
 **Purpose:** Show time/distance to reach speed milestones  
 **Data Sources:**
+
 - `splits` array (from calculateSpeedSplits)
 
 **Display:** Table with columns:
+
 - Target (50%, 75%, 90%, 95%, 100% of peak speed)
 - Time (seconds)
 - Distance (meters)
@@ -524,10 +581,12 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 15: Cross-Run Progression
+
 **Location:** Lines 1114-1116  
 **Purpose:** Visualize progression across all runs  
 **Component:** `CrossRunProgression`  
 **Data Sources:**
+
 - `progressionData` (derived from all runs)
 - Per run: runNumber, reactionMs, maxG, peakSpeedKmh
 
@@ -536,10 +595,12 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 16: Run Comparison
+
 **Location:** Lines 1119-1121  
 **Purpose:** Compare runs side-by-side  
 **Component:** `RunComparison`  
 **Data Sources:**
+
 - `comparisonRuns` (derived from all runs)
 - Includes speedProfile classification per run
 
@@ -548,10 +609,12 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 17: Performance Targets
+
 **Location:** Lines 1124-1129  
 **Purpose:** Show benchmarks vs current performance  
 **Component:** `PerformanceTargets`  
 **Data Sources:**
+
 - `selectedGate.reaction_time_ms`
 - `selectedGate.max_g`
 - `techniqueScores.overall`
@@ -564,10 +627,12 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 18: Data Drill-Down
+
 **Location:** Lines 1132-1138  
 **Purpose:** Downloadable/inspectable raw data  
 **Component:** `DataDrillDown`  
 **Data Sources:**
+
 - `drillDownData` (time-series with timestamps)
 - Metric: "G-Force"
 
@@ -576,13 +641,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 19: G-Force Stability
+
 **Location:** Lines 1141-1169  
 **Purpose:** Visual comparison of first 500ms across runs  
 **Data Sources:**
+
 - `sessionStability` array (from computeSessionStability)
 - `stabilityInsight` text
 
 **Display:**
+
 - Bar chart showing average G in first 0.5s per run
 - Amber = best run
 - Highlighted = selected run
@@ -593,9 +661,11 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 20: Power Output & Impulse Analysis
+
 **Location:** Lines 1172-1232  
 **Purpose:** Estimate power and force distribution  
 **Data Sources:**
+
 - `powerMetrics` (from estimatePower)
 - `impulse` (from analyseImpulse)
 - `totalMassKg` (rider + bike weight)
@@ -603,11 +673,13 @@ ORDER BY timestamp DESC LIMIT 30
 **Display:** 2-column grid
 
 **Power Output Card:**
+
 - Peak power (W)
 - Average power (W)
 - Total mass note
 
 **Impulse Analysis Card:**
+
 - Total impulse (N·s)
 - Efficiency (N·s/s)
 - 50% impulse time (s)
@@ -621,13 +693,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 21: Areas for Improvement (Weaknesses)
+
 **Location:** Lines 1235-1260  
 **Purpose:** Highlight below-threshold metrics  
 **Data Sources:**
+
 - `weaknesses` array (from enhancedAnalysis.legacyIntegration)
 - Filtered to scores < threshold for rider level
 
 **Display:**
+
 - Card per weakness
 - Area name
 - Score (0-100) with color coding
@@ -638,12 +713,15 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 22: Recommendations
+
 **Location:** Lines 1263-1284  
 **Purpose:** Prioritized action items  
 **Data Sources:**
+
 - `recommendations` array (from enhancedAnalysis.legacyIntegration)
 
 **Display:**
+
 - Card per recommendation
 - Priority badge (HIGH/MEDIUM/LOW) with color coding
 - Title
@@ -654,15 +732,18 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 23: Advanced Analytics Panel
+
 **Location:** Lines 1288-1294  
 **Purpose:** Cross-session trending and context  
 **Component:** `AdvancedAnalyticsSection`  
 **Data Sources:**
+
 - `data.advancedAnalytics.sessions` (last 30 sessions summary)
 - `data.advancedAnalytics.allRuns` (all runs from recent sessions)
 - `data.advancedAnalytics.sessionCount`
 
 **Display:**
+
 - Historical performance trends
 - Personal bests context
 - Improvement trajectories
@@ -672,9 +753,11 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 24: Report Generation Button
+
 **Location:** Lines 1296-1323  
 **Purpose:** Trigger professional report creation  
 **Display:**
+
 - Large card button with icon
 - "Generate Session Report" heading
 - "Create professional coaching report" subtitle
@@ -686,13 +769,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 25: Report Options Modal
+
 **Location:** Lines 1328-1437  
 **Purpose:** Configure report settings  
 **Component:** `ReportOptionsPanel`  
 **Data Sources:**
+
 - `data.goalProgress` (for includeGoals option)
 
 **Options:**
+
 - `reportType`: 'coach-session' (currently only option)
 - `detailLevel`: 'simple' | 'standard' | 'coach' | 'technical'
 - `includeCharts`: boolean
@@ -701,6 +787,7 @@ ORDER BY timestamp DESC LIMIT 30
 - `includeGoals`: boolean (if active goals exist)
 
 **What's Included Preview:**
+
 - Executive summary
 - Quality metrics
 - Technique breakdown
@@ -711,13 +798,16 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 26: Report Preview Modal
+
 **Location:** Lines 1440-1457  
 **Purpose:** Display generated report  
 **Component:** `ReportPreview`  
 **Data Sources:**
+
 - `report` object (from buildCoachSessionReport)
 
 **Generated via:** `generateReport()` function
+
 - Uses `createAnalysisView()` for coaching language
 - Merges Performance Engine + legacy analytics
 - Builds structured report with sections
@@ -727,12 +817,14 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### Section 27: Help Panel
+
 **Location:** Line 1459  
 **Purpose:** Contextual help system  
 **Component:** `HelpPanel`  
 **Data Sources:** `helpKey` (topic identifier)
 
 **Topics Available:**
+
 - gForce
 - speedAnalysis
 - reactionTime
@@ -747,7 +839,9 @@ ORDER BY timestamp DESC LIMIT 30
 ## 🔧 ANALYTICS ENGINES & SYSTEMS
 
 ### 1. Legacy Analytics (`$lib/utils/analytics.ts`)
+
 **Functions Used:**
+
 - `computeSpeedCurve()` - Speed estimation from G-force
 - `calculateSpeedSplits()` - Time/distance to speed milestones
 - `assessDataQuality()` - IMU calibration quality
@@ -762,7 +856,9 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### 2. Extended Analytics (`$lib/utils/analyticsExtended.ts`)
+
 **Functions Used:**
+
 - `computeJerk()` - Rate of change of acceleration
 - `computeDetailedPhases()` - Drive/Transition/Velocity breakdown
 - `computeSessionStability()` - Cross-run consistency
@@ -775,7 +871,9 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### 3. Performance Engine (`$lib/performance-engine`)
+
 **Functions Used:**
+
 - `analyseSession()` - Comprehensive session analysis
 - `analyseSessionIntelligence()` - Repeatability, fatigue, drop-off detection
 - `buildSessionNarrative()` - Natural language summaries
@@ -786,7 +884,9 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### 4. Performance Bridge (`$lib/performance-bridge/legacyIntegration.ts`)
+
 **Functions Used:**
+
 - `integrateWithPerformanceEngine()` - Merge Performance Engine + legacy
 - `createUnifiedInsightSummary()` - Combined insights
 - `extractPerformanceEngineDataForLegacy()` - Data adapter
@@ -796,7 +896,9 @@ ORDER BY timestamp DESC LIMIT 30
 ---
 
 ### 5. Report Engine (`$lib/report-engine`)
+
 **Functions Used:**
+
 - `buildCoachSessionReport()` - Generate professional reports
 
 **Purpose:** Create shareable, printable coaching reports
@@ -872,11 +974,13 @@ ORDER BY timestamp DESC LIMIT 30
 ## 🎯 KEY FEATURES
 
 ### ✅ Multi-Level Analysis
+
 - **Run-level:** Individual run detailed metrics
 - **Session-level:** Cross-run patterns and consistency
 - **Historical:** 30-session trending and context
 
 ### ✅ Intelligent Insights
+
 - Natural language narratives
 - Coaching recommendations
 - Weakness detection
@@ -884,24 +988,28 @@ ORDER BY timestamp DESC LIMIT 30
 - Drop-off detection
 
 ### ✅ Goal Integration
+
 - Auto-detects improvements
 - Creates milestones
 - Shows progress alerts
 - Links to goal management
 
 ### ✅ Professional Reporting
+
 - Multiple detail levels (simple/standard/coach/technical)
 - Customizable sections
 - Print/PDF ready
 - JSON export option
 
 ### ✅ Accessibility
+
 - Keyboard navigation
 - ARIA labels
 - Screen reader support
 - Focus management
 
 ### ✅ Responsive Design
+
 - Mobile swipeable selectors
 - Desktop multi-column layouts
 - Adaptive chart sizes
@@ -912,14 +1020,18 @@ ORDER BY timestamp DESC LIMIT 30
 ## 🚫 BLOCKED FEATURES
 
 ### Power & Impulse Analysis
+
 **Requires:**
+
 - Rider weight (from profile)
 - Bike weight (from bike setup)
 
 **Shows:** "Power analytics locked" CTA to complete profile
 
 ### Speed Metrics
+
 **Requires:**
+
 - Valid IMU calibration (`analytics_valid === true`)
 - Bias correction within acceptable range
 
@@ -930,6 +1042,7 @@ ORDER BY timestamp DESC LIMIT 30
 ## 📊 DATABASE SCHEMA DEPENDENCIES
 
 ### Required Tables:
+
 1. `sessions` - Core session data
 2. `runs` - Individual run records
 3. `gate_runs` - Gate analytics results
@@ -940,6 +1053,7 @@ ORDER BY timestamp DESC LIMIT 30
 8. `tire_library` - Tire specifications (via bikes FK)
 
 ### Optional but Enhanced:
+
 - `goal_milestones` - Auto-created on improvements
 - Historical session data for trending
 
@@ -985,6 +1099,7 @@ The Session details page is a comprehensive, multi-layered analytics platform th
 - **Cross-session intelligence** for historical context
 
 **Data originates from:**
+
 1. Supabase database (sessions, runs, goals, bikes, profiles)
 2. Client-side computations (speed curves, technique scores, power estimates)
 3. Performance Engine (unified analysis, narratives, insights)This is a question not a code request. To merge the legacy, bridge and performance engine

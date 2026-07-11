@@ -7,7 +7,7 @@ import {
 	METRIC_LOWER_IS_BETTER,
 	type LeaderboardMetric,
 	type TimePeriod,
-	type LeaderboardViewRow,
+	type LeaderboardViewRow
 } from '$lib/services/benchmarking/leaderboards';
 
 // Minimum opted-in riders before cross-rider rankings are surfaced.
@@ -20,23 +20,27 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 
 	// ── Query params ──────────────────────────────────────────────────────────
 	const selectedMetric = (url.searchParams.get('metric') ?? 'reactionTime') as LeaderboardMetric;
-	const selectedPeriod = (url.searchParams.get('period') ?? 'all_time')     as TimePeriod;
-	const selectedAge    = url.searchParams.get('ageGroup')    ?? undefined;
-	const selectedExp    = url.searchParams.get('experience')  ?? undefined;
+	const selectedPeriod = (url.searchParams.get('period') ?? 'all_time') as TimePeriod;
+	const selectedAge = url.searchParams.get('ageGroup') ?? undefined;
+	const selectedExp = url.searchParams.get('experience') ?? undefined;
 
 	// ── User's own stats (always real, not gated) ─────────────────────────────
 	const empty = {
-		sessionCount:  0,
-		totalRuns:     0,
-		personalBests: { reaction_ms: null as number | null, peak_speed_ms: null as number | null, max_g: null as number | null },
-		consistency:   null as number | null,
-		activeGoals:   [] as any[],
+		sessionCount: 0,
+		totalRuns: 0,
+		personalBests: {
+			reaction_ms: null as number | null,
+			peak_speed_ms: null as number | null,
+			max_g: null as number | null
+		},
+		consistency: null as number | null,
+		activeGoals: [] as any[],
 		recentSessions: [] as any[],
-		leaderboards:  null as Record<string, any> | null,
+		leaderboards: null as Record<string, any> | null,
 		selectedMetric,
 		selectedPeriod,
-		userOptedIn:   false,
-		userDisplayName: null as string | null,
+		userOptedIn: false,
+		userDisplayName: null as string | null
 	};
 
 	if (!profile) return empty;
@@ -51,31 +55,37 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 
 	if (!sessions || sessions.length === 0) return { ...empty };
 
-	const sessionIds = sessions.map(s => s.id);
+	const sessionIds = sessions.map((s) => s.id);
 
 	const { data: runsWithGate } = await supabase
 		.from('runs')
 		.select('tags, gate_runs(reaction_time_ms, peak_speed_ms, max_g, analytics_valid)')
 		.in('session_id', sessionIds);
 
-	const eligibleRuns  = (runsWithGate ?? []).filter(r => !shouldExcludeFromStats(r.tags as any));
-	const allGateRuns   = eligibleRuns.flatMap(r => Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []));
-	const validGateRuns = allGateRuns.filter(g => g.analytics_valid);
+	const eligibleRuns = (runsWithGate ?? []).filter((r) => !shouldExcludeFromStats(r.tags as any));
+	const allGateRuns = eligibleRuns.flatMap((r) =>
+		Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []
+	);
+	const validGateRuns = allGateRuns.filter((g) => g.analytics_valid);
 
-	const reactionTimes = allGateRuns.map(g => g.reaction_time_ms).filter((v): v is number => v !== null);
-	const speeds        = validGateRuns.map(g => g.peak_speed_ms).filter((v): v is number => v !== null);
-	const gForces       = allGateRuns.map(g => g.max_g).filter((v): v is number => v !== null);
+	const reactionTimes = allGateRuns
+		.map((g) => g.reaction_time_ms)
+		.filter((v): v is number => v !== null);
+	const speeds = validGateRuns.map((g) => g.peak_speed_ms).filter((v): v is number => v !== null);
+	const gForces = allGateRuns.map((g) => g.max_g).filter((v): v is number => v !== null);
 
 	const personalBests = {
-		reaction_ms:   reactionTimes.length ? Math.min(...reactionTimes) : null,
-		peak_speed_ms: speeds.length        ? Math.max(...speeds)        : null,
-		max_g:         gForces.length       ? Math.max(...gForces)       : null,
+		reaction_ms: reactionTimes.length ? Math.min(...reactionTimes) : null,
+		peak_speed_ms: speeds.length ? Math.max(...speeds) : null,
+		max_g: gForces.length ? Math.max(...gForces) : null
 	};
 
 	let consistency: number | null = null;
 	if (reactionTimes.length >= 3) {
 		const mean = reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length;
-		const std  = Math.sqrt(reactionTimes.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / reactionTimes.length);
+		const std = Math.sqrt(
+			reactionTimes.map((v) => (v - mean) ** 2).reduce((a, b) => a + b, 0) / reactionTimes.length
+		);
 		consistency = (std / mean) * 100;
 	}
 
@@ -91,7 +101,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		.eq('user_id', profile.id)
 		.maybeSingle();
 
-	const userOptedIn    = prefs?.show_on_leaderboard ?? false;
+	const userOptedIn = prefs?.show_on_leaderboard ?? false;
 	const userDisplayName = prefs?.leaderboard_display_name ?? null;
 
 	// ── Leaderboard data (admin client, reads leaderboard_view) ───────────────
@@ -112,13 +122,15 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		const metrics: LeaderboardMetric[] = ['reactionTime', 'peakSpeed', 'maxG', 'consistency'];
 
 		const results = await Promise.all(
-			metrics.map(metric => {
-				const col         = METRIC_COLUMN[metric] as string;
+			metrics.map((metric) => {
+				const col = METRIC_COLUMN[metric] as string;
 				const lowerBetter = METRIC_LOWER_IS_BETTER[metric];
 
 				let q = admin
 					.from('leaderboard_view')
-					.select('user_id, display_name, age_group, experience_level, session_count, best_reaction_ms, best_peak_speed_ms, best_max_g, best_consistency')
+					.select(
+						'user_id, display_name, age_group, experience_level, session_count, best_reaction_ms, best_peak_speed_ms, best_max_g, best_consistency'
+					)
 					.not(col, 'is', null)
 					.order(col, { ascending: lowerBetter })
 					.limit(200);
@@ -128,24 +140,28 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 
 				return q.then(({ data }) => ({
 					metric,
-					rows: (data ?? []) as LeaderboardViewRow[],
+					rows: (data ?? []) as LeaderboardViewRow[]
 				}));
 			})
 		);
 
 		leaderboards = {};
 		for (const { metric, rows } of results) {
-			leaderboards[metric] = shapeLeaderboard(rows, {
-				metric,
-				timePeriod:      selectedPeriod,
-				ageGroup:        selectedAge as any,
-				experienceLevel: selectedExp as any,
-			}, profile.id);
+			leaderboards[metric] = shapeLeaderboard(
+				rows,
+				{
+					metric,
+					timePeriod: selectedPeriod,
+					ageGroup: selectedAge as any,
+					experienceLevel: selectedExp as any
+				},
+				profile.id
+			);
 		}
 	}
 
 	// ── Recent sessions ───────────────────────────────────────────────────────
-	const recentIds = sessions.slice(0, 5).map(s => s.id);
+	const recentIds = sessions.slice(0, 5).map((s) => s.id);
 	const { data: recentRuns } = await supabase
 		.from('runs')
 		.select('session_id, tags, gate_runs(reaction_time_ms, peak_speed_ms, analytics_valid)')
@@ -155,31 +171,35 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		.select('session_id, id')
 		.in('session_id', recentIds);
 
-	const recentSessions = sessions.slice(0, 5).map(session => {
-		const sessionEligible = (recentRuns ?? [])
-			.filter(r => r.session_id === session.id && !shouldExcludeFromStats(r.tags as any));
+	const recentSessions = sessions.slice(0, 5).map((session) => {
+		const sessionEligible = (recentRuns ?? []).filter(
+			(r) => r.session_id === session.id && !shouldExcludeFromStats(r.tags as any)
+		);
 		const sGateRuns = sessionEligible
-			.flatMap(r => Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []))
-			.filter(g => g.analytics_valid);
+			.flatMap((r) => (Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []))
+			.filter((g) => g.analytics_valid);
 		const sReactions = sessionEligible
-			.flatMap(r => Array.isArray(r.gate_runs) ? r.gate_runs : (r.gate_runs ? [r.gate_runs] : []))
-			.map(g => g.reaction_time_ms).filter((v): v is number => v !== null);
-		const sSpeeds = sGateRuns.map(r => r.peak_speed_ms).filter((v): v is number => v !== null);
-		const sRunCount = (recentRunCounts ?? []).filter(r => r.session_id === session.id).length;
+			.flatMap((r) => (Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []))
+			.map((g) => g.reaction_time_ms)
+			.filter((v): v is number => v !== null);
+		const sSpeeds = sGateRuns.map((r) => r.peak_speed_ms).filter((v): v is number => v !== null);
+		const sRunCount = (recentRunCounts ?? []).filter((r) => r.session_id === session.id).length;
 		let reaction_cv: number | null = null;
 		if (sReactions.length >= 3) {
 			const mean = sReactions.reduce((a, b) => a + b, 0) / sReactions.length;
-			const std  = Math.sqrt(sReactions.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / sReactions.length);
+			const std = Math.sqrt(
+				sReactions.map((v) => (v - mean) ** 2).reduce((a, b) => a + b, 0) / sReactions.length
+			);
 			reaction_cv = (std / mean) * 100;
 		}
 		return {
-			id:                 session.id,
-			timestamp:          session.timestamp,
-			run_count:          sRunCount,
-			best_reaction_ms:   sReactions.length ? Math.min(...sReactions) : null,
-			best_peak_speed_ms: sSpeeds.length    ? Math.max(...sSpeeds)    : null,
-			has_valid_speed:    sSpeeds.length > 0,
-			reaction_cv,
+			id: session.id,
+			timestamp: session.timestamp,
+			run_count: sRunCount,
+			best_reaction_ms: sReactions.length ? Math.min(...sReactions) : null,
+			best_peak_speed_ms: sSpeeds.length ? Math.max(...sSpeeds) : null,
+			has_valid_speed: sSpeeds.length > 0,
+			reaction_cv
 		};
 	});
 
@@ -194,27 +214,33 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 
 	const now = new Date();
 	const lowerBetterMetrics = ['reactionTime', 'elapsedTime', 'accelerationPhase'];
-	const activeGoals = (goals ?? []).map(goal => {
-		const deadline  = goal.deadline ? new Date(goal.deadline) : null;
+	const activeGoals = (goals ?? []).map((goal) => {
+		const deadline = goal.deadline ? new Date(goal.deadline) : null;
 		const daysUntil = deadline ? Math.ceil((deadline.getTime() - now.getTime()) / 86400000) : 999;
-		const start       = goal.start_value  ?? 0;
-		const target      = goal.target_value ?? 0;
-		const current     = goal.current_value ?? start;
+		const start = goal.start_value ?? 0;
+		const target = goal.target_value ?? 0;
+		const current = goal.current_value ?? start;
 		const lowerBetter = lowerBetterMetrics.includes(goal.metric);
 		let progress = 0;
 		if (start !== target) {
-			progress = Math.min(100, Math.max(0, Math.round(
-				lowerBetter
-					? ((start - current) / (start - target)) * 100
-					: ((current - start) / (target - start)) * 100
-			)));
+			progress = Math.min(
+				100,
+				Math.max(
+					0,
+					Math.round(
+						lowerBetter
+							? ((start - current) / (start - target)) * 100
+							: ((current - start) / (target - start)) * 100
+					)
+				)
+			);
 		}
 		return { ...goal, daysUntilDeadline: daysUntil, isOverdue: daysUntil < 0, progress };
 	});
 
 	return {
-		sessionCount:  sessions.length,
-		totalRuns:     totalRuns ?? 0,
+		sessionCount: sessions.length,
+		totalRuns: totalRuns ?? 0,
 		personalBests,
 		consistency,
 		activeGoals,
@@ -222,10 +248,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		leaderboards,
 		selectedMetric,
 		selectedPeriod,
-		selectedAgeGroup:   selectedAge,
+		selectedAgeGroup: selectedAge,
 		selectedExperience: selectedExp,
 		userOptedIn,
 		userDisplayName,
-		profile,
+		profile
 	};
 };

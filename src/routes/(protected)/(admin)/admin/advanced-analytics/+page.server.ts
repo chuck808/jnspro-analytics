@@ -44,9 +44,7 @@ export const load: PageServerLoad = async () => {
 
 	const sessionCounts = Object.values(sessionsByUser);
 	const avgSessionsPerUser =
-		sessionCounts.length > 0
-			? sessionCounts.reduce((a, b) => a + b, 0) / sessionCounts.length
-			: 0;
+		sessionCounts.length > 0 ? sessionCounts.reduce((a, b) => a + b, 0) / sessionCounts.length : 0;
 
 	// Performance percentiles (simulated - in production, calculate from actual data)
 	const performanceDistribution = {

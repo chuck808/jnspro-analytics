@@ -17,16 +17,18 @@ This document defines the strategy for evolving the AppGatePro Analytics databas
 ### Current Implementation
 
 **SD Card Files:**
+
 - `schemaVersion` field in JSON root (currently `2`)
 - Validation in `src/lib/services/ingest.ts`:
   ```typescript
   const SUPPORTED_SCHEMA_VERSION = 2;
   if (version !== undefined && version !== SUPPORTED_SCHEMA_VERSION) {
-      errors.push('Unsupported schema version...');
+  	errors.push('Unsupported schema version...');
   }
   ```
 
 **Database:**
+
 - No explicit version tracking currently implemented
 - Migrations tracked by filename timestamp in `supabase/migrations/`
 
@@ -57,6 +59,7 @@ SD card files represent the canonical raw archive and **must never require firmw
 **Rule:** Once written to SD card, a session file should be importable by any future version of the analytics platform.
 
 **Implementation:**
+
 - Ingest service supports multiple schema versions
 - Older schema versions are transformed to current internal format
 - Validation warnings but never hard failures for old schemas
@@ -66,6 +69,7 @@ SD card files represent the canonical raw archive and **must never require firmw
 Database schema changes are additive and non-destructive.
 
 **Rules:**
+
 - ✅ Add new tables
 - ✅ Add new columns with nullable or default values
 - ✅ Add new indexes
@@ -90,10 +94,10 @@ Upload endpoint maintains compatibility across schema versions.
 
 ```sql
 -- Migration: 20260XXX_add_power_fields.sql
-ALTER TABLE public.gate_runs 
+ALTER TABLE public.gate_runs
 ADD COLUMN IF NOT EXISTS max_power_w REAL DEFAULT NULL;
 
-COMMENT ON COLUMN public.gate_runs.max_power_w IS 
+COMMENT ON COLUMN public.gate_runs.max_power_w IS
     'Peak power estimate in watts (added schema v3)';
 
 -- Update schema version
@@ -102,6 +106,7 @@ VALUES (3, '20260XXX_add_power_fields.sql', 'Added power estimation fields');
 ```
 
 **Ingest Service Update:**
+
 ```typescript
 // src/lib/services/ingest.ts
 // v2 files don't have power fields - gracefully handled
@@ -109,6 +114,7 @@ max_power_w: safeNum(fa.maxPowerW), // undefined for v2 files
 ```
 
 **SD Card Compatibility:**
+
 - ✅ v2 files import successfully (`max_power_w` = null)
 - ✅ v3 files populate new field
 - ✅ No firmware update required for v2 devices
@@ -124,32 +130,33 @@ max_power_w: safeNum(fa.maxPowerW), // undefined for v2 files
 ```typescript
 // src/lib/services/ingest.ts
 export function transformSDFile(file: SDCardFile): IngestSession {
-    const version = file.schemaVersion ?? 1;
-    
-    switch (version) {
-        case 3:
-            return transformSchemaV3(file);
-        case 2:
-            return transformSchemaV2(file);
-        case 1:
-            return transformSchemaV1(file);
-        default:
-            throw new Error(`Unsupported schema version: ${version}`);
-    }
+	const version = file.schemaVersion ?? 1;
+
+	switch (version) {
+		case 3:
+			return transformSchemaV3(file);
+		case 2:
+			return transformSchemaV2(file);
+		case 1:
+			return transformSchemaV1(file);
+		default:
+			throw new Error(`Unsupported schema version: ${version}`);
+	}
 }
 
 function transformSchemaV2(file: SDCardFileV2): IngestSession {
-    // v2 transformation logic (current implementation)
-    // Missing pitch calibration → analytics_valid may be false
+	// v2 transformation logic (current implementation)
+	// Missing pitch calibration → analytics_valid may be false
 }
 
 function transformSchemaV3(file: SDCardFileV3): IngestSession {
-    // v3 includes pitch_calibration_offset
-    // Better analytics accuracy for pitch-based metrics
+	// v3 includes pitch_calibration_offset
+	// Better analytics accuracy for pitch-based metrics
 }
 ```
 
 **Database Impact:**
+
 - v2 and v3 files both insert successfully
 - v2 files may have `analytics_valid: false` for pitch-dependent metrics
 - UI shows appropriate fallback/warnings
@@ -165,10 +172,11 @@ function transformSchemaV3(file: SDCardFileV3): IngestSession {
    - Edge cases (incomplete sessions, corrupted data)
 
 2. **Test Ingestion:**
+
    ```bash
    # Run test suite
    npm run test:ingest
-   
+
    # Manual validation
    curl -X POST /api/upload \
      -H "Content-Type: application/json" \
@@ -176,9 +184,10 @@ function transformSchemaV3(file: SDCardFileV3): IngestSession {
    ```
 
 3. **Verify Database State:**
+
    ```sql
    -- Check all schema versions imported correctly
-   SELECT 
+   SELECT
        sv.version,
        COUNT(DISTINCT s.id) as session_count,
        COUNT(r.id) as run_count
@@ -215,6 +224,7 @@ function transformSchemaV3(file: SDCardFileV3): IngestSession {
 **Target:** Q3 2026
 
 **New Features:**
+
 - Enhanced pitch calibration (`pitch_calibration_offset` in timeSeries)
 - Lap timing data for track mode
 - Cadence sensor integration
@@ -222,12 +232,13 @@ function transformSchemaV3(file: SDCardFileV3): IngestSession {
 **Breaking Changes:** None (additive only)
 
 **Migration Path:**
+
 ```sql
 -- Add lap timing tables for track sessions
 CREATE TABLE IF NOT EXISTS public.track_laps (...);
 
 -- Add calibration fields to run_timeseries
-ALTER TABLE public.run_timeseries 
+ALTER TABLE public.run_timeseries
 ADD COLUMN pitch_calibration_offset REAL DEFAULT NULL;
 
 -- Update schema version
@@ -239,11 +250,13 @@ INSERT INTO public.schema_version VALUES (3, ...);
 **Target:** Q1 2027
 
 **New Features:**
+
 - Multi-sensor fusion (GPS + IMU)
 - Wind speed compensation
 - Rider position tracking (seated/standing)
 
 **Migration Considerations:**
+
 - GPS data optional (not all devices have GPS)
 - v2/v3 files remain fully compatible
 - Enhanced analytics when GPS available
@@ -261,18 +274,21 @@ INSERT INTO public.schema_version VALUES (3, ...);
 ### How to Deprecate
 
 **Step 1: Mark as deprecated (Schema vN)**
+
 ```sql
-COMMENT ON COLUMN public.gate_runs.old_field IS 
+COMMENT ON COLUMN public.gate_runs.old_field IS
     'DEPRECATED (schema v4): Replaced by new_field. Will be removed in schema v6 (2028).';
 ```
 
 **Step 2: Stop populating (Schema vN+1)**
+
 ```typescript
 // Ingest service - don't write to deprecated field
 // old_field: null, // DEPRECATED
 ```
 
 **Step 3: Remove after grace period (Schema vN+2)**
+
 ```sql
 -- Only after 2+ schema versions (typically 12+ months)
 ALTER TABLE public.gate_runs DROP COLUMN IF EXISTS old_field;
@@ -290,25 +306,25 @@ ALTER TABLE public.gate_runs DROP COLUMN IF EXISTS old_field;
 // tests/schema/compatibility.test.ts
 
 describe('Schema Compatibility', () => {
-    test('v2 session files import successfully', async () => {
-        const v2File = readTestFile('fixtures/session_v2.json');
-        const result = await uploadSession(v2File);
-        expect(result.success).toBe(true);
-    });
+	test('v2 session files import successfully', async () => {
+		const v2File = readTestFile('fixtures/session_v2.json');
+		const result = await uploadSession(v2File);
+		expect(result.success).toBe(true);
+	});
 
-    test('v1 session files import with warnings', async () => {
-        const v1File = readTestFile('fixtures/session_v1.json');
-        const result = await uploadSession(v1File);
-        expect(result.success).toBe(true);
-        expect(result.warnings).toContain('Legacy schema v1');
-    });
+	test('v1 session files import with warnings', async () => {
+		const v1File = readTestFile('fixtures/session_v1.json');
+		const result = await uploadSession(v1File);
+		expect(result.success).toBe(true);
+		expect(result.warnings).toContain('Legacy schema v1');
+	});
 
-    test('future schema version shows clear error', async () => {
-        const v99File = { schemaVersion: 99, runs: [] };
-        const result = await uploadSession(v99File);
-        expect(result.success).toBe(false);
-        expect(result.errors).toContain('Unsupported schema version: 99');
-    });
+	test('future schema version shows clear error', async () => {
+		const v99File = { schemaVersion: 99, runs: [] };
+		const result = await uploadSession(v99File);
+		expect(result.success).toBe(false);
+		expect(result.errors).toContain('Unsupported schema version: 99');
+	});
 });
 ```
 
@@ -319,11 +335,13 @@ describe('Schema Compatibility', () => {
 ### For Users
 
 **Before Migration:**
+
 - Changelog entry explaining new features
 - Note that old session files remain compatible
 - Beta testing with volunteer users
 
 **After Migration:**
+
 - Release notes highlighting improvements
 - No action required notice (automatic migration)
 - Support contact for issues
@@ -331,6 +349,7 @@ describe('Schema Compatibility', () => {
 ### For Firmware Team
 
 **Schema Change Protocol:**
+
 1. Analytics team proposes schema change
 2. Firmware team reviews impact on device storage/bandwidth
 3. Agreement on `schemaVersion` increment timing
@@ -345,6 +364,7 @@ describe('Schema Compatibility', () => {
 **Symptoms:** Schema migration fails mid-execution
 
 **Response:**
+
 1. Supabase automatic rollback (transaction-based migrations)
 2. Check logs: `SELECT * FROM public.schema_version ORDER BY version DESC;`
 3. Fix migration SQL syntax
@@ -355,6 +375,7 @@ describe('Schema Compatibility', () => {
 **All session data is recoverable from SD card files.**
 
 If database corrupted beyond repair:
+
 1. Restore from Supabase point-in-time backup (7-day retention)
 2. Or: Mass re-import from user SD card files (canonical source)
 3. Update audit log and notify affected users
@@ -371,5 +392,3 @@ This schema evolution strategy prioritizes:
 4. ✅ **Data integrity** - SD card files are canonical, recoverable
 
 **Key Principle:** The database is a performance-optimized view of the canonical SD card archive. It can always be rebuilt.
-
-

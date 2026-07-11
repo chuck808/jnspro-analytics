@@ -5,6 +5,7 @@ This document explains how to use the newly integrated performance analysis modu
 ## 📦 What Was Added
 
 ### Analysis Modules (TypeScript)
+
 Located in `src/lib/performance-engine/`:
 
 1. **frontWheelLift.ts** - Analyzes front wheel lift/wheelie behavior
@@ -12,6 +13,7 @@ Located in `src/lib/performance-engine/`:
 3. **phaseConsistency.ts** - Analyzes consistency across run phases
 
 ### Chart Components (Svelte)
+
 Located in `src/lib/components/performance-charts/`:
 
 1. **PeakSpeedScatterChart.svelte** - Scatter plot of peak speeds across runs
@@ -29,10 +31,10 @@ import { analyseFrontWheelLift } from '$lib/performance-engine';
 
 // Analyze wheelie behavior from gate run data
 const wheelieAnalysis = analyseFrontWheelLift({
-  front_wheel_lifted: true,
-  wheelie_duration_ms: 850,
-  max_pitch: 16.5,
-  time_to_wheelie_ms: 450
+	front_wheel_lifted: true,
+	wheelie_duration_ms: 850,
+	max_pitch: 16.5,
+	time_to_wheelie_ms: 450
 });
 
 // Result:
@@ -46,6 +48,7 @@ const wheelieAnalysis = analyseFrontWheelLift({
 ```
 
 **Classification Logic:**
+
 - `no-lift`: No front wheel lift detected
 - `controlled`: Lift detected within normal parameters
 - `late-lift`: Lift happened too late (>700ms)
@@ -69,6 +72,7 @@ const quality = assessDataQuality(0.35);
 ```
 
 **Rating Scale:**
+
 - `excellent`: bias < 0.5 m/s²
 - `good`: bias < 1.0 m/s²
 - `fair`: bias < 2.0 m/s²
@@ -84,20 +88,20 @@ import { analysePhaseConsistency } from '$lib/performance-engine';
 
 // Analyze consistency across multiple runs
 const runs = [
-  {
-    splits: [
-      { phase: 'reaction', time: 250 },
-      { phase: 'acceleration', time: 1200 },
-      { phase: 'top-speed', time: 2100 }
-    ]
-  },
-  {
-    splits: [
-      { phase: 'reaction', time: 280 },
-      { phase: 'acceleration', time: 1180 },
-      { phase: 'top-speed', time: 2050 }
-    ]
-  }
+	{
+		splits: [
+			{ phase: 'reaction', time: 250 },
+			{ phase: 'acceleration', time: 1200 },
+			{ phase: 'top-speed', time: 2100 }
+		]
+	},
+	{
+		splits: [
+			{ phase: 'reaction', time: 280 },
+			{ phase: 'acceleration', time: 1180 },
+			{ phase: 'top-speed', time: 2050 }
+		]
+	}
 ];
 
 const consistency = analysePhaseConsistency(runs);
@@ -122,26 +126,27 @@ const consistency = analysePhaseConsistency(runs);
 
 ```svelte
 <script>
-  import { PeakSpeedScatterChart } from '$lib/components/performance-charts';
-  
-  const speedData = [
-    { runIndex: 0, speed: 45.2, runNumber: 1 },
-    { runIndex: 1, speed: 46.8, runNumber: 2 },
-    { runIndex: 2, speed: 44.9, runNumber: 3 },
-    { runIndex: 3, speed: 47.1, runNumber: 4 }
-  ];
+	import { PeakSpeedScatterChart } from '$lib/components/performance-charts';
+
+	const speedData = [
+		{ runIndex: 0, speed: 45.2, runNumber: 1 },
+		{ runIndex: 1, speed: 46.8, runNumber: 2 },
+		{ runIndex: 2, speed: 44.9, runNumber: 3 },
+		{ runIndex: 3, speed: 47.1, runNumber: 4 }
+	];
 </script>
 
 <PeakSpeedScatterChart
-  points={speedData}
-  title="Peak Speed Distribution"
-  subtitle="Peak speed achieved in each run"
-  height={220}
-  compact={false}
+	points={speedData}
+	title="Peak Speed Distribution"
+	subtitle="Peak speed achieved in each run"
+	height={220}
+	compact={false}
 />
 ```
 
 **Props:**
+
 - `points` - Array of `{ runIndex, speed, runNumber? }`
 - `title` - Chart title (default: "Peak Speed Distribution")
 - `subtitle` - Chart subtitle
@@ -154,31 +159,32 @@ const consistency = analysePhaseConsistency(runs);
 
 ```svelte
 <script>
-  import { SpeedWithAverageLineChart } from '$lib/components/performance-charts';
-  
-  const speedSeries = [
-    { x: 0, y: 0 },
-    { x: 0.5, y: 25.3 },
-    { x: 1.0, y: 42.1 },
-    { x: 1.5, y: 46.8 },
-    { x: 2.0, y: 47.2 }
-  ];
-  
-  const averageSpeed = 32.28;
+	import { SpeedWithAverageLineChart } from '$lib/components/performance-charts';
+
+	const speedSeries = [
+		{ x: 0, y: 0 },
+		{ x: 0.5, y: 25.3 },
+		{ x: 1.0, y: 42.1 },
+		{ x: 1.5, y: 46.8 },
+		{ x: 2.0, y: 47.2 }
+	];
+
+	const averageSpeed = 32.28;
 </script>
 
 <SpeedWithAverageLineChart
-  series={speedSeries}
-  average={averageSpeed}
-  title="Speed Over Time"
-  subtitle="Speed progression with average reference"
-  unit="km/h"
-  height={220}
-  compact={false}
+	series={speedSeries}
+	average={averageSpeed}
+	title="Speed Over Time"
+	subtitle="Speed progression with average reference"
+	unit="km/h"
+	height={220}
+	compact={false}
 />
 ```
 
 **Props:**
+
 - `series` - Array of `{ x, y }` points
 - `average` - Average value for reference line
 - `title` - Chart title (default: "Speed Over Time")
@@ -193,29 +199,30 @@ const consistency = analysePhaseConsistency(runs);
 
 ```svelte
 <script>
-  import { SpeedHeatmapChart } from '$lib/components/performance-charts';
-  
-  const heatmapData = [
-    { intensity: 0.2, value: 15.3, label: 'Segment 1' },
-    { intensity: 0.5, value: 32.1, label: 'Segment 2' },
-    { intensity: 0.8, value: 45.8, label: 'Segment 3' },
-    { intensity: 1.0, value: 52.3, label: 'Segment 4' },
-    // ... more cells
-  ];
+	import { SpeedHeatmapChart } from '$lib/components/performance-charts';
+
+	const heatmapData = [
+		{ intensity: 0.2, value: 15.3, label: 'Segment 1' },
+		{ intensity: 0.5, value: 32.1, label: 'Segment 2' },
+		{ intensity: 0.8, value: 45.8, label: 'Segment 3' },
+		{ intensity: 1.0, value: 52.3, label: 'Segment 4' }
+		// ... more cells
+	];
 </script>
 
 <SpeedHeatmapChart
-  cells={heatmapData}
-  columns={20}
-  title="Speed Intensity Heatmap"
-  subtitle="Speed intensity distribution across time segments"
-  unit="km/h"
-  height={220}
-  compact={false}
+	cells={heatmapData}
+	columns={20}
+	title="Speed Intensity Heatmap"
+	subtitle="Speed intensity distribution across time segments"
+	unit="km/h"
+	height={220}
+	compact={false}
 />
 ```
 
 **Props:**
+
 - `cells` - Array of `{ intensity, value?, label? }` (intensity: 0-1 range)
 - `columns` - Number of columns in grid (default: 20)
 - `title` - Chart title (default: "Speed Intensity Heatmap")
@@ -248,72 +255,65 @@ Here's how to integrate into a panel component:
 
 ```svelte
 <script lang="ts">
-  import {
-    analyseFrontWheelLift,
-    assessDataQuality,
-    analysePhaseConsistency
-  } from '$lib/performance-engine';
-  
-  import {
-    PeakSpeedScatterChart,
-    SpeedWithAverageLineChart,
-    SpeedHeatmapChart
-  } from '$lib/components/performance-charts';
-  
-  // Your session/run data
-  export let session;
-  export let runs = [];
-  
-  // Process data
-  $: speedPoints = runs.map((run, i) => ({
-    runIndex: i,
-    speed: run.max_speed_kmh ?? 0,
-    runNumber: run.run_number
-  }));
-  
-  $: wheelieAnalysis = runs.map(run => 
-    analyseFrontWheelLift(run.gate_runs ?? {})
-  );
-  
-  $: dataQuality = assessDataQuality(
-    runs[0]?.gate_runs?.bias_correction_ms2
-  );
+	import {
+		analyseFrontWheelLift,
+		assessDataQuality,
+		analysePhaseConsistency
+	} from '$lib/performance-engine';
+
+	import {
+		PeakSpeedScatterChart,
+		SpeedWithAverageLineChart,
+		SpeedHeatmapChart
+	} from '$lib/components/performance-charts';
+
+	// Your session/run data
+	export let session;
+	export let runs = [];
+
+	// Process data
+	$: speedPoints = runs.map((run, i) => ({
+		runIndex: i,
+		speed: run.max_speed_kmh ?? 0,
+		runNumber: run.run_number
+	}));
+
+	$: wheelieAnalysis = runs.map((run) => analyseFrontWheelLift(run.gate_runs ?? {}));
+
+	$: dataQuality = assessDataQuality(runs[0]?.gate_runs?.bias_correction_ms2);
 </script>
 
 <section class="performance-panel">
-  <h2>Performance Analysis</h2>
-  
-  <!-- Data Quality Badge -->
-  <div class="quality-badge {dataQuality.rating}">
-    Data Quality: {dataQuality.rating}
-  </div>
-  
-  <!-- Charts -->
-  <div class="charts-grid">
-    <PeakSpeedScatterChart points={speedPoints} />
-    <SpeedWithAverageLineChart
-      series={speedSeriesData}
-      average={averageSpeed}
-    />
-    <SpeedHeatmapChart cells={heatmapCells} />
-  </div>
-  
-  <!-- Wheelie Analysis -->
-  <div class="analysis-cards">
-    {#each wheelieAnalysis as analysis, i}
-      <div class="card {analysis.classification}">
-        <h3>Run {i + 1}</h3>
-        <p>Classification: {analysis.classification}</p>
-        {#if analysis.detected}
-          <ul>
-            <li>Max Pitch: {analysis.maxPitch}°</li>
-            <li>Duration: {analysis.duration}ms</li>
-            <li>Time to Lift: {analysis.timeToLift}ms</li>
-          </ul>
-        {/if}
-      </div>
-    {/each}
-  </div>
+	<h2>Performance Analysis</h2>
+
+	<!-- Data Quality Badge -->
+	<div class="quality-badge {dataQuality.rating}">
+		Data Quality: {dataQuality.rating}
+	</div>
+
+	<!-- Charts -->
+	<div class="charts-grid">
+		<PeakSpeedScatterChart points={speedPoints} />
+		<SpeedWithAverageLineChart series={speedSeriesData} average={averageSpeed} />
+		<SpeedHeatmapChart cells={heatmapCells} />
+	</div>
+
+	<!-- Wheelie Analysis -->
+	<div class="analysis-cards">
+		{#each wheelieAnalysis as analysis, i}
+			<div class="card {analysis.classification}">
+				<h3>Run {i + 1}</h3>
+				<p>Classification: {analysis.classification}</p>
+				{#if analysis.detected}
+					<ul>
+						<li>Max Pitch: {analysis.maxPitch}°</li>
+						<li>Duration: {analysis.duration}ms</li>
+						<li>Time to Lift: {analysis.timeToLift}ms</li>
+					</ul>
+				{/if}
+			</div>
+		{/each}
+	</div>
 </section>
 ```
 
@@ -326,22 +326,18 @@ All modules include full TypeScript types:
 ```typescript
 // Analysis Module Types
 import type {
-  FrontWheelLiftInput,
-  FrontWheelLiftAnalysis,
-  WheelieClassification,
-  DataQualityRating,
-  DataQualityAssessment,
-  PhaseSplit,
-  RunWithSplits,
-  PhaseConsistencyResult
+	FrontWheelLiftInput,
+	FrontWheelLiftAnalysis,
+	WheelieClassification,
+	DataQualityRating,
+	DataQualityAssessment,
+	PhaseSplit,
+	RunWithSplits,
+	PhaseConsistencyResult
 } from '$lib/performance-engine';
 
 // Chart Component Types
-import type {
-  SpeedPoint,
-  SeriesPoint,
-  HeatmapCell
-} from '$lib/components/performance-charts';
+import type { SpeedPoint, SeriesPoint, HeatmapCell } from '$lib/components/performance-charts';
 ```
 
 ---
@@ -352,27 +348,31 @@ Quick test to verify integration:
 
 ```typescript
 import {
-  analyseFrontWheelLift,
-  assessDataQuality,
-  analysePhaseConsistency
+	analyseFrontWheelLift,
+	assessDataQuality,
+	analysePhaseConsistency
 } from '$lib/performance-engine';
 
 // Test 1: Wheelie detection
-console.log(analyseFrontWheelLift({
-  front_wheel_lifted: true,
-  wheelie_duration_ms: 600,
-  max_pitch: 15,
-  time_to_wheelie_ms: 500
-}));
+console.log(
+	analyseFrontWheelLift({
+		front_wheel_lifted: true,
+		wheelie_duration_ms: 600,
+		max_pitch: 15,
+		time_to_wheelie_ms: 500
+	})
+);
 
 // Test 2: Data quality
 console.log(assessDataQuality(0.8));
 
 // Test 3: Phase consistency
-console.log(analysePhaseConsistency([
-  { splits: [{ phase: 'start', time: 100 }] },
-  { splits: [{ phase: 'start', time: 110 }] }
-]));
+console.log(
+	analysePhaseConsistency([
+		{ splits: [{ phase: 'start', time: 100 }] },
+		{ splits: [{ phase: 'start', time: 110 }] }
+	])
+);
 ```
 
 ---

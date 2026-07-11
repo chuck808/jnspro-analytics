@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { exportToJSON, exportToCSV, generateHealthReport } from '$lib/utils/exportHelpers';
-	
+
 	let { data }: { data: PageData } = $props();
 
 	function formatDate(dateString: string | null) {
@@ -69,34 +69,42 @@
 	<div class="flex items-start justify-between gap-4">
 		<div>
 			<h2 class="text-lg font-bold text-[#f0ece4]">Goals & Training Intelligence</h2>
-			<p class="text-sm text-[#9a8f7a] mt-0.5">
+			<p class="mt-0.5 text-sm text-[#9a8f7a]">
 				Monitor AI-powered goal tracking, health alerts, and prediction models
 			</p>
 		</div>
-		<div class="flex items-center gap-2 flex-shrink-0">
+		<div class="flex flex-shrink-0 items-center gap-2">
 			<button
 				onclick={handleExportHealthReport}
-				class="px-3 py-2 text-sm bg-[#f5a623]/10 border border-[#f5a623]/30 
-				       text-[#f5a623] rounded-lg hover:bg-[#f5a623]/20 transition-colors
-				       flex items-center gap-2"
+				class="flex items-center gap-2 rounded-lg border border-[#f5a623]/30
+				       bg-[#f5a623]/10 px-3 py-2 text-sm
+				       text-[#f5a623] transition-colors hover:bg-[#f5a623]/20"
 				title="Export health report as JSON"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-					      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+					/>
 				</svg>
 				Health Report
 			</button>
 			<button
 				onclick={handleExportGoalsCSV}
-				class="px-3 py-2 text-sm bg-[#3de8c8]/10 border border-[#3de8c8]/30 
-				       text-[#3de8c8] rounded-lg hover:bg-[#3de8c8]/20 transition-colors
-				       flex items-center gap-2"
+				class="flex items-center gap-2 rounded-lg border border-[#3de8c8]/30
+				       bg-[#3de8c8]/10 px-3 py-2 text-sm
+				       text-[#3de8c8] transition-colors hover:bg-[#3de8c8]/20"
 				title="Export all goals as CSV"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-					      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+					/>
 				</svg>
 				Export CSV
 			</button>
@@ -104,42 +112,13 @@
 	</div>
 
 	<!-- Key Stats -->
-	<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-		{#each [
-			{
-				label: 'Total Goals',
-				value: data.stats.totalGoals,
-				sub: `${data.stats.usersWithGoals} users`,
-				icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-				color: '#f5a623'
-			},
-			{
-				label: 'Active Goals',
-				value: data.stats.activeGoals,
-				sub: `${data.stats.completionRate}% completion rate`,
-				icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-				color: '#3de8c8'
-			},
-			{
-				label: 'Health Warnings',
-				value: data.healthWarnings.warning + data.healthWarnings.critical,
-				sub: `${data.healthWarnings.critical} critical`,
-				icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
-				color: data.healthWarnings.critical > 0 ? '#ff4444' : '#ff6b3d'
-			},
-			{
-				label: 'Avg Completion',
-				value: data.stats.avgDaysToComplete > 0 ? `${data.stats.avgDaysToComplete}d` : '—',
-				sub: 'days to complete',
-				icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-				color: '#9a8f7a'
-			}
-		] as stat}
-			<div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-				<div class="flex items-start justify-between mb-2">
-					<p class="text-xs text-[#9a8f7a] uppercase tracking-wider">{stat.label}</p>
+	<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+		{#each [{ label: 'Total Goals', value: data.stats.totalGoals, sub: `${data.stats.usersWithGoals} users`, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#f5a623' }, { label: 'Active Goals', value: data.stats.activeGoals, sub: `${data.stats.completionRate}% completion rate`, icon: 'M13 10V3L4 14h7v7l9-11h-7z', color: '#3de8c8' }, { label: 'Health Warnings', value: data.healthWarnings.warning + data.healthWarnings.critical, sub: `${data.healthWarnings.critical} critical`, icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', color: data.healthWarnings.critical > 0 ? '#ff4444' : '#ff6b3d' }, { label: 'Avg Completion', value: data.stats.avgDaysToComplete > 0 ? `${data.stats.avgDaysToComplete}d` : '—', sub: 'days to complete', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: '#9a8f7a' }] as stat}
+			<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+				<div class="mb-2 flex items-start justify-between">
+					<p class="text-xs tracking-wider text-[#9a8f7a] uppercase">{stat.label}</p>
 					<svg
-						class="w-5 h-5 flex-shrink-0"
+						class="h-5 w-5 flex-shrink-0"
 						style="color: {stat.color}"
 						fill="none"
 						stroke="currentColor"
@@ -149,82 +128,69 @@
 					</svg>
 				</div>
 				<p class="text-3xl font-bold" style="color: {stat.color}">{stat.value}</p>
-				<p class="text-xs text-[#4a4038] mt-1">{stat.sub}</p>
+				<p class="mt-1 text-xs text-[#4a4038]">{stat.sub}</p>
 			</div>
 		{/each}
 	</div>
 
 	<!-- Prediction Model Stats -->
-	<div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-		<h3 class="text-sm font-semibold text-[#f0ece4] mb-4">
-			📊 Prediction Model Usage (Phase 5)
-		</h3>
+	<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+		<h3 class="mb-4 text-sm font-semibold text-[#f0ece4]">📊 Prediction Model Usage (Phase 5)</h3>
 		{#if data.modelStats}
-		{@const ms = data.modelStats as any}
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-			{#each [
-				{ model: 'Linear', count: ms.linear, color: '#3de8c8', desc: 'Steady progress' },
-				{
-					model: 'Polynomial',
-					count: ms.polynomial,
-					color: '#f5a623',
-					desc: 'Non-linear patterns'
-				},
-				{
-					model: 'Exponential',
-					count: ms.exponential,
-					color: '#ff6b3d',
-					desc: 'Breakthrough/plateau'
-				}
-			] as model}
-				<div class="bg-[#0a0809] rounded-lg p-4">
-					<div class="flex items-center justify-between mb-2">
-						<span class="text-sm font-medium text-[#f0ece4]">{model.model}</span>
-						<span class="text-2xl font-bold" style="color: {model.color}">{model.count}</span>
+			{@const ms = data.modelStats as any}
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+				{#each [{ model: 'Linear', count: ms.linear, color: '#3de8c8', desc: 'Steady progress' }, { model: 'Polynomial', count: ms.polynomial, color: '#f5a623', desc: 'Non-linear patterns' }, { model: 'Exponential', count: ms.exponential, color: '#ff6b3d', desc: 'Breakthrough/plateau' }] as model}
+					<div class="rounded-lg bg-[#0a0809] p-4">
+						<div class="mb-2 flex items-center justify-between">
+							<span class="text-sm font-medium text-[#f0ece4]">{model.model}</span>
+							<span class="text-2xl font-bold" style="color: {model.color}">{model.count}</span>
+						</div>
+						<div class="mb-2 h-2 w-full rounded-full bg-[#221c18]">
+							<div
+								class="h-2 rounded-full transition-all"
+								style="width: {(model.count / data.stats.activeGoals) *
+									100}%; background-color: {model.color}"
+							></div>
+						</div>
+						<p class="text-xs text-[#4a4038]">{model.desc}</p>
 					</div>
-					<div class="w-full bg-[#221c18] rounded-full h-2 mb-2">
-						<div
-							class="h-2 rounded-full transition-all"
-							style="width: {(model.count / data.stats.activeGoals) * 100}%; background-color: {model.color}"
-						></div>
-					</div>
-					<p class="text-xs text-[#4a4038]">{model.desc}</p>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
 		{:else}
-			<p class="text-sm text-[#4a4038]">Model usage tracking not yet implemented — data will appear here in a future update.</p>
+			<p class="text-sm text-[#4a4038]">
+				Model usage tracking not yet implemented — data will appear here in a future update.
+			</p>
 		{/if}
 	</div>
 
 	<!-- Users At Risk & Recent Activity -->
-	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 		<!-- Users At Risk -->
-		<div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-			<div class="flex items-center justify-between mb-4">
+		<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+			<div class="mb-4 flex items-center justify-between">
 				<h3 class="text-sm font-semibold text-[#f0ece4]">⚠️ Users At Risk</h3>
-				<span class="text-xs px-2 py-0.5 rounded bg-red-900/20 text-red-400">
+				<span class="rounded bg-red-900/20 px-2 py-0.5 text-xs text-red-400">
 					{data.usersAtRisk.length}
 				</span>
 			</div>
 
 			{#if data.usersAtRisk.length === 0}
-				<div class="text-center py-8">
+				<div class="py-8 text-center">
 					<p class="text-sm text-[#3de8c8]">✓ All users training safely</p>
-					<p class="text-xs text-[#4a4038] mt-1">No health warnings detected</p>
+					<p class="mt-1 text-xs text-[#4a4038]">No health warnings detected</p>
 				</div>
 			{:else}
 				<div class="space-y-2">
 					{#each data.usersAtRisk as user}
-						<div class="p-3 bg-[#0a0809] border border-red-900/20 rounded-lg">
-							<div class="flex items-start justify-between mb-2">
+						<div class="rounded-lg border border-red-900/20 bg-[#0a0809] p-3">
+							<div class="mb-2 flex items-start justify-between">
 								<div class="flex-1">
 									<p class="text-sm font-medium text-[#f0ece4]">
 										{user.user_name || user.user_email}
 									</p>
 									<p class="text-xs text-[#4a4038]">{user.user_email}</p>
 								</div>
-								<span class="text-xs px-2 py-0.5 rounded bg-red-900/20 text-red-400 ml-2">
+								<span class="ml-2 rounded bg-red-900/20 px-2 py-0.5 text-xs text-red-400">
 									{user.risk_type}
 								</span>
 							</div>
@@ -240,15 +206,15 @@
 		</div>
 
 		<!-- Recent Goal Activity -->
-		<div class="bg-[#131010] border border-[#221c18] rounded-xl p-5">
-			<h3 class="text-sm font-semibold text-[#f0ece4] mb-4">🎯 Recent Goal Activity</h3>
+		<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
+			<h3 class="mb-4 text-sm font-semibold text-[#f0ece4]">🎯 Recent Goal Activity</h3>
 			{#if data.recentGoalActivity.length === 0}
-				<p class="text-sm text-[#4a4038] text-center py-8">No recent activity</p>
+				<p class="py-8 text-center text-sm text-[#4a4038]">No recent activity</p>
 			{:else}
-				<div class="space-y-2 max-h-[400px] overflow-y-auto">
+				<div class="max-h-[400px] space-y-2 overflow-y-auto">
 					{#each data.recentGoalActivity as activity}
-						<div class="p-3 bg-[#0a0809] rounded-lg hover:bg-[#171210] transition-colors">
-							<div class="flex items-center justify-between mb-1">
+						<div class="rounded-lg bg-[#0a0809] p-3 transition-colors hover:bg-[#171210]">
+							<div class="mb-1 flex items-center justify-between">
 								<p class="text-sm font-medium text-[#f0ece4]">
 									{activity.user_name || activity.user_email}
 								</p>
@@ -263,7 +229,7 @@
 									{activity.progress}%
 								</span>
 							</div>
-							<div class="flex items-center gap-2 text-xs text-[#9a8f7a] mb-2">
+							<div class="mb-2 flex items-center gap-2 text-xs text-[#9a8f7a]">
 								<span>{formatMetric(activity.metric)}</span>
 								<span>•</span>
 								<span>{activity.recent_sessions} sessions (30d)</span>
@@ -272,7 +238,7 @@
 									<span>Due {formatDate(activity.deadline)}</span>
 								{/if}
 							</div>
-							<div class="w-full bg-[#221c18] rounded-full h-1.5">
+							<div class="h-1.5 w-full rounded-full bg-[#221c18]">
 								<div
 									class="h-1.5 rounded-full transition-all"
 									style="width: {activity.progress}%; background-color: {activity.progress >= 75
@@ -290,10 +256,10 @@
 	</div>
 
 	<!-- Information Panel -->
-	<div class="bg-[#131010] border border-[#f5a623]/20 rounded-xl p-6">
+	<div class="rounded-xl border border-[#f5a623]/20 bg-[#131010] p-6">
 		<div class="flex items-start gap-3">
 			<svg
-				class="w-6 h-6 text-[#f5a623] flex-shrink-0 mt-0.5"
+				class="mt-0.5 h-6 w-6 flex-shrink-0 text-[#f5a623]"
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
@@ -306,28 +272,28 @@
 				/>
 			</svg>
 			<div class="flex-1">
-				<h3 class="text-sm font-semibold text-[#f0ece4] mb-2">Phase 5: AI Intelligence Layer</h3>
-				<p class="text-sm text-[#9a8f7a] mb-3">
+				<h3 class="mb-2 text-sm font-semibold text-[#f0ece4]">Phase 5: AI Intelligence Layer</h3>
+				<p class="mb-3 text-sm text-[#9a8f7a]">
 					This dashboard monitors the advanced goals system with prediction models, anomaly
 					detection, and adaptive suggestions.
 				</p>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div class="p-3 bg-[#0a0809] rounded-lg">
-						<p class="text-sm font-medium text-[#f0ece4] mb-1">✓ Advanced Predictions</p>
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+					<div class="rounded-lg bg-[#0a0809] p-3">
+						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Advanced Predictions</p>
 						<p class="text-xs text-[#9a8f7a]">
 							Polynomial, exponential models with confidence intervals
 						</p>
 					</div>
-					<div class="p-3 bg-[#0a0809] rounded-lg">
-						<p class="text-sm font-medium text-[#f0ece4] mb-1">✓ Health Monitoring</p>
+					<div class="rounded-lg bg-[#0a0809] p-3">
+						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Health Monitoring</p>
 						<p class="text-xs text-[#9a8f7a]">Fatigue analysis and injury risk assessment</p>
 					</div>
-					<div class="p-3 bg-[#0a0809] rounded-lg">
-						<p class="text-sm font-medium text-[#f0ece4] mb-1">✓ Adaptive Goals</p>
+					<div class="rounded-lg bg-[#0a0809] p-3">
+						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Adaptive Goals</p>
 						<p class="text-xs text-[#9a8f7a]">Auto-suggestions based on progress patterns</p>
 					</div>
-					<div class="p-3 bg-[#0a0809] rounded-lg">
-						<p class="text-sm font-medium text-[#f0ece4] mb-1">✓ Benchmarking</p>
+					<div class="rounded-lg bg-[#0a0809] p-3">
+						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Benchmarking</p>
 						<p class="text-xs text-[#9a8f7a]">Peer comparison and leaderboards (when ready)</p>
 					</div>
 				</div>

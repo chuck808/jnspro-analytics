@@ -79,6 +79,7 @@ Work through this in order:
 A bug is something that should work but doesn't. A feature request is something that doesn't exist but you wish it did. Both are welcome, but they go through different processes.
 
 When reporting a bug, include:
+
 - What you were trying to do
 - What you expected to happen
 - What actually happened
@@ -98,6 +99,7 @@ Use the feedback button on whichever page the issue occurred. It captures the pa
 Try the self-service options first — check the relevant chapter, refresh the page, try a different browser. Most things resolve with basic troubleshooting.
 
 Contact support when:
+
 - You can't log in and the password reset isn't working
 - You've lost access to your two-factor authentication device
 - You uploaded sessions and the data looks corrupted or lost
@@ -143,4 +145,4 @@ The most common ones and what they mean:
 
 ---
 
-*If your problem isn't covered here, use the feedback button on the relevant page or email support@appgatepro.com.*
+_If your problem isn't covered here, use the feedback button on the relevant page or email support@appgatepro.com._

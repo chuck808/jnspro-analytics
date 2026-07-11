@@ -16,16 +16,12 @@
 		}))
 	);
 
-	const report = $derived(
-		feedbackRecords.length > 0 ? analyseFeedback(feedbackRecords) : null
-	);
+	const report = $derived(feedbackRecords.length > 0 ? analyseFeedback(feedbackRecords) : null);
 
 	// Calculate advanced metrics
 	const overallScore = $derived(report?.overall.usefulnessScore || 0);
 	const confusionRate = $derived(
-		report && report.overall.total > 0
-			? (report.overall.confusing / report.overall.total) * 100
-			: 0
+		report && report.overall.total > 0 ? (report.overall.confusing / report.overall.total) * 100 : 0
 	);
 
 	const healthStatus = $derived.by(() => {
@@ -131,16 +127,18 @@
 
 <div class="space-y-6">
 	<!-- Header -->
-	<div class="flex items-start justify-between flex-wrap gap-6">
+	<div class="flex flex-wrap items-start justify-between gap-6">
 		<div>
 			<h2 class="text-lg font-bold text-[#f0ece4]">Insight Feedback Analytics</h2>
-			<p class="text-sm text-[#9a8f7a] mt-0.5">Track performance insight quality and user engagement</p>
+			<p class="mt-0.5 text-sm text-[#9a8f7a]">
+				Track performance insight quality and user engagement
+			</p>
 		</div>
 
 		<!-- Time Range Filter -->
 		<div class="time-filter">
-		<span class="filter-label">Time Range</span>
-		<div class="filter-buttons">
+			<span class="filter-label">Time Range</span>
+			<div class="filter-buttons">
 				<button
 					class="filter-btn"
 					class:active={data.timeRange === 7}
@@ -182,13 +180,12 @@
 				Feedback will appear here once users start rating performance insights.
 			</p>
 			<p class="empty-hint">
-				Make sure the <code>insight_feedback</code> table exists and users are seeing the feedback
-				UI.
+				Make sure the <code>insight_feedback</code> table exists and users are seeing the feedback UI.
 			</p>
 		</div>
 	{:else}
 		<!-- Overview Cards -->
-		<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+		<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
 			<!-- Health Status Card -->
 			<div class="overview-card status-card" style="--status-color: {healthStatus.color}">
 				<div class="card-icon">{healthStatus.icon}</div>
@@ -233,7 +230,7 @@
 		</div>
 
 		<!-- Main Content Grid -->
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 			<!-- Left Column -->
 			<div class="space-y-6">
 				<!-- Problem Insights -->
@@ -248,7 +245,12 @@
 								<div class="insight-item problem">
 									<div class="insight-header">
 										<span class="insight-type">{insight.insightType}</span>
-										<span class="insight-score" style="color: {insight.usefulnessScore < 40 ? '#ff4444' : 'var(--color-jns-amber)'}">
+										<span
+											class="insight-score"
+											style="color: {insight.usefulnessScore < 40
+												? '#ff4444'
+												: 'var(--color-jns-amber)'}"
+										>
 											{insight.usefulnessScore.toFixed(0)}%
 										</span>
 									</div>

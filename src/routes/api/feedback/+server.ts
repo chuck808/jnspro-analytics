@@ -12,24 +12,24 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Get user info if authenticated
-		const { data: { user } } = await locals.supabase.auth.getUser();
+		const {
+			data: { user }
+		} = await locals.supabase.auth.getUser();
 		const userId = user?.id || null;
 		const userEmail = user?.email || email || null;
 
 		// Create admin client to insert feedback
 		const supabaseAdmin = createSupabaseAdminClient();
-		
+
 		// Insert feedback into database
-		const { error } = await supabaseAdmin
-			.from('feedback')
-			.insert({
-				user_id: userId,
-				type,
-				subject,
-				description,
-				email: userEmail,
-				created_at: new Date().toISOString()
-			});
+		const { error } = await supabaseAdmin.from('feedback').insert({
+			user_id: userId,
+			type,
+			subject,
+			description,
+			email: userEmail,
+			created_at: new Date().toISOString()
+		});
 
 		if (error) {
 			console.error('Error saving feedback:', error);

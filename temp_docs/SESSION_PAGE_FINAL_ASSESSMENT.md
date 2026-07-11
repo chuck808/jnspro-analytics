@@ -12,6 +12,7 @@
 **Critical Insight:** The gap isn't **what** data we capture - it's **why** that session went that way. AppGatePro is currently a **measurement tool** that needs to evolve into a **training tool**.
 
 **Priority 1 Focus:**
+
 1. Run tagging (warmup vs. best effort) - **Most Critical**
 2. Session context capture (conditions, notes, intent)
 3. Cross-page deep linking
@@ -23,12 +24,14 @@
 ### 1. Run Tagging System ⭐⭐⭐⭐⭐ **HIGHEST PRIORITY**
 
 **Why This First:**
+
 - Session averages currently **polluted by warmup runs**
 - Users don't notice, but analytics are quietly undermined
 - Fundamental to how serious training is actually structured
 - Can't retrofit later - need from early adopters
 
 **Implementation:**
+
 ```typescript
 // Database: Add to runs table
 tags: string[] | null  // ['warmup', 'best-effort', 'experimental', 'exclude']
@@ -36,7 +39,7 @@ tags: string[] | null  // ['warmup', 'best-effort', 'experimental', 'exclude']
 // UI: Dropdown on run selector
 [Run 1] [Tag ▼]
   ☐ Warmup
-  ☐ Best effort  
+  ☐ Best effort
   ☐ Experimental
   ✓ Exclude from stats
 
@@ -46,6 +49,7 @@ const sessionAverage = calculateAverage(validRuns);
 ```
 
 **User Impact:**
+
 - "Showing 8 of 10 runs (2 warmup excluded)"
 - Cleaner analytics without noise
 - Supports structured training progression
@@ -59,18 +63,20 @@ const sessionAverage = calculateAverage(validRuns);
 ### 2. Cross-Page Deep Linking ⭐⭐⭐⭐⭐ **QUICK WIN**
 
 **Why This First:**
+
 - Low effort, high return
 - Mostly URL parameters + anchor tags
 - Every user sees the missed opportunity
 
 **Implementation:**
+
 ```typescript
 // Session Page → Analytics
 <a href="/analytics?focus=reaction&highlight=best">
   Best Reaction: 0.285s → See 30-day trend
 </a>
 
-// Analytics Page → Session  
+// Analytics Page → Session
 <a href="/sessions/{sessionId}">
   Session #45: Technique declined → View details
 </a>
@@ -88,6 +94,7 @@ if (urlParams.get('focus') === 'reaction') {
 ```
 
 **User Impact:**
+
 - Natural navigation flow
 - Discover related data easily
 - Reduces friction significantly
@@ -100,9 +107,11 @@ if (urlParams.get('focus') === 'reaction') {
 ### 3. Session Context Capture ⭐⭐⭐⭐⭐ **FOUNDATIONAL**
 
 **Why This Matters Most:**
+
 > "It's the difference between a measurement tool and a training tool."
 
 **Critical Insight:**
+
 - Currently: "You ran 0.285s" (what happened)
 - Needed: "You ran 0.285s because it was cold and track was wet" (why it happened)
 - **Cannot retrofit later** - must capture from early adopters
@@ -116,23 +125,24 @@ if (urlParams.get('focus') === 'reaction') {
   trackCondition: 'dry' | 'wet' | 'muddy' | 'dusty' | null,
   temperature: number | null,  // Celsius
   windCondition: 'calm' | 'light' | 'moderate' | 'strong' | null,
-  
+
   // Intent
   sessionType: 'training' | 'competition' | 'testing' | 'recovery' | null,
   focusArea: string | null,  // "Working on explosiveness"
   preSessionGoal: string | null,  // Free text
-  
+
   // Reflection
   postSessionNotes: string | null,  // Free text
   perceivedEffort: 1-10 | null,
   fatigueLevel: 'fresh' | 'normal' | 'tired' | 'exhausted' | null,
-  
+
   // Tags
   tags: string[],  // ['competition', 'home-track', 'new-tires']
 }
 ```
 
 **UI Implementation:**
+
 ```
 [Session Page - Header]
 📝 Edit Session Context
@@ -145,10 +155,10 @@ if (urlParams.get('focus') === 'reaction') {
   Temperature: [18°C]
   Wind: [Light ▼]
 
-🎯 Session Intent  
+🎯 Session Intent
   Type: [Training ▼]
   Focus: [Working on explosive starts___________]
-  
+
 💭 Post-Session Reflection
   Notes: [Felt good. Legs fresh. Track faster than usual.]
   Effort: [●●●●●●○○○○] 6/10
@@ -161,6 +171,7 @@ if (urlParams.get('focus') === 'reaction') {
 ```
 
 **Display on Session Page:**
+
 ```
 ━━━ May 3, 2026 - Gate Session ━━━
 ☀️ Dry, 18°C, Light wind
@@ -173,12 +184,14 @@ if (urlParams.get('focus') === 'reaction') {
 ```
 
 **Pattern Discovery Unlocked:**
+
 - "You're 8% slower when temperature < 12°C"
 - "Consistency improves when you set a pre-session goal"
 - "Best performances when fatigue level = fresh"
 - "Wet track correlates with slower reactions"
 
 **Complexity:** Medium (3-5 days)
+
 - Database: Add fields to sessions table
 - UI: Edit modal with form
 - Display: Context badges in header
@@ -195,12 +208,14 @@ if (urlParams.get('focus') === 'reaction') {
 Overlay G-force curves from 2-4 runs on same chart with divergence highlighting.
 
 **Value:**
+
 - Visual pattern recognition > numbers
 - "Run 3 was smoother in the first 0.5s" - instantly visible
 - Coach demonstration tool
 - Training aid for athletes
 
 **Implementation:**
+
 - Multi-series chart component (extends existing AccelerationChart)
 - Run selection checkboxes (max 4)
 - Color coding + legend
@@ -217,12 +232,14 @@ Overlay G-force curves from 2-4 runs on same chart with divergence highlighting.
 **Needed:** Rich structured notes with multi-party input
 
 **Features:**
+
 - Rich text editor (TipTap/ProseMirror)
 - Note types: Pre-session, During, Post-session, Coach feedback
 - Timestamps and attribution (rider/parent/coach)
 - Attachment references (link to external video)
 
 **Use Cases:**
+
 - Parent: "Jamie's shoulder was sore today"
 - Coach: "Focus on keeping weight back in drive phase"
 - Rider: "Tried new starting technique from YouTube video"
@@ -238,10 +255,12 @@ Overlay G-force curves from 2-4 runs on same chart with divergence highlighting.
 Compare two specific sessions side-by-side with diff analysis.
 
 **Triggered From:**
+
 - Analytics page: "Compare" button on session list
 - Session page: "Compare to previous session" link
 
 **Shows:**
+
 - Side-by-side metrics with delta calculations
 - Chart overlays
 - "What changed?" automated insights
@@ -257,6 +276,7 @@ Compare two specific sessions side-by-side with diff analysis.
 ### 7. Weather Auto-Fetch ⭐⭐⭐
 
 Manual input is fine for Phase 1. Auto-fetch when:
+
 - High volume users need automation
 - Correlation analytics are built
 - ROI justifies API costs
@@ -266,12 +286,14 @@ Manual input is fine for Phase 1. Auto-fetch when:
 ### 8. Video Integration ⭐⭐⭐⭐
 
 **High value but complex:**
+
 - Video hosting costs
 - Sync mechanisms
 - Privacy/compliance
 - Storage management
 
 Wait until:
+
 - Core context capture is proven
 - User base justifies investment
 - Premium tier established
@@ -283,6 +305,7 @@ Wait until:
 **Important Framing Correction:**
 
 The Performance Engine **already does intelligent pattern discovery**:
+
 - Fatigue detection (run 6+ performance drops)
 - Drop-off identification
 - Repeatability scoring
@@ -294,12 +317,14 @@ The Performance Engine **already does intelligent pattern discovery**:
 **This is not "40% AI" - this is sophisticated rule-based intelligence**
 
 **What's Actually Missing:**
+
 - Natural language generation ("You're slower when cold")
 - Multi-variable correlation (temp + track + fatigue)
 - Predictive modeling (competition day forecasting)
 - Personalized pattern learning over time
 
 **When to Add ML:**
+
 - After 6+ months of context data capture
 - When patterns are too complex for rules
 - When personalization value is proven
@@ -389,21 +414,27 @@ The Performance Engine **already does intelligent pattern discovery**:
 ## 🎯 Revised Platform Assessment
 
 ### Technical Foundation
+
 ⭐⭐⭐⭐⭐ **Excellent** - Performance Engine is genuinely impressive
 
-### Feature Completeness  
+### Feature Completeness
+
 ⭐⭐⭐⭐ **Very Good** (85-90%) - Missing only context layer
 
 ### Intelligence & Analytics
+
 ⭐⭐⭐⭐⭐ **Excellent** - Rule-based intelligence is production-ready
+
 - Session intelligence: Fatigue, drop-off, repeatability ✅
 - Cross-session intelligence: Trends, patterns, correlations ✅
 - Missing: Natural language framing + multi-variable correlation
 
 ### User Experience
+
 ⭐⭐⭐⭐ **Good** - Minor navigation gaps, excellent once you're in context
 
-### Contextual Intelligence  
+### Contextual Intelligence
+
 ⭐⭐⭐ **Fair** - The actual gap (weather, conditions, intent)
 
 ---
@@ -413,12 +444,12 @@ The Performance Engine **already does intelligent pattern discovery**:
 ### Week 1-2: Do These Three Things
 
 1. **Run Tagging** - Highest priority, fixes data integrity
-2. **Cross-Page Links** - Quick win, huge UX improvement  
+2. **Cross-Page Links** - Quick win, huge UX improvement
 3. **Context Capture** - Foundational, cannot retrofit
 
 **Effort:** 1-2 weeks  
 **Impact:** Transforms AppGatePro from measurement tool → training tool  
-**Risk:** None - all are additive features  
+**Risk:** None - all are additive features
 
 ### What NOT to Do Yet
 

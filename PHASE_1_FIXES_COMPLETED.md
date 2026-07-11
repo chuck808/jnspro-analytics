@@ -19,14 +19,16 @@ Phase 1 focused on fixing the **core logic** of the Performance Engine to ensure
 **File:** `src/lib/performance-engine/sessionNarrative.ts`
 
 **Changes:**
+
 - **OLD:** Triggered "poor consistency" warning at >5% CV
 - **NEW:** Triggers at >12% CV
 - **Reason:** 5-12% CV is normal variation for BMX gate starts
 
 **New Thresholds:**
+
 ```typescript
 - Excellent: < 5% CV
-- Good: 5-12% CV  
+- Good: 5-12% CV
 - Watch: 12-15% CV
 - Concern: > 15% CV
 ```
@@ -40,13 +42,15 @@ Phase 1 focused on fixing the **core logic** of the Performance Engine to ensure
 **File:** `src/lib/performance-engine/sessionNarrative.ts` (line 119-126)
 
 **Changes:**
+
 - **OLD:** Used `consistencyScore` without validation
 - **NEW:** Validates CV threshold AND consistency score together
 
 ```typescript
-const confirmedLowConsistency = input.consistencyScore !== undefined && input.consistencyScore !== null
-  ? (input.reactionCvPercent > 12 && input.consistencyScore < 60)
-  : input.reactionCvPercent > 12;
+const confirmedLowConsistency =
+	input.consistencyScore !== undefined && input.consistencyScore !== null
+		? input.reactionCvPercent > 12 && input.consistencyScore < 60
+		: input.reactionCvPercent > 12;
 ```
 
 **Impact:** Prevents false positives/negatives from relying on a single metric.
@@ -58,10 +62,12 @@ const confirmedLowConsistency = input.consistencyScore !== undefined && input.co
 **File:** `src/lib/performance-engine/sessionNarrative.ts`
 
 **Changes:**
+
 - **Added:** 'unknown' to dataQualityRating type
 - **Added:** Specific handling for unknown data quality (Priority 1b)
 
 **NEW behavior:**
+
 ```typescript
 else if (input.dataQualityRating === 'unknown') {
   cautionMetrics.push('derived metrics');
@@ -82,20 +88,20 @@ else if (input.dataQualityRating === 'unknown') {
 **File:** `src/lib/performance-engine/sessionNarrative.ts` (lines 60-66)
 
 **Changes:**
+
 ```typescript
 // Major calibration issues (BLOCK analysis)
-const majorCalibrationIssue =
-  input.dataQualityRating === 'calibrate' ||
-  blockedMetrics.length >= 2;
+const majorCalibrationIssue = input.dataQualityRating === 'calibrate' || blockedMetrics.length >= 2;
 
 // Minor calibration issues (ADD CAUTION overlay)
 const minorCalibrationIssue =
-  input.dataQualityRating === 'unknown' ||
-  input.dataQualityRating === 'fair' ||
-  (blockedMetrics.length === 1 && !majorCalibrationIssue);
+	input.dataQualityRating === 'unknown' ||
+	input.dataQualityRating === 'fair' ||
+	(blockedMetrics.length === 1 && !majorCalibrationIssue);
 ```
 
 **Result:**
+
 - **Major issues:** Full "calibration limited" narrative
 - **Minor issues:** Normal narrative + caution warning
 
@@ -110,25 +116,28 @@ const minorCalibrationIssue =
 **Changes Added:**
 
 #### A. Confidence-Aware Prefixes
+
 ```typescript
 function getConfidencePrefix(confidence, lookbackSessions): string {
-  if (confidence === 'low' || lookbackSessions < 5) {
-    return 'Early signal — ';
-  }
-  if (confidence === 'moderate' || lookbackSessions < 10) {
-    return 'Trend developing — ';
-  }
-  return ''; // High confidence
+	if (confidence === 'low' || lookbackSessions < 5) {
+		return 'Early signal — ';
+	}
+	if (confidence === 'moderate' || lookbackSessions < 10) {
+		return 'Trend developing — ';
+	}
+	return ''; // High confidence
 }
 ```
 
 #### B. Softer Decline Language
+
 ```typescript
 // OLD: 'Performance declining across multiple metrics'
 // NEW: 'Multiple metrics trending down'
 ```
 
 #### C. Priority Adjustments
+
 ```typescript
 // Low confidence declines → medium priority (not high)
 priority = report.confidence === 'low' ? 'medium' : 'high';
@@ -143,6 +152,7 @@ priority = report.confidence === 'low' ? 'medium' : 'high';
 **File:** `src/lib/performance-engine/crossSession/crossSessionIntelligence.ts`
 
 **Changes:**
+
 ```typescript
 // OLD: 'Performance declining - review training approach'
 // NEW: 'Multiple metrics trending down — review training approach'
@@ -159,6 +169,7 @@ priority = report.confidence === 'low' ? 'medium' : 'high';
 **Scenario:** Session with 8% reaction CV
 
 **BEFORE:**
+
 ```
 ❌ Poor consistency detected
 ⚠️ Review technique
@@ -166,6 +177,7 @@ Priority: WATCH
 ```
 
 **AFTER:**
+
 ```
 ✅ Good consistency
 💡 Focus on maintaining quality
@@ -179,11 +191,13 @@ Priority: INFO
 **Scenario:** Session with unknown calibration state
 
 **BEFORE:**
+
 ```
 ✅ Excellent consistency (falls through to default)
 ```
 
 **AFTER:**
+
 ```
 ⚠️ Data quality unknown — interpret trends with caution
 ⚠️ Exercise caution with derived metrics
@@ -197,12 +211,14 @@ Priority: WATCH
 **Scenario:** 4 sessions showing speed improvement
 
 **BEFORE:**
+
 ```
 ✅ Performance improving across sessions
 Priority: LOW
 ```
 
 **AFTER:**
+
 ```
 ✅ Early signal — Performance improving across sessions
 Priority: LOW
@@ -216,12 +232,14 @@ Priority: LOW
 **Scenario:** Fair data quality, speed blocked
 
 **BEFORE:**
+
 ```
 🔴 CALIBRATION LIMITED — USE TECHNIQUE ONLY
 (Blocks all speed analysis)
 ```
 
 **AFTER:**
+
 ```
 ✅ Good consistency
 ⚠️ Minor calibration concern — use trends, not absolute values
@@ -232,14 +250,14 @@ Priority: LOW
 
 ## 🎯 Impact Summary
 
-| Fix | Problem Solved | User Benefit |
-|-----|----------------|--------------|
-| CV threshold 12% | False warnings | No more "concern" for normal variation |
-| Validate with score | Single metric failure | More reliable consistency assessment |
-| Unknown handling | Falls through | No false confidence in bad data |
-| Split calibration | All-or-nothing | Usable insights with appropriate caution |
-| Confidence prefixes | Over-confident early data | Clear signal strength communication |
-| Softer decline language | Harsh messaging | Evidence-based, not judgmental |
+| Fix                     | Problem Solved            | User Benefit                             |
+| ----------------------- | ------------------------- | ---------------------------------------- |
+| CV threshold 12%        | False warnings            | No more "concern" for normal variation   |
+| Validate with score     | Single metric failure     | More reliable consistency assessment     |
+| Unknown handling        | Falls through             | No false confidence in bad data          |
+| Split calibration       | All-or-nothing            | Usable insights with appropriate caution |
+| Confidence prefixes     | Over-confident early data | Clear signal strength communication      |
+| Softer decline language | Harsh messaging           | Evidence-based, not judgmental           |
 
 ---
 
@@ -252,6 +270,7 @@ Priority: LOW
 **Issues to Fix:**
 
 1. **Stop Estimating Session Scores** (lines 206-213)
+
 ```typescript
 // ❌ CURRENT (incorrect estimation)
 sessionQuality: s.reaction_cv !== null ? Math.max(0, 100 - s.reaction_cv * 10) : null,
@@ -263,11 +282,13 @@ const sessionReport = analyseSessionIntelligence(runs);
 ```
 
 2. **Integrate v8.3 Session Narrative**
+
 - Add narrative summary at top of Training Insights Panel
 - Surface trust indicators and warnings
 - Use controlled language system
 
 3. **Add Data Quality Indicators**
+
 - Show which metrics are trustworthy
 - Surface calibration warnings visibly
 - Use Performance Engine `dataQuality.ts`
@@ -280,30 +301,30 @@ const sessionReport = analyseSessionIntelligence(runs);
 
 ```typescript
 describe('sessionNarrative with new thresholds', () => {
-  it('should NOT trigger warning at 8% CV', () => {
-    const result = buildSessionNarrative({
-      runCount: 5,
-      reactionCvPercent: 8
-    });
-    expect(result.message.priority).toBe('info');
-  });
+	it('should NOT trigger warning at 8% CV', () => {
+		const result = buildSessionNarrative({
+			runCount: 5,
+			reactionCvPercent: 8
+		});
+		expect(result.message.priority).toBe('info');
+	});
 
-  it('should trigger warning at 15% CV', () => {
-    const result = buildSessionNarrative({
-      runCount: 5,
-      reactionCvPercent: 15
-    });
-    expect(result.message.priority).toBe('watch');
-  });
+	it('should trigger warning at 15% CV', () => {
+		const result = buildSessionNarrative({
+			runCount: 5,
+			reactionCvPercent: 15
+		});
+		expect(result.message.priority).toBe('watch');
+	});
 
-  it('should handle unknown data quality', () => {
-    const result = buildSessionNarrative({
-      runCount: 5,
-      dataQualityRating: 'unknown'
-    });
-    expect(result.message.headline).toContain('unknown');
-    expect(result.warnings).toContain('Data quality unknown');
-  });
+	it('should handle unknown data quality', () => {
+		const result = buildSessionNarrative({
+			runCount: 5,
+			dataQualityRating: 'unknown'
+		});
+		expect(result.message.headline).toContain('unknown');
+		expect(result.warnings).toContain('Data quality unknown');
+	});
 });
 ```
 

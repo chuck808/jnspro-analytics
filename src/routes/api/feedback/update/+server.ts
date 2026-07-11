@@ -13,7 +13,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Get user and verify they are admin
 		const supabase = locals.supabase;
-		const { data: { user } } = await supabase.auth.getUser();
+		const {
+			data: { user }
+		} = await supabase.auth.getUser();
 
 		if (!user) {
 			return json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,7 +33,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Update feedback using admin client
 		const supabaseAdmin = createSupabaseAdminClient();
-		
+
 		const { error } = await supabaseAdmin
 			.from('feedback')
 			.update({

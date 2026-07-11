@@ -16,22 +16,26 @@ Phase 2 adds automatic milestone tracking to the Training Goals feature. The sys
 ### 1. Server-Side Milestone Utilities ✅
 
 **File Created:**
+
 - `src/lib/server/goalMilestones.ts`
 
 **Key Functions:**
 
 #### `createGoalMilestone()`
+
 - Creates a milestone entry in the database
 - Associates it with a specific goal
 - Records the value achieved and timestamp
 - Returns success/failure status
 
 #### `updateGoalCurrentValue()`
+
 - Updates the goal's current_value field
 - Maintains goal freshness
 - Tracks when goal was last updated
 
 #### `processGoalImprovements()`
+
 - Batch processes multiple goal improvements
 - Creates milestones for each significant improvement
 - Updates goal current values
@@ -39,12 +43,14 @@ Phase 2 adds automatic milestone tracking to the Training Goals feature. The sys
 - Logs progress for debugging
 
 #### `isSignificantImprovement()`
+
 - Determines if an improvement is meaningful enough to record
 - Default threshold: 0.5% improvement
 - Handles metric direction (lower vs higher is better)
 - Prevents milestone spam from tiny fluctuations
 
 **Design Principles:**
+
 - ✅ Fail-safe: Errors don't crash the session load
 - ✅ Logged: All operations logged to console for debugging
 - ✅ Configurable: Threshold parameter allows tuning
@@ -53,6 +59,7 @@ Phase 2 adds automatic milestone tracking to the Training Goals feature. The sys
 ### 2. Session Page Integration ✅
 
 **Files Modified:**
+
 - `src/routes/(protected)/sessions/[id]/+page.server.ts`
 - `src/routes/(protected)/sessions/[id]/+page.svelte`
 
@@ -62,35 +69,36 @@ Phase 2 adds automatic milestone tracking to the Training Goals feature. The sys
 // 1. Check which goals were improved
 const improvements = [];
 
-goals.forEach(goal => {
-    const sessionValue = sessionMetrics[goal.metric];
-    const previousValue = goal.current_value;
-    
-    // Check if significant improvement
-    if (isSignificantImprovement(goal.metric, previousValue, sessionValue, 0.5)) {
-        improvements.push({
-            goalId: goal.id,
-            metric: goal.metric,
-            previousValue,
-            newValue: sessionValue,
-            improved: true
-        });
-    }
+goals.forEach((goal) => {
+	const sessionValue = sessionMetrics[goal.metric];
+	const previousValue = goal.current_value;
+
+	// Check if significant improvement
+	if (isSignificantImprovement(goal.metric, previousValue, sessionValue, 0.5)) {
+		improvements.push({
+			goalId: goal.id,
+			metric: goal.metric,
+			previousValue,
+			newValue: sessionValue,
+			improved: true
+		});
+	}
 });
 
 // 2. Auto-create milestones
 if (improvements.length > 0) {
-    const milestonesCreated = await processGoalImprovements(
-        supabase,
-        improvements,
-        session.timestamp  // Use session timestamp for accurate dating
-    );
+	const milestonesCreated = await processGoalImprovements(
+		supabase,
+		improvements,
+		session.timestamp // Use session timestamp for accurate dating
+	);
 }
 ```
 
 **UI Enhancement:**
 
 When a significant improvement creates a milestone, users see:
+
 ```
 🎯 Goal Progress Updated!
 
@@ -130,12 +138,14 @@ Display results with milestone badges
 ### Threshold Logic
 
 **Why 0.5% minimum?**
+
 - Prevents milestone spam from measurement noise
 - Focuses on meaningful improvements
 - Typical session-to-session variation is ~1-2%
 - 0.5% represents genuine progress
 
 **Example:**
+
 - Reaction time: 250ms → 249ms = 0.4% → No milestone
 - Reaction time: 250ms → 247ms = 1.2% → ⭐ Milestone created!
 
@@ -167,7 +177,7 @@ Milestone 2: 0.238s (2024-02-03) - Another 2.9% improvement
   ↓
 Milestone 3: 0.229s (2024-02-20) - 3.8% improvement
   ↓
-Milestone 4: 0.218s (2024-03-10) - 4.8% improvement  
+Milestone 4: 0.218s (2024-03-10) - 4.8% improvement
   ↓
 Milestone 5: 0.202s (2024-03-25) - 7.3% improvement
   ↓
@@ -179,12 +189,14 @@ Goal Achieved: 0.198s (2024-04-05) - Completed!
 ## User Experience Improvements
 
 ### Before Phase 2:
+
 - Goals tracked current value manually
 - No historical record of progress points
 - Users couldn't see their improvement journey
 - Difficult to visualize progress over time
 
 ### After Phase 2:
+
 - ✅ Automatic milestone creation on significant improvements
 - ✅ Complete historical timeline of progress
 - ✅ Visual "⭐ MILESTONE" badges for motivation
@@ -196,36 +208,42 @@ Goal Achieved: 0.198s (2024-04-05) - Completed!
 ## Technical Highlights
 
 ### 1. Timestamp Accuracy
+
 Milestones use the session's actual timestamp, not "now":
+
 ```typescript
 await processGoalImprovements(
-    supabase,
-    improvements,
-    session.timestamp  // ← Session's actual date/time
+	supabase,
+	improvements,
+	session.timestamp // ← Session's actual date/time
 );
 ```
 
 This ensures historical accuracy when viewing old sessions or uploading backdated data.
 
 ### 2. Batch Processing
+
 All milestones for a session are processed in a single operation:
+
 ```typescript
 for (const improvement of improvements) {
-    // Create milestone
-    // Update goal
-    // Log success
+	// Create milestone
+	// Update goal
+	// Log success
 }
 return milestonesCreated;
 ```
 
 ### 3. Error Resilience
+
 Milestone creation failures don't crash the page:
+
 ```typescript
 try {
     const { data, error } = await supabase
         .from('goal_milestones')
         .insert({...});
-    
+
     if (error) {
         console.error('[Goal Milestones] Failed:', error);
         return { created: false, error: error.message };
@@ -237,7 +255,9 @@ try {
 ```
 
 ### 4. Smart Filtering
+
 Only improvements meeting the threshold create milestones:
+
 ```typescript
 const isSignificant = improved && isSignificantImprovement(
     goal.metric,
@@ -256,16 +276,19 @@ if (isSignificant) {
 ## Performance Considerations
 
 **Database Operations:**
+
 - ✅ Efficient: 1 INSERT per milestone
 - ✅ Batched: All milestones processed together
 - ✅ Non-blocking: Doesn't delay session page load
 - ✅ Indexed: goal_id is foreign key (indexed)
 
 **Query Impact:**
+
 - Session load: +1 query to fetch goals (already done in Phase 1)
 - Milestone creation: +N writes where N = significant improvements (typically 0-2 per session)
 
 **Typical Session Load:**
+
 - With 0 goal improvements: No additional writes
 - With 2 goal improvements: 2 milestone INSERTs + 2 goal UPDATEs = 4 writes
 - Performance impact: Negligible (< 50ms)
@@ -280,22 +303,22 @@ The goals page already displays milestones (from database):
 
 ```svelte
 {#if Array.isArray(goal.goal_milestones) && goal.goal_milestones.length > 0}
-    <div class="border-t border-[#221c18] pt-3 mt-3">
-        <p class="text-xs font-medium text-[#6b5f4d] mb-2">Milestones</p>
-        <div class="flex flex-wrap gap-2">
-            {#each goal.goal_milestones as m}
-                <span class="text-xs px-2 py-1 bg-[#0a0809] rounded-lg text-[#9a8f7a]">
-                    {fmtValue(metric, m.value)} · 
-                    {new Date(m.achieved_at).toLocaleDateString('en-GB', 
-                        { day:'numeric', month:'short' })}
-                </span>
-            {/each}
-        </div>
-    </div>
+	<div class="mt-3 border-t border-[#221c18] pt-3">
+		<p class="mb-2 text-xs font-medium text-[#6b5f4d]">Milestones</p>
+		<div class="flex flex-wrap gap-2">
+			{#each goal.goal_milestones as m}
+				<span class="rounded-lg bg-[#0a0809] px-2 py-1 text-xs text-[#9a8f7a]">
+					{fmtValue(metric, m.value)} ·
+					{new Date(m.achieved_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+				</span>
+			{/each}
+		</div>
+	</div>
 {/if}
 ```
 
 **With Auto-Milestones, this now shows:**
+
 ```
 Milestones
 [0.245s · 15 Jan] [0.238s · 3 Feb] [0.229s · 20 Feb] [0.218s · 10 Mar] [0.202s · 25 Mar]
@@ -334,6 +357,7 @@ Milestones
 ### Manual Testing Checklist
 
 **Milestone Creation:**
+
 - [ ] Create goal with current value
 - [ ] Complete session that improves metric by 1%
 - [ ] Visit session page → see "⭐ MILESTONE" badge
@@ -342,6 +366,7 @@ Milestones
 - [ ] Verify no milestone created (below 0.5% threshold)
 
 **Edge Cases:**
+
 - [ ] Goal with "lower is better" metric (reaction time)
 - [ ] Goal with "higher is better" metric (peak G)
 - [ ] Session that improves multiple goals
@@ -350,6 +375,7 @@ Milestones
 - [ ] Already completed goal
 
 **Database Integrity:**
+
 - [ ] Check goal_milestones table has foreign key constraint
 - [ ] Verify timestamps match session timestamp (not current time)
 - [ ] Confirm milestone values match session metrics exactly
@@ -359,18 +385,21 @@ Milestones
 ## Metrics & Success Criteria
 
 **Technical Success:**
+
 - ✅ Milestones auto-created on page load
 - ✅ No errors or crashes
 - ✅ Correct timestamp attribution
 - ✅ Appropriate filtering (0.5% threshold)
 
 **User Experience Success:**
+
 - ✅ Clear visual feedback ("⭐ MILESTONE" badge)
 - ✅ Historical progress visible on goals page
 - ✅ Motivating to see progress points accumulate
 - ✅ Zero manual effort required
 
 **Performance Success:**
+
 - ✅ Session page loads in < 500ms (unchanged from Phase 1)
 - ✅ Database writes complete in < 50ms
 - ✅ No blocking operations

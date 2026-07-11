@@ -34,6 +34,7 @@ AppGatePro by JNS Pro Systems democratizes BMX gate start analytics by providing
 ## ✨ Features
 
 ### Performance Analytics
+
 - ⚡ Reaction time measurement (±1ms accuracy)
 - 📊 Speed curve from IMU integration
 - 🏎️ Peak, average, and end speed tracking
@@ -43,6 +44,7 @@ AppGatePro by JNS Pro Systems democratizes BMX gate start analytics by providing
 - 🎓 Technique scoring (0–100)
 
 ### Session Management
+
 - 📅 Unlimited session uploads
 - 🔄 Session comparison tools
 - 📉 Consistency scoring with coefficient of variation (CV)
@@ -50,6 +52,7 @@ AppGatePro by JNS Pro Systems democratizes BMX gate start analytics by providing
 - 🏆 UCI age category tracking
 
 ### Advanced Features
+
 - 🎡 Pitch & wheelie detection
 - 🔍 200Hz orientation data analysis
 - 📱 Live dashboard with real-time updates
@@ -61,6 +64,7 @@ AppGatePro by JNS Pro Systems democratizes BMX gate start analytics by providing
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **Framework**: SvelteKit 2.57+ with Svelte 5.55+
 - **Language**: TypeScript 6.0+
 - **Styling**: Tailwind CSS 4.2 with Typography & Forms plugins
@@ -68,11 +72,13 @@ AppGatePro by JNS Pro Systems democratizes BMX gate start analytics by providing
 - **Charts**: Chart.js 4.5+
 
 ### Backend & Infrastructure
+
 - **Database & Auth**: Supabase (PostgreSQL + Row Level Security)
 - **Hosting**: Vercel (configured with `@sveltejs/adapter-vercel`)
 - **Package Manager**: pnpm (workspace configuration)
 
 ### Development Tools
+
 - ESLint 10+ with Svelte plugin
 - Prettier 3.8+ (Svelte & Tailwind plugins)
 - svelte-check for type safety
@@ -198,6 +204,7 @@ jnspro-analytics/
 ### Code Style
 
 The project uses:
+
 - **ESLint** for code linting
 - **Prettier** for code formatting
 - **TypeScript** for type safety
@@ -262,6 +269,7 @@ vercel
 #### Environment Variables on Vercel
 
 Add these in your Vercel project settings:
+
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_ANON_KEY`
 
@@ -286,16 +294,16 @@ See [SvelteKit adapters documentation](https://svelte.dev/docs/kit/adapters) for
 
 ## 📊 Key Pages
 
-| Route | Description |
-|-------|-------------|
-| `/` | Landing page with feature showcase |
-| `/auth/sign-in` | User authentication |
-| `/auth/sign-up` | User registration |
-| `/sessions` | Protected: Session management and analytics |
-| `/about` | About the platform |
-| `/contact` | Contact information |
-| `/privacy` | Privacy policy |
-| `/terms` | Terms of service |
+| Route           | Description                                 |
+| --------------- | ------------------------------------------- |
+| `/`             | Landing page with feature showcase          |
+| `/auth/sign-in` | User authentication                         |
+| `/auth/sign-up` | User registration                           |
+| `/sessions`     | Protected: Session management and analytics |
+| `/about`        | About the platform                          |
+| `/contact`      | Contact information                         |
+| `/privacy`      | Privacy policy                              |
+| `/terms`        | Terms of service                            |
 
 ---
 
@@ -346,6 +354,7 @@ Contributions are welcome! Please follow these guidelines:
 ### Commit Message Convention
 
 Use clear, descriptive commit messages:
+
 - `feat:` New feature
 - `fix:` Bug fix
 - `docs:` Documentation changes
