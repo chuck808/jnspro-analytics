@@ -49,6 +49,7 @@
 		"vitest": "^4.1.10"
 	},
 	"dependencies": {
+		"@sentry/sveltekit": "^10.65.0",
 		"@supabase/ssr": "^0.10.2",
 		"@supabase/supabase-js": "^2.104.0",
 		"@tiptap/core": "^3.22.5",
