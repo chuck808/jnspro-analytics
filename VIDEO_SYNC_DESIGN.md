@@ -1,6 +1,6 @@
 # Synced Video — Design Doc
 
-**Status:** Proposed — not yet implemented. This document captures a design conversation; nothing described here exists in code yet, on either the firmware or web sides. Update the status line when work actually starts.
+**Status:** Web-side implemented. Storage/schema/upload/plain playback, flash-frame sync detection, the merged video/chart scrub-bar, the 3-tier HUD, and the hero-layout reorder are all live. Firmware-side flash-trigger and camera control (§4, GoPro/Open GoPro BLE) are not yet implemented.
 
 **Repos involved:**
 

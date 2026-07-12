@@ -1,13 +1,17 @@
 <script lang="ts">
 	/**
-	 * Foundation-slice video attachment for a single run (see VIDEO_SYNC_DESIGN.md).
-	 * Deliberately low-key when no video is attached — a small text link, not an
-	 * empty-state box — and a plain player once one is. No scrub-bar/HUD yet;
-	 * those are a later hero-treatment pass, kept out of this component on purpose
-	 * so it's easy to relocate/replace then.
+	 * Video attachment for a single run (see VIDEO_SYNC_DESIGN.md).
+	 * Deliberately low-key when no video is attached — a small text link, not
+	 * an empty-state box. Owns the whole upload/replace/delete lifecycle and
+	 * error UI; delegates rendering of an attached, successfully-synced video
+	 * to RunVideoHero, falling back to a plain player when sync detection
+	 * failed/hasn't run or when not in hero context.
 	 */
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
+	import { analyzeVideoForSync } from '$lib/utils/videoSync';
+	import RunVideoHero from './RunVideoHero.svelte';
+	import type { SeriesPoint } from '$lib/performance-engine';
 
 	interface RunVideo {
 		id: string;
@@ -15,12 +19,33 @@
 		filename: string;
 		mime_type: string;
 		duration_ms: number | null;
+		sync_offset_s: number | null;
 		status: string;
 		created_at: string | null;
 		signed_url?: string | null;
 	}
 
-	let { runId, video }: { runId: string; video: RunVideo | null } = $props();
+	interface HeroData {
+		drillDownData: SeriesPoint[];
+		speedKmh: number[];
+		reactionMs: number | null;
+		measuredPeakSpeedKmh: number | null;
+		techniqueScoreOverall: number | null;
+		frontWheelLifted: boolean;
+		timeToWheelieMs: number | null;
+	}
+
+	let {
+		runId,
+		video,
+		hero = false,
+		heroData = null
+	}: {
+		runId: string;
+		video: RunVideo | null;
+		hero?: boolean;
+		heroData?: HeroData | null;
+	} = $props();
 
 	const ALLOWED_TYPES = ['video/mp4', 'video/quicktime'];
 	const MAX_SIZE_MB = 200;
@@ -32,31 +57,6 @@
 
 	function triggerFileInput() {
 		fileInput?.click();
-	}
-
-	// Best-effort — never blocks the upload if it fails or times out.
-	async function extractDuration(file: File): Promise<number | null> {
-		return new Promise((resolve) => {
-			const el = document.createElement('video');
-			el.preload = 'metadata';
-			const url = URL.createObjectURL(file);
-			const cleanup = () => URL.revokeObjectURL(url);
-			const timeout = setTimeout(() => {
-				cleanup();
-				resolve(null);
-			}, 3000);
-			el.onloadedmetadata = () => {
-				clearTimeout(timeout);
-				cleanup();
-				resolve(Number.isFinite(el.duration) ? Math.round(el.duration * 1000) : null);
-			};
-			el.onerror = () => {
-				clearTimeout(timeout);
-				cleanup();
-				resolve(null);
-			};
-			el.src = url;
-		});
 	}
 
 	async function handleFileSelect(file: File) {
@@ -80,14 +80,17 @@
 
 		uploading = true;
 		try {
-			const durationMs = await extractDuration(file);
 			const storagePath = `${userId}/${runId}/${file.name}`;
 
-			const { error: uploadError } = await supabase.storage
-				.from('run-videos')
-				.upload(storagePath, file, { upsert: true });
+			// Upload and flash-sync analysis are independent (one hits Storage,
+			// one only touches the local File) — run concurrently so total wait
+			// is max(...), not sum(...).
+			const [uploadResult, analysis] = await Promise.all([
+				supabase.storage.from('run-videos').upload(storagePath, file, { upsert: true }),
+				analyzeVideoForSync(file)
+			]);
 
-			if (uploadError) throw new Error(uploadError.message);
+			if (uploadResult.error) throw new Error(uploadResult.error.message);
 
 			const response = await fetch(`/api/runs/${runId}/video`, {
 				method: 'POST',
@@ -97,7 +100,8 @@
 					filename: file.name,
 					mime_type: file.type,
 					file_size_bytes: file.size,
-					duration_ms: durationMs
+					duration_ms: analysis.durationMs,
+					sync_offset_s: analysis.syncOffsetS
 				})
 			});
 
@@ -138,12 +142,23 @@
 
 {#if video?.signed_url}
 	<div class="space-y-2">
-		<!-- svelte-ignore a11y_media_has_caption -->
-		<video
-			controls
-			src={video.signed_url}
-			class="w-full rounded-xl border border-[#221c18] bg-black"
-		></video>
+		{#if hero && heroData && video.sync_offset_s != null}
+			<RunVideoHero
+				video={{
+					signed_url: video.signed_url,
+					sync_offset_s: video.sync_offset_s,
+					duration_ms: video.duration_ms
+				}}
+				{...heroData}
+			/>
+		{:else}
+			<!-- svelte-ignore a11y_media_has_caption -->
+			<video
+				controls
+				src={video.signed_url}
+				class="w-full rounded-xl border border-[#221c18] bg-black"
+			></video>
+		{/if}
 		<div class="flex items-center gap-3 text-xs">
 			<button
 				type="button"

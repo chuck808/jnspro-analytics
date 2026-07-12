@@ -12,7 +12,7 @@ import type { RequestHandler } from './$types';
  * the `run-videos` bucket.
  *
  * POST /api/runs/[id]/video
- * Request body (JSON): { storage_path, filename, mime_type, file_size_bytes, duration_ms? }
+ * Request body (JSON): { storage_path, filename, mime_type, file_size_bytes, duration_ms?, sync_offset_s? }
  * Response: { video: RunVideoRow }
  *
  * DELETE /api/runs/[id]/video
@@ -31,13 +31,17 @@ export const POST: RequestHandler = async ({ request, params, locals: { supabase
 
 	try {
 		const body = await request.json();
-		const { storage_path, filename, mime_type, file_size_bytes, duration_ms } = body;
+		const { storage_path, filename, mime_type, file_size_bytes, duration_ms, sync_offset_s } = body;
 
 		if (!storage_path || !filename || !mime_type || !file_size_bytes) {
 			throw error(
 				400,
 				'Missing required fields: storage_path, filename, mime_type, file_size_bytes'
 			);
+		}
+
+		if (sync_offset_s != null && typeof sync_offset_s !== 'number') {
+			throw error(400, 'sync_offset_s must be a number or null');
 		}
 
 		if (!ALLOWED_MIME_TYPES.includes(mime_type)) {
@@ -73,7 +77,8 @@ export const POST: RequestHandler = async ({ request, params, locals: { supabase
 					filename,
 					mime_type,
 					file_size_bytes,
-					duration_ms: duration_ms ?? null
+					duration_ms: duration_ms ?? null,
+					sync_offset_s: sync_offset_s ?? null
 				},
 				{ onConflict: 'run_id' }
 			)

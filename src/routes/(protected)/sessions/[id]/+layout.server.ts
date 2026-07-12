@@ -110,6 +110,7 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
                 filename,
                 mime_type,
                 duration_ms,
+                sync_offset_s,
                 status,
                 created_at
             )
