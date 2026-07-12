@@ -117,9 +117,15 @@
 	let sChartEl: HTMLCanvasElement | null = $state(null);
 	let jerkChartEl: HTMLCanvasElement | null = $state(null);
 	let chartInstances: any[] = [];
+	let renderGeneration = 0;
 
 	async function renderCharts() {
+		const myGeneration = ++renderGeneration;
 		const { Chart, registerables } = await import('chart.js');
+		// A newer render was requested while this one was loading chart.js —
+		// bail out rather than race the newer call to create charts on the
+		// same canvas (Chart.js throws "Canvas is already in use" otherwise).
+		if (myGeneration !== renderGeneration) return;
 		Chart.register(...registerables);
 		chartInstances.forEach((c) => c.destroy());
 		chartInstances = [];

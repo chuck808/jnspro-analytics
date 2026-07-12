@@ -44,6 +44,7 @@
 
 	let chartCanvas = $state<HTMLCanvasElement>();
 	let chart: any = null;
+	let renderGeneration = 0;
 
 	// Metric configuration
 	const metricConfig = {
@@ -169,13 +170,19 @@
 		const themeText = cssVars.getPropertyValue('--theme-text-primary').trim() || '#f0ece4';
 		if (!chartCanvas || annotatedPoints.length === 0) return;
 
+		const myGeneration = ++renderGeneration;
+		const { Chart, registerables } = await import('chart.js');
+		// onMount and the reactive $effect below can both call renderChart()
+		// around the same tick; without this guard both survive their await
+		// and race to create a Chart on the same canvas, which throws
+		// "Canvas is already in use". Only the latest call proceeds.
+		if (myGeneration !== renderGeneration) return;
+		Chart.register(...registerables);
+
 		if (chart) {
 			chart.destroy();
 			chart = null;
 		}
-
-		const { Chart, registerables } = await import('chart.js');
-		Chart.register(...registerables);
 
 		const config = metricConfig[metric];
 		const labels = annotatedPoints.map((p) => `Run ${p.runNumber}`);
