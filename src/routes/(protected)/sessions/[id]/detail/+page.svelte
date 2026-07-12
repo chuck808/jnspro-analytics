@@ -3,7 +3,6 @@
 	import type { LayoutData } from '../$types';
 	import RunComparison from '$lib/components/RunComparison.svelte';
 	import PerformanceTargets from '$lib/components/PerformanceTargets.svelte';
-	import RunVideoAttachment from '$lib/components/RunVideoAttachment.svelte';
 	import DataDrillDown from '$lib/components/DataDrillDown.svelte';
 	import SessionNotesManager from '$lib/components/SessionNotesManager.svelte';
 	import type { SessionNote } from '$lib/types/notes';
@@ -75,23 +74,6 @@
 		}))
 	);
 
-	// ── Video hero (see VIDEO_SYNC_DESIGN.md §6.4) ────────────────────────────
-	let hasVideo = $derived(!!selectedRun?.run_videos);
-	let heroData = $derived(
-		hasVideo
-			? {
-					drillDownData,
-					speedKmh: performanceAnalysis.selectedRun?.physics?.speedKmh ?? [],
-					reactionMs: selectedGate?.reaction_time_ms ?? null,
-					measuredPeakSpeedKmh:
-						performanceAnalysis.selectedRun?.physics?.measuredPeakSpeedKmh ?? null,
-					techniqueScoreOverall: techniqueScores?.overall ?? null,
-					frontWheelLifted: !!selectedGate?.front_wheel_lifted,
-					timeToWheelieMs: selectedGate?.time_to_wheelie_ms ?? null
-				}
-			: null
-	);
-
 	// ── Mass check ────────────────────────────────────────────────────────────
 	let totalMassKg = $derived(
 		(data.riderWeight ?? 0) + (data.bikeWeight ?? 0) > 0
@@ -124,18 +106,6 @@
 <div class="space-y-5">
 	{#if selectedRun && selectedGate}
 		<!-- ══════════════════════════════════════════════════════
-             VIDEO HERO — only when this run has video (see VIDEO_SYNC_DESIGN.md §6.4)
-             ══════════════════════════════════════════════════════ -->
-		{#if hasVideo}
-			<RunVideoAttachment
-				runId={selectedRun.id}
-				video={selectedRun.run_videos ?? null}
-				hero
-				{heroData}
-			/>
-		{/if}
-
-		<!-- ══════════════════════════════════════════════════════
              RUN COMPARISON
              ══════════════════════════════════════════════════════ -->
 		{#if data.runs.length > 1}
@@ -151,13 +121,6 @@
 			techniqueScore={techniqueScores?.overall ?? null}
 			riderLevel={riderLevel ?? 'intermediate'}
 		/>
-
-		<!-- ══════════════════════════════════════════════════════
-             VIDEO (no video yet for this run — low-key "+ Add video" link)
-             ══════════════════════════════════════════════════════ -->
-		{#if !hasVideo}
-			<RunVideoAttachment runId={selectedRun.id} video={selectedRun.run_videos ?? null} />
-		{/if}
 
 		<!-- ══════════════════════════════════════════════════════
              G-FORCE STABILITY

@@ -4,6 +4,7 @@
 	import SwipeableRunSelector from '$lib/components/SwipeableRunSelector.svelte';
 	import HelpButton from '$lib/components/HelpButton.svelte';
 	import RunTagSelector from '$lib/components/RunTagSelector.svelte';
+	import RunVideoAttachment from '$lib/components/RunVideoAttachment.svelte';
 	import type { RunTag } from '$lib/types/runs';
 	import RunComparisonSelector from '$lib/components/RunComparisonSelector.svelte';
 	import { ImpulseChart, PowerChart } from '$lib/components/performance-charts';
@@ -50,6 +51,29 @@
 		performanceAnalysis.selectedRun?.physics?.dataQuality ?? { badge: '—', color: '#6b5f4d' }
 	);
 	let speedProfile = $derived(performanceAnalysis.selectedRun?.physics?.speedProfile ?? '—');
+
+	// ── Video (see VIDEO_SYNC_DESIGN.md §6.4) ─────────────────────────────────
+	let drillDownData = $derived(
+		chartData.map((value: number, idx: number) => ({
+			timeS: (idx / (chartData.length > 1 ? chartData.length - 1 : 1)) * (elapsedMs / 1000),
+			value
+		}))
+	);
+	let hasVideo = $derived(!!selectedRun?.run_videos);
+	let heroData = $derived(
+		hasVideo
+			? {
+					drillDownData,
+					speedKmh: performanceAnalysis.selectedRun?.physics?.speedKmh ?? [],
+					reactionMs: selectedGate?.reaction_time_ms ?? null,
+					measuredPeakSpeedKmh:
+						performanceAnalysis.selectedRun?.physics?.measuredPeakSpeedKmh ?? null,
+					techniqueScoreOverall: techniqueScores?.overall ?? null,
+					frontWheelLifted: !!selectedGate?.front_wheel_lifted,
+					timeToWheelieMs: selectedGate?.time_to_wheelie_ms ?? null
+				}
+			: null
+	);
 
 	// Map quality badge to DataQualityBadge type
 	let qualityLevel = $derived.by(
@@ -346,16 +370,39 @@
 								>{g ? fmtReaction(g.reaction_time_ms) : '—'}</span
 							>
 						</button>
-						<RunTagSelector
-							runId={run.id}
-							runNumber={run.run_number}
-							currentTags={runTags ?? []}
-							sessionId={data.session.id}
-						/>
+						{#if selectedRunIdx === i}
+							<RunTagSelector
+								runId={run.id}
+								runNumber={run.run_number}
+								currentTags={runTags ?? []}
+								sessionId={data.session.id}
+							/>
+						{:else if runTags && runTags.length > 0}
+							<span
+								class="flex h-6 w-6 items-center justify-center rounded-full text-xs opacity-60"
+								title="{runTags.length} tag{runTags.length > 1
+									? 's'
+									: ''} — select this run to edit"
+							>
+								🏷️
+							</span>
+						{/if}
 					</div>
 				{/each}
 			</div>
 		</div>
+	{/if}
+
+	<!-- ══════════════════════════════════════════════════════
+         VIDEO (see VIDEO_SYNC_DESIGN.md §6.4)
+         ══════════════════════════════════════════════════════ -->
+	{#if selectedRun && selectedGate}
+		<RunVideoAttachment
+			runId={selectedRun.id}
+			video={selectedRun.run_videos ?? null}
+			hero
+			{heroData}
+		/>
 	{/if}
 
 	<!-- ══════════════════════════════════════════════════════
