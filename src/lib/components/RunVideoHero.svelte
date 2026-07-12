@@ -18,6 +18,7 @@
 		speedKmh: number[];
 		reactionMs: number | null;
 		measuredPeakSpeedKmh: number | null;
+		maxG: number | null;
 		techniqueScoreOverall: number | null;
 		frontWheelLifted: boolean;
 		timeToWheelieMs: number | null;
@@ -29,6 +30,7 @@
 		speedKmh,
 		reactionMs,
 		measuredPeakSpeedKmh,
+		maxG,
 		techniqueScoreOverall,
 		frontWheelLifted,
 		timeToWheelieMs
@@ -215,6 +217,13 @@
 					class="rounded bg-black/60 px-2 py-1 text-xs font-semibold text-[#f0ece4] backdrop-blur-sm"
 				>
 					PEAK {measuredPeakSpeedKmh.toFixed(1)} km/h
+				</span>
+			{/if}
+			{#if maxG !== null}
+				<span
+					class="rounded bg-black/60 px-2 py-1 text-xs font-semibold text-[#f0ece4] backdrop-blur-sm"
+				>
+					MAX {maxG.toFixed(2)}G
 				</span>
 			{/if}
 			{#if techniqueScoreOverall !== null}

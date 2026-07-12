@@ -68,6 +68,7 @@
 					reactionMs: selectedGate?.reaction_time_ms ?? null,
 					measuredPeakSpeedKmh:
 						performanceAnalysis.selectedRun?.physics?.measuredPeakSpeedKmh ?? null,
+					maxG: selectedGate?.max_g ?? null,
 					techniqueScoreOverall: techniqueScores?.overall ?? null,
 					frontWheelLifted: !!selectedGate?.front_wheel_lifted,
 					timeToWheelieMs: selectedGate?.time_to_wheelie_ms ?? null

@@ -30,6 +30,7 @@
 		speedKmh: number[];
 		reactionMs: number | null;
 		measuredPeakSpeedKmh: number | null;
+		maxG: number | null;
 		techniqueScoreOverall: number | null;
 		frontWheelLifted: boolean;
 		timeToWheelieMs: number | null;
