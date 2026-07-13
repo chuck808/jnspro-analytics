@@ -2,195 +2,169 @@
 
 ---
 
-## What the Session Page Is For
+## What you're looking at
 
-The analytics page shows you trends across multiple sessions. The session page shows you what actually happened in a specific one — run by run, metric by metric.
+You just uploaded a session. Now there's a page — well, three pages — full of numbers, charts, and little coloured badges. Here's what it all means and, more importantly, how much of it you actually need to look at.
 
-This is the most detailed view in the system. Everything the sensor recorded, everything the firmware calculated, and everything the analytics layer computed is available here. That's a lot of information. Some of it you'll check every session. Some of it you'll only look at when something seems off. It's all there when you need it, but you don't need to look at all of it every time.
+Short version: not all of it, not every time. This is the most detailed view in the whole system — everything the sensor recorded, everything the firmware calculated, everything the analytics engine derived from that. That's a lot to take in, so it's split across three pages instead of dumped on you all at once. Think of them as three different questions:
 
----
+- **Overview** — "How did today go?"
+- **Analysis** — "What actually happened in this specific run?"
+- **Deep Dive** — "I want to dig into something specific."
 
-## Finding Your Way Around
-
-At the top of the page is a summary bar showing the headline numbers for the whole session — run count, best reaction time, best peak speed, best max G-force, and consistency score. These are your at-a-glance numbers. Everything below is explanation and detail.
-
-**A note on elapsed time and speed accuracy**
-
-The AppGatePro records data for a window you set in the device settings — typically 3–4 seconds, long enough to capture your full run at your chosen distance. The distance is also set in the device (10m, 20m, or whatever your track setup uses).
-
-If you have the breakbeam timing module, elapsed time becomes a precision measurement — the exact moment you cross the line, to ±1ms. Combined with your known distance, this gives you a real average speed calculation rather than an estimate, and significantly improves the accuracy of everything the system calculates from velocity.
-
-Without the breakbeam, the device records for the full window and speed is estimated from the IMU data. These estimates are reliable for comparing your own runs against each other and tracking progress over time — just not absolute values you'd quote as ground truth. The system tells you clearly which situation you're in.
-
-If any of your active goals improved during this session, you'll see a progress indicator here too, showing which metric improved, by how much, and whether it was a significant enough step to record as a milestone.
-
-Below the summary is a run comparison table showing all runs side by side. Click any row to select that run for detailed viewing. On desktop you'll also see pill buttons for each run — click to switch. On mobile it's swipeable.
+You'll use Overview every session. You'll use Analysis often. Deep Dive is there for when something's odd or you want to compare things properly — most sessions you won't touch it at all, and that's fine.
 
 ---
 
-## The Analytics Systems
+## Overview — the 30-second check
 
-The session page currently runs analytics from two systems. This is something that'll consolidate over time, but for now it's worth knowing what each one shows.
+This is where you land after uploading, and it's built to be skimmed.
 
-**The Performance Engine** appears near the top of the run detail section. It gives you a plain English headline and summary of the run, key metrics, insights about technique and data quality, and prioritised next actions. It also produces charts showing acceleration with phase markers, speed with acceleration overlay, jerk (rate of change of force), impulse, and power. This is the newer system — it's where new development is happening.
+![Session overview — context, tags, and the session summary](/docs/session-overview-top.png)
 
-**The original analytics** shows the G-force chart everyone's familiar with, technique scores broken into four components, speed splits, and additional views of power and impulse. These formulas are well-validated and riders are used to reading them, which is why they're still here.
+At the top: the date, how many runs, and a **Context** panel where you can log the weather, track surface, and how the session felt. None of this changes your numbers — a 0.198s reaction time is 0.198s whether it was sunny or pouring — but it gives future-you something to look back on. If you notice six months from now that your times are consistently better on dry concrete than damp asphalt, that's only visible because you logged it. If you just want the data and can't be bothered, ignore this section entirely. Nothing downstream depends on it.
 
-Both systems are working from the same underlying data. If a number looks different between them, it's usually because they're calculating slightly different things or presenting the same thing differently.
+Below that is **Tag runs** — mark a run as a warmup, your best effort, an experiment, or exclude it from stats entirely. This matters more than it sounds like it should: tagged-out runs still exist and you can still look at them, they just stop dragging your session averages around. If you always throw in two throwaway warmup runs before your real efforts, tag them — your consistency score will actually reflect your training instead of getting muddied by laps you weren't trying on.
 
----
+> **Worth knowing:** if you've got active training goals, a small progress indicator shows up here too, telling you which metric moved and by how much. And if the session produced something genuinely worth celebrating — a real personal best, not just "a decent run" — you'll see a **Share** button that generates a card you can post or send to your coach. It only shows up when something real happened; the system won't manufacture excitement out of an ordinary Tuesday.
 
-## Understanding the Charts
+Scroll down and you'll hit the session narrative — a plain-English paragraph, not a wall of numbers, telling you what the data actually shows. Then strengths/focus areas, the headline stats (best reaction, best peak speed, best max G, consistency), and finally a chart showing how you trended across the runs in this session:
 
-### G-Force
+![Cross-run progression chart, tracking reaction time across the session](/docs/session-overview-progression.png)
 
-The core chart. Time on the x-axis, G-force on the y-axis, filled area showing your acceleration trace through the run.
-
-What you're looking for: an early peak (ideally in the first 0.5–1.0 seconds), a single dominant peak rather than several peaks of similar height, and a gradual decline after the peak rather than a sudden drop. An early, high, clean peak means you're front-loading your power into the snap. Multiple peaks usually mean uneven pedal strokes.
-
-Typical values: 2.0–2.5G is club level, 2.5–3.0G is strong, above 3.0G approaches the edge of the sensor's measurement range and should be treated with some caution. The sensor compensates for this but very high numbers become less precise.
-
-### Speed and Acceleration
-
-A dual-axis chart with speed (km/h, left axis) and acceleration (G-force, right axis) on the same timeline. Both together reveal things neither shows alone — you can have high acceleration but poor speed conversion, or moderate acceleration and excellent speed, depending on technique.
-
-Speed should build in a roughly S-shape (slow start, rapid middle, tapering off). Peak acceleration should happen noticeably before peak speed — if they're occurring at the same time, something's not right.
-
-**With the breakbeam module:** elapsed time is a precision measurement, so average speed over your set distance is a genuine calculation. The speed curve is anchored to this real value, making it significantly more reliable.
-
-**Without the breakbeam:** speed is estimated from IMU integration with bias correction applied. You'll see a data quality badge (Excellent / Good / Fair / Poor) and a bias correction value in m/s². Under 0.5 m/s² is excellent. Above 3.0 m/s² means the speed estimate is approximate at best. These numbers are reliable for comparing your own runs against each other — treat them with caution as absolute values.
-
-### Jerk
-
-Jerk is how quickly your force application changes — the rate of change of acceleration. It's a smoothness indicator. Positive jerk means force is increasing, negative means it's decreasing.
-
-A smoothness score (0–100) appears below the chart. Above 80 is excellent. Below 60 suggests choppy or uneven force delivery. Two riders with identical peak G-force can have very different jerk profiles — the smoother rider is usually more consistent and more efficient.
-
-### Impulse
-
-Cumulative force over time, shown as a rising line. The steeper the rise, the more force per unit time. Key numbers: total impulse (total force delivery for the run) and time to 50% impulse (how long it took to deliver half your total force). Gate starts reward front-loaded power — getting 50% of your force in under 0.5 seconds is much better than spreading it evenly across 2 seconds.
-
-### Power
-
-Estimated using force × velocity. Only appears if you have rider weight and bike weight entered in your profile — without accurate mass data the numbers would be misleading, so the system doesn't show them.
-
-These are estimates from IMU data, not crank power meter measurements. With the breakbeam module the velocity component is more accurate, which improves the power estimate. Without it, treat power figures as useful relative comparisons rather than absolute values.
+A rising line here isn't automatically bad — it depends what you're tracking (lower reaction time is better, higher peak speed is better) — but a *consistent* decline across the session, in whichever direction is worse for that metric, usually just means fatigue. That's useful to know before your next set.
 
 ---
 
-## Technique Scoring
+## Analysis — pick a run, see everything about it
 
-Four component scores, weighted into an overall score:
+This is where the actual investigation happens. Select a run from the row of buttons, and the whole page fills in with that run's data.
 
-- **Reaction (30%)** — based on your reaction time relative to benchmarks for your rider level
-- **Explosiveness (25%)** — how much of your power you front-load into the first 500ms relative to your peak
-- **Smoothness (25%)** — how steady your force application is, derived from jerk analysis
-- **Efficiency (20%)** — how quickly you convert acceleration into speed
+![Run selector, with tags visible only on the selected run](/docs/session-analysis-run-selector.png)
 
-Overall score ranges: 85–100 is excellent, 70–84 is good, 55–69 is fair, below 55 needs work. Scores are benchmarked against your declared rider level — a grom scoring 70 and a club rider scoring 70 are at different absolute levels.
+Notice only the *selected* run shows its full tag control — the others just show a small tag icon if they've got one, so the row doesn't turn into visual noise once you've tagged half your session.
 
-The technique scores are most useful when tracked over time. A single session's scores are data points. Ten sessions' scores show a trend. Watch for all scores improving together (technique work is paying off), or inconsistencies — reaction improving while smoothness drops often means you're rushing the start; efficiency stuck while explosiveness improves usually means a technique or setup issue.
+### Attaching video
 
-Don't chase perfect scores. Chase consistent scores that stay stable or improve as your absolute performance improves.
+Attaching video is entirely optional, per run, and off by default — plenty of sessions won't have one, and that's not a missing feature, it's the intended state. A low-key "+ Add video" link sits on this page for any run that doesn't have one yet; upload a clip from your phone, an action cam, whatever your mate happened to be holding, and it attaches to that specific run.
 
----
+**How the sync actually works.** The light tower fires a brief white flash at the very start of every gate sequence — well before the green "go" light, timed so it never interferes with the moment you're actually reacting to. The app scans your uploaded clip for that flash and uses it to line the video up against the G-force trace automatically. You don't drag anything into place by hand. If the flash isn't visible in your clip for whatever reason — bad framing, the camera started late — sync detection just fails gracefully and you get a plain video player instead of a broken or misaligned one. Nothing else about the run breaks.
 
-## Key Metrics
+**Once it's synced**, the video plays as a hero player at the top of the page with three layers of information built around it:
 
-**Reaction time** is time from gate drop to first detectable movement. It's as close to a direct measurement as the system gets — the sensor catches the moment you actually start moving, not when you intend to. Benchmarks: under 220ms is elite, 220–250ms national, 250–280ms regional, 280–320ms club, above 320ms developing. High variance (50ms+ range across runs) usually means inconsistent preparation. Consistently under 180ms might mean you're anticipating the gate rather than reacting to it — a call for your coach, not the data.
+- A couple of **persistent stat pills** in the corner — reaction time, peak speed, and technique score — visible the whole time, not just at one instant.
+- A **live telemetry readout** below the video that updates as you scrub or play — the actual G-force and speed value at whatever instant you're currently watching.
+- **Momentary callouts** that appear only when the video passes a specific instant worth flagging — peak G-force, or a wheel lift, timed to when they actually happened in the footage rather than sitting on screen the whole time as clutter.
 
-**Max G-force** conflates strength, technique, body position, and bike setup. Two riders with identical max G might be doing completely different things. Its value is as a tracking metric over time. Rising max G with stable or improving technique scores means you're getting stronger and maintaining form. Rising max G with falling technique scores means you're muscling it.
+Underneath the video is a merged scrub bar — the G-force trace itself doubles as the seek control, so dragging through the chart moves the video and vice versa. It spans the whole clip, not just the timed portion, since the run-up to the gate has real viewing value too.
 
-**Peak speed** — with the breakbeam, this is anchored to a real measurement and is genuinely reliable. Without it, it's calculated from acceleration integration and is best used for relative comparison between your own runs rather than as an absolute figure.
+![Live telemetry readout and the merged scrub bar underneath the video](/docs/session-analysis-video-hero.png)
 
-**Consistency (CV%)** is the coefficient of variation of your reaction times across the session. Below 5% is excellent, 5–8% good, 8–12% fair, above 12% variable. A rider who hits 0.260s every run beats one who hits 0.220s once and 0.310s twice. Racing rewards reliability, and consistency is trainable — improving it usually precedes improving peak times.
+### The G-force chart
 
----
+The chart everyone checks first:
 
-## Phase Analysis and Speed Splits
+![G-force chart for a single run](/docs/session-analysis-gforce.png)
 
-The system divides your gate start into three phases: the drive phase (maximum force application), the transition phase (converting force to velocity), and the velocity phase (maintaining the speed you've built). Each has its own duration, efficiency, and characteristic metrics.
+What you actually want to see: an early peak (ideally in the first half-second to a second), one clean dominant peak rather than several smaller bumps, and a gradual taper afterward rather than a cliff-edge drop. That shape means you front-loaded your power into the snap. Several similar-height peaks usually means uneven pedal strokes rather than one clean drive.
 
-The drive phase is your snap — explosive power delivery. Problems here show as low peak G, late peak timing, or poor front-loading.
+Rough feel for the numbers: 2.0–2.5G is solid club-level output, 2.5–3.0G is strong, and above 3.0G is pushing toward the edge of what the sensor measures reliably — treat very high spikes with a little healthy skepticism.
 
-The transition phase is where technique quality reveals itself. You generated force in the drive phase; now you're translating it to speed. Low efficiency here despite good G-force usually points to technique or body position.
+### Speed, jerk, impulse, power
 
-The velocity phase is about maintaining what you've built. Early peak (speed peaks and drops quickly) or poor endurance through the run show up here.
+Below the G-force chart:
 
-The speed splits table (when valid data exists) shows when and where you reached target speeds — 30, 40, 50 km/h and so on, with time from gate drop and distance at that point. Tracking these over multiple sessions shows whether your acceleration efficiency is improving.
+- **Speed & Acceleration** — a dual-axis chart. Speed should build in a rough S-curve; peak acceleration should land noticeably *before* peak speed. If they're happening at the same instant, something about the run doesn't add up.
+- **Jerk** — how fast your force output is changing. It's a smoothness read. Two riders can post identical peak G with very different jerk profiles — the smoother one is usually the more efficient one.
+- **Impulse** — cumulative force over the run. Gate starts reward front-loading: getting half your total force out in under half a second beats spreading the same total evenly across two seconds.
+- **Power** — only shows up if you've entered your weight and bike weight in your profile. Without real mass numbers, a power estimate is just a guess dressed up as a figure, so the system doesn't show one at all rather than show a misleading one.
 
----
+### Two technique scoring systems, on purpose
 
-## Session-Level Patterns
+You'll actually see technique scored twice on this page, in two different places, and that's not a bug.
 
-**Cross-run progression** shows how a metric changed across your runs in order (run 1 → 2 → 3 → etc). Declining trend = fatigue. Improving trend = warm-up effect or finding your rhythm. Flat trend = consistent preparation.
+There's a compact **Technique Scores** ring showing four weighted components — Reaction (30%), Explosiveness (25%), Smoothness (25%), Efficiency (20%) — rolled into one overall number. This is the original scoring model, well-validated, and it's what most of the rest of the app (goals, leaderboards, trend charts) still references.
 
-**Optimal set length** — the system estimates how many runs you can sustain at high quality per session. If your drop-off consistently happens at run 6, doing 10-run sessions means 40% of your reps are junk. Use this to plan your sessions rather than grinding through more reps than you can do well.
+Further down is the newer, more granular **Detailed Technique Breakdown** — six dimensions instead of four, each benchmarked against your declared rider level:
 
-**Wheelie detection** — if you have timeseries data, front wheel lift is tracked: whether it happened, when, how long. Wheelies at the gate aren't necessarily a problem. Whether it's costing you speed and whether you can control it is context the data can't provide — that's for your coach.
+![Detailed technique breakdown, six dimensions](/docs/session-analysis-technique.png)
 
----
+| Dimension | What it's actually measuring |
+|---|---|
+| Launch Quality | Reaction time and initial drive, together |
+| Explosiveness | Peak power and acceleration |
+| Speed Carry | How well you maintain velocity through the run |
+| Smoothness | Force-application consistency (from the jerk trace) |
+| Impulse Timing | How quickly you deliver force |
+| Repeatability | Run-to-run consistency |
 
-## Data Quality
+Both systems pull from the same underlying data, so if a number looks slightly different between them, it's not an error — they're just measuring slightly different things, or measuring the same thing in a slightly different way. They'll consolidate into one system eventually; for now, the four-component score is the one everything else in the app leans on, and the six-dimension breakdown is there when you want a finer-grained read on *why*.
 
-Each run has an analytics valid flag from the firmware. If it's false, speed-based metrics don't appear — not because the system is being precious, but because showing potentially misleading numbers is worse than showing nothing. Reaction time and raw G-force always appear because they're direct measurements. Calculated metrics are hidden when the underlying data isn't trustworthy.
+Every score here — in both systems — is benchmarked against your **declared rider level**, not one flat scale. A 230ms reaction time is "excellent" for an intermediate rider and merely "good" for an expert. The actual bands:
 
-Without the breakbeam, the bias correction value tells you how much correction was needed for the speed integration. Under 0.5 m/s² is excellent. Above 3.0 m/s² means treat speed estimates as approximate. High bias correction usually means the device wasn't calibrated properly before the run or wasn't mounted securely. With the breakbeam, the speed curve is anchored to a real measurement so bias correction matters less.
+| Level | Reaction — Excellent | Reaction — Good | Reaction — Needs work above | Peak G — Good | Peak G — Excellent |
+|---|---|---|---|---|---|
+| Grom | < 280ms | < 380ms | 520ms | 1.2G | 1.8G |
+| Rider / Intermediate | < 230ms | < 320ms | 430ms | 1.8G | 2.4G |
+| Expert | < 200ms | < 280ms | 380ms | 2.1G | 2.8G |
+| Elite | < 180ms | < 250ms | 340ms | 2.3G | 3.0G |
 
-If analytics don't appear, it's usually one of: analytics_valid is false for that run, your profile is missing weight data (needed for power), or the acceleration data was incomplete. The system won't fill gaps with guesses.
+> **Worth knowing:** these thresholds aren't fixed forever. They start as reasonable seed values based on coaching experience and the (fairly thin) published BMX gate-start literature, and they're designed to be replaced automatically once enough real rider data accumulates. If your numbers look oddly harsh or generous compared to how a session actually felt, that's worth mentioning to your coach — the benchmarks are provisional by design, not gospel.
 
----
+### Phase analysis and splits
 
-## What to Look At
+The system also breaks your run into three phases — **drive** (the initial explosive force), **transition** (converting that force into speed), and **velocity** (holding onto the speed you built). Weak drive phase shows up as low peak G or a late peak. Weak transition despite decent G-force usually points at technique or body position rather than raw power. Weak velocity phase means you built speed and then bled it off too fast.
 
-**Every session:** Reaction time and consistency, max G-force, technique scores, G-force chart shape. Quick visual confirmation that things look reasonable — 30 seconds if nothing's unusual.
-
-**When something feels off:** Data quality badge and bias correction value first. Then speed curve shape. Then jerk profile (was technique clean or choppy?). Then drop-off analysis if you had more than five runs.
-
-**Occasionally:** Speed splits (tracking specific distance targets), phase analysis (understanding where improvements happened), power estimates (tracking strength progression over time).
-
-**When investigating a specific issue:** The run comparison tool, historical context, and data drill-down for raw export. These are there when you need them, not to be checked every session.
-
----
-
-## Common Patterns
-
-**Good session:** Technique scores stable (70–85), consistency CV% below 8%, G-force chart shows clean early peak with gradual decline, best and average runs within 5–10%, no data quality warnings. Repeatable, efficient starts. This is what you're building toward.
-
-**Fatigue session:** Performance degrades run to run — reaction times slow, G-force peaks lower and later, smoothness scores drop, technique deteriorates through the session. Either you came in already fatigued, or the session was too long. Cut set length or increase recovery time.
-
-**Chasing peaks:** Best run is 15–20% better than average, high variance across all metrics, some runs excellent and others poor, CV% above 12%. You're trying to hit a perfect run instead of building consistent mechanics. Back off the intensity and focus on repeatability.
-
-**Equipment or setup issue:** All runs show the same odd pattern. Efficiency scores particularly low despite reasonable G-force. Power and speed don't align. Unlike fatigue, which gets worse through a session, equipment issues affect all runs similarly.
-
-**Data quality issue:** Multiple runs with analytics_valid false, high bias correction, speed curves that don't make sense. Check calibration, check mounting, note it and move on. Learn what you can from the reaction time and G-force data.
+If you've got a few runs at consistent distances, the acceleration splits table shows time and distance to hit specific speed targets (30, 40, 50 km/h) — handy for tracking whether your acceleration efficiency is actually improving over multiple sessions, not just this one.
 
 ---
 
-## Honest Limitations
+## Deep Dive — comparisons, targets, and notes
 
-The session page contains three types of information and they're not equally reliable.
+This page exists for the moments when you want to line things up side by side rather than look at one run in isolation.
 
-**Direct measurements** — reaction time, elapsed time (precision with breakbeam, recording window without), acceleration trace, pitch and roll angles. These are the numbers you can trust most. With the breakbeam, elapsed time joins this category fully.
+![Run comparison table](/docs/session-deepdive-comparison.png)
 
-**Calculated metrics** — peak speed, power, efficiency scores. With the breakbeam these are significantly more accurate. Without it, they're good for comparing your own runs against each other but treat absolute values with appropriate caution.
+Pick any two runs and get a straight metric-by-metric comparison — reaction time, max G, peak speed, technique score, elapsed time — with the winner on each row flagged. Directly below, **Performance Targets** shows your progress against personalised goals for your rider level:
 
-**Interpreted insights** — technique scores, weakness identification, phase classifications. Pattern recognition from formulas. Useful as suggestions and prompts, not as prescriptions. The system can tell you what the data looks like — it can't tell you why it looks that way or exactly what to change.
+![Performance targets panel](/docs/session-deepdive-targets.png)
 
-Use direct measurements to track absolute progress. Use calculated metrics for relative comparison. Use insights as starting points for conversations with your coach, not as verdicts.
+Further down: G-force stability across the session (how consistent your first half-second of force application was, run to run), a data drill-down for raw export, session notes (pre-session plans, in-session observations, post-session reflection, coach feedback — private to your account, no effect on analytics), and a one-click comparison against your previous session. There's also a report generator here if you want a shareable PDF for a coach or parent.
 
----
-
-## A Note on Information Overload
-
-There's a lot on this page. You don't need to look at all of it every session, and trying to will make it less useful, not more.
-
-Most sessions: look at the summary, check technique scores, glance at the G-force chart, note anything unusual. Thirty seconds.
-
-Sessions where something's interesting or you're working on a specific thing: ten minutes if you're going deep on a particular issue.
-
-The detailed analytics are there for investigation, not for routine consumption. Use them when you have a question they can answer.
+Most sessions, you genuinely won't need this page. It's here for when something's interesting enough to warrant digging, not for routine after-every-session checking.
 
 ---
 
-_For help with specific sections of the session page, use the Help buttons throughout the page._
+## Data quality — what gets hidden, and why
+
+Every run carries a validity flag from the firmware. If it's `false`, speed-derived metrics simply don't render — not because the system is being cautious for the sake of it, but because a confidently-wrong number is worse than an honest gap. Reaction time and raw G-force always show, because they're direct sensor readings, not calculations built on top of something that might be shaky.
+
+If you don't have the breakbeam timing module, speed is estimated from IMU integration rather than measured directly. You'll see a data quality badge (Excellent/Good/Fair/Poor) and a bias correction value — under 0.5 m/s² is excellent, above 3.0 m/s² means treat the speed numbers as approximate at best. High bias correction usually means the device wasn't calibrated properly, or wasn't mounted securely, before that run.
+
+With the breakbeam module fitted, elapsed time becomes a precision measurement (±1ms), which anchors the whole speed curve to something real rather than an estimate — every downstream number gets meaningfully more trustworthy.
+
+---
+
+## What's actually worth your attention
+
+**Every session:** glance at reaction time, consistency, max G, and the shape of the G-force chart. Thirty seconds, unless something looks off.
+
+**When something feels different:** check the data quality badge and bias correction first — rule out a mounting or calibration issue before you start second-guessing your technique. Then look at the speed curve shape, then the jerk profile.
+
+**Occasionally:** speed splits, phase analysis, power (if you've got mass data entered) — these are for when you're specifically investigating something, not routine checks.
+
+---
+
+## Honest limitations
+
+Not everything on these pages is equally trustworthy, and it's worth knowing which is which.
+
+**Direct measurements** — reaction time, raw acceleration, pitch and roll, and (with the breakbeam) elapsed time. Trust these the most; they're what the sensor actually recorded.
+
+**Calculated metrics** — peak speed, power, efficiency. Reliable for comparing your own runs against each other. With the breakbeam fitted, reliable enough to trust as absolute figures too. Without it, treat them as directional.
+
+**Interpreted insights** — technique scores, weakness flags, phase classifications. Pattern recognition applied to formulas. Useful as a prompt for a conversation with your coach, not as a verdict. The system can tell you *what* the data looks like. It can't tell you *why*, and it's not trying to.
+
+---
+
+_For help with a specific section, use the Help buttons scattered throughout these pages — each one gives you a level-appropriate explanation, whether you want the quick version or the full methodology._
