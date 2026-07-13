@@ -14,7 +14,7 @@ Requirements:
 Workflow:
     1. Edit chapter files in docs/chapters/
     2. Run this script
-    3. Commit the updated src/lib/docs/content.ts
+    3. Commit the updated src/lib/docs/contents.ts
 
 Adding a new chapter:
     1. Create docs/chapters/my-chapter.md
@@ -44,6 +44,12 @@ import textwrap
 from pathlib import Path
 from datetime import datetime
 
+# Windows terminals default to a non-UTF-8 codepage (cp1252), which can't
+# encode the ─/✓ characters this script prints. Force UTF-8 so it runs the
+# same on Windows as everywhere else.
+if sys.stdout.encoding is not None and sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 # Root of the SvelteKit project (script lives in scripts/, project root is parent)
@@ -53,7 +59,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 CHAPTERS_DIR = PROJECT_ROOT / 'docs' / 'chapters'
 
 # Where the generated TypeScript file goes
-OUTPUT_FILE = PROJECT_ROOT / 'src' / 'lib' / 'docs' / 'content.ts'
+OUTPUT_FILE = PROJECT_ROOT / 'src' / 'lib' / 'docs' / 'contents.ts'
 
 # Chapter definitions — order matters (determines sidebar order and prev/next nav)
 # Format: (slug, title, description, icon, filename)
@@ -63,56 +69,56 @@ CHAPTERS = [
         'Your Session Data',
         'Understanding your runs, charts, technique scores, and three-page layout',
         '📊',
-        'session.md',
+        'appgatepro_session_chapter.md',
     ),
     (
         'analytics',
         'Analytics & Trends',
         'Cross-session patterns, trend charts, and performance intelligence',
         '📈',
-        'analytics.md',
+        'appgatepro_analytics_chapter.md',
     ),
     (
         'goals',
         'Training Goals',
         'Setting targets, predictions, health monitoring, and adaptive suggestions',
         '🎯',
-        'goals.md',
+        'appgatepro_goals_chapter.md',
     ),
     (
         'upload',
         'Uploading Sessions',
         'Getting your data in, error messages, and what happens during processing',
         '⬆️',
-        'upload.md',
+        'appgatepro_upload_chapter.md',
     ),
     (
         'profile',
         'Profile & Bike Setup',
         'Why profile data matters and what each field unlocks',
         '👤',
-        'profile.md',
+        'appgatepro_profile_chapter.md',
     ),
     (
         'reports',
         'Reports',
         'Session and progress reports, detail levels, and sharing with coaches',
         '📄',
-        'reports.md',
+        'reports-chapter.md',
     ),
     (
         'leaderboard',
         'Leaderboards & Benchmarking',
         'How ranking works, privacy controls, and using it well',
         '🏆',
-        'leaderboard.md',
+        'appgatepro_leaderboard_chapter.md',
     ),
     (
         'help',
         'Help & Troubleshooting',
         'Common problems, upload errors, account issues, and bug reporting',
         '❓',
-        'help.md',
+        'appgatepro_help_chapter.md',
     ),
 ]
 
@@ -154,7 +160,7 @@ def escape_template_literal(s: str) -> str:
 
 
 def generate_typescript(chapters_data: list[dict]) -> str:
-    """Generate the full content.ts file content."""
+    """Generate the full contents.ts file content."""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     lines = [
