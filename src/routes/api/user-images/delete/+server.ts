@@ -35,16 +35,16 @@ export const DELETE: RequestHandler = async ({ request, locals: { supabase, user
 			throw error(404, 'Profile not found');
 		}
 
-		const currentUrl =
+		const stored =
 			imageType === 'profile_icon' ? profile.profile_icon_url : profile.background_image_url;
 
-		if (currentUrl) {
-			// Extract the file path from the URL
-			// URL format: https://[project].supabase.co/storage/v1/object/public/user-images/[user_id]/[filename]
-			const urlParts = currentUrl.split('/user-images/');
-			if (urlParts.length === 2) {
-				const filePath = urlParts[1];
+		if (stored) {
+			// Stored value is normally a bare storage path (e.g. "{user_id}/background.png").
+			// Fall back to extracting the path from a legacy full-URL value, in case
+			// this row predates the getPublicUrl() -> storage-path fix.
+			const filePath = stored.includes('/user-images/') ? stored.split('/user-images/')[1] : stored;
 
+			if (filePath) {
 				// Delete the file from storage
 				const { error: deleteError } = await supabase.storage
 					.from('user-images')

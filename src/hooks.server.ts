@@ -172,7 +172,7 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 			`default-src 'self'`,
 			`script-src 'self' 'unsafe-inline'`, // unsafe-inline needed for Svelte's inline scripts
 			`style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`, // unsafe-inline needed for Tailwind/Svelte styles
-			`img-src 'self' data: blob:`, // data: for Chart.js canvas exports, blob: for file previews
+			`img-src 'self' data: blob: https://${supabaseHost}`, // data: for Chart.js canvas exports, blob: for file previews, Supabase Storage for user-uploaded images
 			`media-src 'self' blob: https://${supabaseHost}`, // run video attachments served from Supabase Storage signed URLs
 			`font-src 'self' https://fonts.gstatic.com`,
 			`connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://*.sentry.io https://*.ingest.sentry.io`,

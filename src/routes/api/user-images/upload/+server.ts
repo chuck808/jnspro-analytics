@@ -78,17 +78,15 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, user }
 			throw error(500, `Upload failed: ${uploadError.message}`);
 		}
 
-		// Get public URL
-		const {
-			data: { publicUrl }
-		} = supabase.storage.from('user-images').getPublicUrl(filePath);
-
-		// Update the profile table with the new URL
+		// user-images is a private bucket — store the storage path, not a public
+		// URL. getPublicUrl() returns a URL that looks valid but never actually
+		// grants access on a private bucket; every reader mints its own signed
+		// URL from this path at read time instead (see (protected)/+layout.server.ts).
 		const updateField =
 			imageType === 'profile_icon'
-				? { profile_icon_url: publicUrl, profile_icon_updated_at: new Date().toISOString() }
+				? { profile_icon_url: filePath, profile_icon_updated_at: new Date().toISOString() }
 				: {
-						background_image_url: publicUrl,
+						background_image_url: filePath,
 						background_image_updated_at: new Date().toISOString()
 					};
 
@@ -102,8 +100,20 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, user }
 			throw error(500, `Failed to update profile: ${dbError.message}`);
 		}
 
+		// Sign a URL for the immediate client-side preview (the page itself
+		// mints its own on next load — this just avoids a broken-image flash
+		// in the moment between upload and reload).
+		const { data: signedUrlData, error: signError } = await supabase.storage
+			.from('user-images')
+			.createSignedUrl(filePath, 3600);
+
+		if (signError) {
+			console.error('Signed URL error:', signError);
+			throw error(500, `Failed to sign preview URL: ${signError.message}`);
+		}
+
 		return json({
-			url: publicUrl,
+			url: signedUrlData.signedUrl,
 			type: imageType,
 			uploadedAt: new Date().toISOString()
 		});
