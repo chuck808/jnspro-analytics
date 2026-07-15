@@ -20,6 +20,7 @@
 	let consistency = $derived(ctx.consistency);
 	let insightPack = $derived(ctx.insightPack);
 	let techniqueScoreBreakdown = $derived(ctx.techniqueScoreBreakdown);
+	let riderLevel = $derived(ctx.riderLevel);
 
 	// ── Formatting helpers ─────────────────────────────────────────────────────
 	function fmt(n: number | null | undefined, dec = 2, suf = '') {
@@ -150,6 +151,7 @@
 	// ── Session narrative ──────────────────────────────────────────────────────
 	let sessionIntelligence = $derived(performanceAnalysis.intelligence);
 	let quality = $derived(performanceAnalysis.selectedRun?.physics?.dataQuality);
+	let impulse = $derived(performanceAnalysis.selectedRun?.physics?.impulse);
 
 	// ── Achievement detection ─────────────────────────────────────────────────
 	// Runs deterministically from existing session data — no extra queries.
@@ -163,8 +165,43 @@
 			profile: (data as any).profile ?? null,
 			crossSessionReport: (data as any).advancedAnalytics?.crossSessionReport ?? null,
 			hasCalibrationWarning: performanceAnalysis.hasCalibrationWarning ?? false,
-			profileComplete: performanceAnalysis.profileComplete ?? false,
-			dataQualityRating: (quality?.badge as any) ?? null
+			dataQualityRating: (quality?.rating as any) ?? null,
+			// Performance engine intelligence outputs
+			intelligence: sessionIntelligence ? {
+				sessionQuality: sessionIntelligence.sessionQuality ?? null,
+				repeatability: sessionIntelligence.repeatability ?? null,
+				bestVsAvg: sessionIntelligence.bestVsAvg ?? null,
+				dropOff: sessionIntelligence.dropOff ?? null,
+				setLength: sessionIntelligence.setLength ?? null,
+				fatigue: sessionIntelligence.fatigue ?? null
+			} : null,
+			// Technique scores from selected run
+			techniqueScores: techniqueScoreBreakdown ? {
+				launchQuality: techniqueScoreBreakdown.launchQuality ?? null,
+				explosiveness: techniqueScoreBreakdown.explosiveness ?? null,
+				speedCarry: techniqueScoreBreakdown.speedCarry ?? null,
+				smoothness: techniqueScoreBreakdown.smoothness ?? null,
+				repeatability: techniqueScoreBreakdown.repeatability ?? null
+			} : null,
+			// Impulse analysis
+			impulse: impulse ? {
+				totalImpulseNs: impulse.totalImpulseNs,
+				timeToHalfImpulseS: impulse.timeToHalfImpulseS,
+				frontLoadedScore: impulse.frontLoadedScore,
+				impulseEfficiency: impulse.impulseEfficiency
+			} : null,
+			// Insight pack — engine-identified strengths and limiters
+			insightPack: insightPack ? {
+				strengths: (insightPack.strengths ?? []).map((s: any) => ({
+					id: s.id ?? '', title: s.title ?? '', body: s.body ?? ''
+				})),
+				limiters: (insightPack.limiters ?? []).map((l: any) => ({
+					id: l.id ?? '', title: l.title ?? '', body: l.body ?? ''
+				}))
+			} : null,
+			// Rider context
+			riderLevel: riderLevel ?? null,
+			uciCategory: uciCategory ?? null
 		});
 		return detectAchievement(detectorInput);
 	});
@@ -180,7 +217,7 @@
 
 	let sessionNarrative = $derived.by(() => {
 		if (!sessionIntelligence) return null;
-		const qualityRating = quality?.badge as any;
+		const qualityRating = quality?.rating as any;
 		return buildSessionNarrative({
 			runCount: data.runs.length,
 			consistencyScore: sessionIntelligence.repeatability.overall,

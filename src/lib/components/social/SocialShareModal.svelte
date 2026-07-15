@@ -29,8 +29,9 @@
 	function buildCaption(): string {
 		const m = achievement.metric;
 		const metricStr = `${m.value}${m.unit} ${m.label}`;
-		const contextStr = achievement.contextLine ? ` ${achievement.contextLine}.` : '';
-		return `${achievement.title} — ${metricStr}.${contextStr} Tracked with AppGatePro. #BMX #AppGatePro #ProgressNotPerfection`;
+		const contextStr = achievement.conditionsBadge ? ` ${achievement.conditionsBadge.description}.` : '';
+		const title = achievement.headlineTitle.replace('\n', ' ');
+		return `${title} — ${metricStr}.${contextStr} Tracked with AppGatePro. #BMX #AppGatePro #ProgressNotPerfection`;
 	}
 
 	async function handleDownload() {
@@ -133,8 +134,8 @@
 		<!-- Header -->
 		<div class="modal-header">
 			<div>
-				<h2 class="modal-title">{achievement.title}</h2>
-				<p class="modal-subtitle">{achievement.subtitle}</p>
+				<h2 class="modal-title">{achievement.headlineTitle.replace('\n', ' ')}</h2>
+				<p class="modal-subtitle">{achievement.headlineSubtitle}</p>
 			</div>
 			<button class="close-btn" onclick={onclose} aria-label="Close">
 				<svg

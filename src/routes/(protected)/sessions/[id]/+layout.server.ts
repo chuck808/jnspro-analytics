@@ -284,12 +284,16 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 	}
 
 	// ── ALL-TIME PERSONAL BESTS ──
-	// Query all user's sessions to find all gate runs
+	// Query all user's sessions to find all gate runs.
+	// Excludes the current session — without this, the session's own best run
+	// gets folded into the pool it's compared against, making a genuine new PB
+	// mathematically impossible to detect (strict < / > against a self-inclusive pool).
 	const { data: allUserSessions } = await supabase
 		.from('sessions')
 		.select('id')
 		.eq('user_id', profile.id)
-		.eq('session_type', 'gate');
+		.eq('session_type', 'gate')
+		.neq('id', params.id);
 
 	const allSessionIds = (allUserSessions ?? []).map((s) => s.id);
 
@@ -334,7 +338,12 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 							.map((g) => g!.peak_speed_ms)
 							.filter((v) => v !== null)
 					)
-				: null
+				: null,
+		// Session-level intelligence (consistency CV, session quality) isn't
+		// persisted per-session yet, so these can't be computed across history.
+		// The achievement detector handles null gracefully.
+		bestConsistencyCv: null as number | null,
+		bestSessionQuality: null as number | null
 	};
 
 	// ── ADVANCED ANALYTICS: Load recent sessions for cross-session analysis ──

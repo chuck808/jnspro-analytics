@@ -1,717 +1,1127 @@
 /**
- * Social Layer — Achievement Detector
+ * Social Layer — Achievement Detector v2
  *
- * Deterministic detection of meaningful rider achievements.
- * Given the same inputs, always produces the same output.
+ * Rebuilt from the Shareable Insights Specification.
+ *
+ * The governing question:
+ *   "Did this rider produce something worth acknowledging, given who they are,
+ *    what they set out to do, what surrounded them, and what the data showed?"
  *
  * Detection flow:
- *   1. Validity gate — suppress everything if the session data can't be trusted
- *   2. Candidate generation — evaluate each achievement category
- *   3. Candidate ranking — score each by meaningfulness
- *   4. Safety/privacy filter — remove anything not appropriate for sharing
- *   5. Return the strongest candidate (or null with suppression reason)
- *
- * Deliberately conservative:
- *   - Requires stat-eligible runs ≥ 3 for session-level claims
- *   - Requires longitudinal data for longitudinal claims
- *   - Condition-specific PBs require ≥ 3 sessions in that condition
- *   - Resilience achievements require both the adversity AND good data quality
- *   - Nothing is generated from a testing, technique, or recovery session
+ *   1. Hard suppression gate — exit immediately if session can't be trusted
+ *   2. Candidate generation — evaluate all nine trigger categories
+ *   3. Rank by priority score
+ *   4. Build the winning achievement — session story + triggering metric + conditions badge
+ *   5. Return result with full candidate list for debugging
  */
 
 import type {
-	AchievementDetectorInput,
-	AchievementDetectionResult,
-	ShareableAchievement,
-	AchievementType,
-	AchievementScope,
-	AchievementContext,
-	AchievementMetric,
-	CardTemplate,
-	SuppressionReason,
-	SensitivityLevel
+  AchievementDetectorInput,
+  AchievementDetectionResult,
+  ShareableAchievement,
+  AchievementType,
+  AchievementScope,
+  AchievementMetric,
+  ConditionsBadge,
+  SupportingContext,
+  CardTemplate,
+  SensitivityLevel,
+  SuppressionReason,
 } from './types';
 
-// ── Scoring weights ────────────────────────────────────────────────────────────
-// Higher score = stronger claim = more likely to be the chosen achievement.
-// These are internal only — never shown to users.
+// ── Priority scores ────────────────────────────────────────────────────────────
+// Higher = wins when multiple triggers fire.
 
 const SCORES: Record<AchievementType, number> = {
-	pb: 100, // All-time PB is always the strongest claim
-	milestone: 90, // Goal milestone is nearly as strong
-	'condition-pb': 70, // Condition PB is meaningful but context-limited
-	resilience: 60, // Resilience is emotionally significant
-	consistency: 50, // Consistency achievements are valuable but quieter
-	progression: 40, // Longitudinal progression — good but less immediate
-	trend: 30 // Sustained trend — worth noting but weakest claim
+  'pb':              100,
+  'milestone':        95,
+  'condition-pb':     80,
+  'focus-alignment':  75,
+  'session-quality':  65,
+  'consistency':      60,
+  'resilience':       55,
+  'goal-progress':    50,
+  'engine-strength':  45,
+  'progression':      40,
+  'solid-session':    10,
 };
 
-// ── Minimum thresholds ────────────────────────────────────────────────────────
+// ── Thresholds ────────────────────────────────────────────────────────────────
 
-const MIN_STAT_RUNS = 3; // Minimum stats-eligible runs for session claims
-const MIN_CONDITION_SESSIONS = 3; // Minimum sessions in a condition for condition PBs
-const MIN_SESSIONS_LONGITUDINAL = 5; // Minimum sessions for longitudinal claims
-const MIN_PROGRESSION_PCT = 3; // Minimum % improvement to call it progression
-const GOOD_CV_THRESHOLD = 8; // CV% below this = good consistency
-const EXCELLENT_CV_THRESHOLD = 5; // CV% below this = excellent consistency
+const MIN_STAT_RUNS             = 3;
+const MIN_CONDITION_SESSIONS    = 3;
+const MIN_LONGITUDINAL_SESSIONS = 5;
+const MIN_PROGRESSION_PCT       = 3;
+const CV_EXCELLENT              = 5;
+const CV_GOOD                   = 8;
+const QUALITY_HIGH              = 75;
+const QUALITY_MODERATE          = 60;
+const REPEATABILITY_HIGH        = 80;
+const REPEATABILITY_MODERATE    = 65;
+const TECHNIQUE_GOOD            = 70;
+const BEST_VS_AVG_TIGHT         = 5;
+const RESILIENCE_WITHIN_PCT     = 8;
 
-/**
- * Main entry point.
- * Detects the strongest meaningful achievement from session data.
- */
-export function detectAchievement(input: AchievementDetectorInput): AchievementDetectionResult {
-	// ── Step 1: Validity gate ──────────────────────────────────────────────────
-	const validityCheck = checkValidity(input);
-	if (validityCheck) {
-		return {
-			achievement: null,
-			candidates: [],
-			suppressionReason: validityCheck
-		};
-	}
+// ── Main entry point ──────────────────────────────────────────────────────────
 
-	// ── Step 2: Generate candidates ────────────────────────────────────────────
-	const candidates: Array<{
-		type: AchievementType;
-		scope: AchievementScope;
-		suppressed: boolean;
-		suppressionReason?: SuppressionReason;
-		score: number;
-		achievement?: ShareableAchievement;
-	}> = [];
+export function detectAchievement(
+  input: AchievementDetectorInput
+): AchievementDetectionResult {
 
-	// Personal bests
-	const pbResult = detectPB(input);
-	candidates.push(pbResult);
+  // Step 1: Hard suppression
+  const suppressionReason = checkHardSuppression(input);
+  if (suppressionReason) {
+    return { achievement: null, candidates: [], suppressionReason };
+  }
 
-	// Goal milestones
-	const milestoneResult = detectMilestone(input);
-	candidates.push(milestoneResult);
+  // Step 2: Generate all candidates
+  const candidates = [
+    tryPB(input),
+    tryMilestone(input),
+    tryConditionPB(input),
+    tryFocusAlignment(input),
+    trySessionQuality(input),
+    tryConsistency(input),
+    tryResilience(input),
+    tryGoalProgress(input),
+    tryEngineStrength(input),
+    tryProgression(input),
+    trySolidSession(input),
+  ];
 
-	// Condition-specific PB
-	const conditionPBResult = detectConditionPB(input);
-	candidates.push(conditionPBResult);
+  // Step 3: Rank
+  const viable = candidates
+    .filter(c => !c.suppressed && c.buildAchievement)
+    .sort((a, b) => b.score - a.score);
 
-	// Resilience
-	const resilienceResult = detectResilience(input);
-	candidates.push(resilienceResult);
+  if (viable.length === 0) {
+    return {
+      achievement: null,
+      candidates: candidates.map(toSummary),
+      suppressionReason: 'no-meaningful-event',
+    };
+  }
 
-	// Consistency
-	const consistencyResult = detectConsistency(input);
-	candidates.push(consistencyResult);
+  // Step 4: Build the winning achievement
+  const winner = viable[0];
+  const achievement = winner.buildAchievement!(input);
 
-	// Longitudinal progression
-	const progressionResult = detectProgression(input);
-	candidates.push(progressionResult);
-
-	// ── Step 3: Rank and filter ────────────────────────────────────────────────
-	const viable = candidates
-		.filter((c) => !c.suppressed && c.achievement)
-		.sort((a, b) => b.score - a.score);
-
-	if (viable.length === 0) {
-		return {
-			achievement: null,
-			candidates: candidates.map((c) => ({
-				type: c.type,
-				scope: c.scope,
-				suppressed: c.suppressed,
-				suppressionReason: c.suppressionReason,
-				score: c.score
-			})),
-			suppressionReason: 'no-meaningful-event'
-		};
-	}
-
-	const chosen = viable[0].achievement!;
-
-	return {
-		achievement: chosen,
-		candidates: candidates.map((c) => ({
-			type: c.type,
-			scope: c.scope,
-			suppressed: c.suppressed,
-			suppressionReason: c.suppressionReason,
-			score: c.score
-		})),
-		suppressionReason: null
-	};
+  return {
+    achievement,
+    candidates: candidates.map(toSummary),
+    suppressionReason: null,
+  };
 }
 
-// ── Validity gate ─────────────────────────────────────────────────────────────
+// ── Hard suppression ──────────────────────────────────────────────────────────
 
-function checkValidity(input: AchievementDetectorInput): SuppressionReason | null {
-	// Testing and technique sessions — intentional variation, not achievement context
-	if (input.context.sessionFocus === 'testing' || input.context.sessionFocus === 'technique') {
-		return 'testing-session';
-	}
+function checkHardSuppression(input: AchievementDetectorInput): SuppressionReason | null {
+  const focus = input.context.sessionFocus;
 
-	// Recovery sessions — explicitly not for comparison
-	if (input.context.sessionFocus === 'recovery') {
-		return 'recovery-session';
-	}
+  if (focus === 'testing' || focus === 'technique') return 'testing-session';
+  if (focus === 'recovery') return 'recovery-session';
+  if (input.dataQualityRating === 'calibrate') return 'invalid-telemetry';
+  if (input.sessionStats.included_run_count < MIN_STAT_RUNS) return 'incomplete-session';
 
-	// Calibration failure — derived metrics can't be trusted
-	if (input.dataQualityRating === 'calibrate') {
-		return 'invalid-telemetry';
-	}
-
-	// Not enough stat-eligible runs for any session-level claim
-	if (input.sessionStats.included_run_count < MIN_STAT_RUNS) {
-		return 'incomplete-session';
-	}
-
-	return null;
+  return null;
 }
 
-// ── PB detection ──────────────────────────────────────────────────────────────
+// ── Candidate structure ───────────────────────────────────────────────────────
 
-function detectPB(input: AchievementDetectorInput) {
-	const { sessionStats, allTimePBs, context } = input;
-
-	// Reaction time PB — direct measurement, always reliable
-	if (
-		sessionStats.best_reaction_ms !== null &&
-		allTimePBs.bestReactionMs !== null &&
-		sessionStats.best_reaction_ms < allTimePBs.bestReactionMs
-	) {
-		const improvePct =
-			((allTimePBs.bestReactionMs - sessionStats.best_reaction_ms) / allTimePBs.bestReactionMs) *
-			100;
-		const metric: AchievementMetric = {
-			label: 'Reaction Time',
-			value: (sessionStats.best_reaction_ms / 1000).toFixed(3),
-			unit: 's',
-			rawValue: sessionStats.best_reaction_ms,
-			previousValue: allTimePBs.bestReactionMs,
-			improvementPercent: improvePct,
-			improvementDisplay: `${improvePct.toFixed(1)}% faster`
-		};
-
-		return {
-			type: 'pb' as AchievementType,
-			scope: 'session' as AchievementScope,
-			suppressed: false,
-			score: SCORES['pb'],
-			achievement: buildAchievement(input, {
-				type: 'pb',
-				scope: 'session',
-				template: 'pb',
-				title: 'New Personal Best',
-				subtitle: `Fastest reaction time ever recorded — ${metric.value}${metric.unit}`,
-				contextLine: buildContextLine(context),
-				narrativeNote: context.isChallengingConditions
-					? 'Setting a PB in these conditions carries extra weight.'
-					: null,
-				metric,
-				confidence: 'high',
-				sensitivity: 'public-safe'
-			})
-		};
-	}
-
-	// Speed PB — only when analytics_valid (derived metric)
-	if (
-		sessionStats.has_valid_speed &&
-		sessionStats.best_peak_speed_ms !== null &&
-		allTimePBs.bestSpeedMs !== null &&
-		sessionStats.best_peak_speed_ms > allTimePBs.bestSpeedMs &&
-		input.dataQualityRating !== 'unknown' // Don't claim speed PBs on unknown quality
-	) {
-		const currentKmh = sessionStats.best_peak_speed_ms * 3.6;
-		const previousKmh = allTimePBs.bestSpeedMs * 3.6;
-		const improvePct = ((currentKmh - previousKmh) / previousKmh) * 100;
-
-		const metric: AchievementMetric = {
-			label: 'Peak Speed',
-			value: currentKmh.toFixed(1),
-			unit: ' km/h',
-			rawValue: sessionStats.best_peak_speed_ms,
-			previousValue: allTimePBs.bestSpeedMs,
-			improvementPercent: improvePct,
-			improvementDisplay: `+${(currentKmh - previousKmh).toFixed(1)} km/h`
-		};
-
-		return {
-			type: 'pb' as AchievementType,
-			scope: 'session' as AchievementScope,
-			suppressed: false,
-			score: SCORES['pb'] - 5, // Slightly lower than reaction PB — derived metric
-			achievement: buildAchievement(input, {
-				type: 'pb',
-				scope: 'session',
-				template: 'pb',
-				title: 'New Personal Best',
-				subtitle: `Fastest gate exit speed on record — ${metric.value}${metric.unit}`,
-				contextLine: buildContextLine(context),
-				narrativeNote:
-					'Speed is IMU-estimated — this is a directional result, not a precision measurement.',
-				metric,
-				confidence: 'moderate', // Speed is estimated
-				sensitivity: 'public-safe'
-			})
-		};
-	}
-
-	// Max G PB
-	if (
-		sessionStats.best_max_g !== null &&
-		allTimePBs.bestMaxG !== null &&
-		sessionStats.best_max_g > allTimePBs.bestMaxG
-	) {
-		const improvePct =
-			((sessionStats.best_max_g - allTimePBs.bestMaxG) / allTimePBs.bestMaxG) * 100;
-		const metric: AchievementMetric = {
-			label: 'Peak G-Force',
-			value: sessionStats.best_max_g.toFixed(2),
-			unit: 'G',
-			rawValue: sessionStats.best_max_g,
-			previousValue: allTimePBs.bestMaxG,
-			improvementPercent: improvePct,
-			improvementDisplay: `+${(sessionStats.best_max_g - allTimePBs.bestMaxG).toFixed(2)}G`
-		};
-
-		return {
-			type: 'pb' as AchievementType,
-			scope: 'session' as AchievementScope,
-			suppressed: false,
-			score: SCORES['pb'] - 10,
-			achievement: buildAchievement(input, {
-				type: 'pb',
-				scope: 'session',
-				template: 'pb',
-				title: 'New Personal Best',
-				subtitle: `Highest peak G-force recorded — ${metric.value}${metric.unit}`,
-				contextLine: buildContextLine(context),
-				narrativeNote: null,
-				metric,
-				confidence: 'high',
-				sensitivity: 'public-safe'
-			})
-		};
-	}
-
-	return {
-		type: 'pb' as AchievementType,
-		scope: 'session' as AchievementScope,
-		suppressed: true,
-		suppressionReason: 'no-meaningful-event' as SuppressionReason,
-		score: 0
-	};
+interface Candidate {
+  type: AchievementType;
+  scope: AchievementScope;
+  suppressed: boolean;
+  suppressionReason?: SuppressionReason;
+  score: number;
+  buildAchievement?: (input: AchievementDetectorInput) => ShareableAchievement;
 }
 
-// ── Milestone detection ───────────────────────────────────────────────────────
-
-function detectMilestone(input: AchievementDetectorInput) {
-	const significant = input.goalProgress?.find((g) => g.isSignificant);
-
-	if (!significant) {
-		return {
-			type: 'milestone' as AchievementType,
-			scope: 'session' as AchievementScope,
-			suppressed: true,
-			suppressionReason: 'no-meaningful-event' as SuppressionReason,
-			score: 0
-		};
-	}
-
-	const isReaction = significant.metric === 'reactionTime';
-	const isSpeed = significant.metric === 'peakSpeed' || significant.metric === 'speed';
-	const rawValue = significant.newValue ?? 0;
-
-	const metric: AchievementMetric = {
-		label: significant.metricLabel,
-		value: isReaction
-			? (rawValue / 1000).toFixed(3)
-			: isSpeed
-				? (rawValue * 3.6).toFixed(1)
-				: rawValue.toFixed(2),
-		unit: isReaction ? 's' : isSpeed ? ' km/h' : 'G',
-		rawValue,
-		improvementDisplay: significant.improvement
-	};
-
-	// Near-completion is a stronger narrative than early progress
-	const nearTarget = significant.percentToGoal >= 80;
-
-	return {
-		type: 'milestone' as AchievementType,
-		scope: 'session' as AchievementScope,
-		suppressed: false,
-		score: SCORES['milestone'] + (nearTarget ? 5 : 0),
-		achievement: buildAchievement(input, {
-			type: 'milestone',
-			scope: 'session',
-			template: 'milestone',
-			title: nearTarget ? 'Goal Almost Complete' : 'Goal Milestone',
-			subtitle: `${significant.metricLabel} — ${significant.improvement}. ${significant.percentToGoal}% to target.`,
-			contextLine: buildContextLine(input.context),
-			narrativeNote: nearTarget
-				? `${100 - significant.percentToGoal}% remaining to reach the goal.`
-				: null,
-			metric,
-			confidence: 'high',
-			sensitivity: 'public-safe'
-		})
-	};
+function miss(
+  type: AchievementType,
+  scope: AchievementScope,
+  reason: SuppressionReason
+): Candidate {
+  return { type, scope, suppressed: true, suppressionReason: reason, score: 0 };
 }
 
-// ── Condition PB detection ────────────────────────────────────────────────────
-
-function detectConditionPB(input: AchievementDetectorInput) {
-	const { context, sessionStats, longitudinal } = input;
-
-	// Need a surface set and longitudinal context
-	if (!context.trackSurface || !longitudinal?.contextualPatterns?.pbsByCondition) {
-		return suppressed('condition-pb', 'session', 'insufficient-history');
-	}
-
-	const conditionPBs = longitudinal.contextualPatterns.pbsByCondition;
-	const thisSurface = context.trackSurface;
-	const surfacePB = conditionPBs[thisSurface];
-
-	// Need enough sessions in this condition
-	if (!surfacePB || surfacePB.sessionCount < MIN_CONDITION_SESSIONS) {
-		return suppressed('condition-pb', 'session', 'condition-pb-insufficient-data');
-	}
-
-	// Need a reaction time to compare
-	if (sessionStats.best_reaction_ms === null || surfacePB.bestReactionMs === null) {
-		return suppressed('condition-pb', 'session', 'no-meaningful-event');
-	}
-
-	// Is this a new condition PB?
-	if (sessionStats.best_reaction_ms >= surfacePB.bestReactionMs) {
-		return suppressed('condition-pb', 'session', 'no-meaningful-event');
-	}
-
-	// Don't surface a condition PB if it's also an all-time PB
-	// (the all-time PB is a stronger and cleaner claim)
-	if (
-		input.allTimePBs.bestReactionMs !== null &&
-		sessionStats.best_reaction_ms < input.allTimePBs.bestReactionMs
-	) {
-		return suppressed('condition-pb', 'session', 'no-meaningful-event');
-	}
-
-	const surfaceLabel = formatSurface(thisSurface);
-	const improvePct =
-		((surfacePB.bestReactionMs - sessionStats.best_reaction_ms) / surfacePB.bestReactionMs) * 100;
-
-	const metric: AchievementMetric = {
-		label: 'Reaction Time',
-		value: (sessionStats.best_reaction_ms / 1000).toFixed(3),
-		unit: 's',
-		rawValue: sessionStats.best_reaction_ms,
-		previousValue: surfacePB.bestReactionMs,
-		improvementPercent: improvePct,
-		improvementDisplay: `${improvePct.toFixed(1)}% faster`
-	};
-
-	return {
-		type: 'condition-pb' as AchievementType,
-		scope: 'session' as AchievementScope,
-		suppressed: false,
-		score: SCORES['condition-pb'],
-		achievement: buildAchievement(input, {
-			type: 'condition-pb',
-			scope: 'session',
-			template: 'pb',
-			title: `${surfaceLabel} Personal Best`,
-			subtitle: `Best reaction time on ${surfaceLabel.toLowerCase()} — ${metric.value}${metric.unit}`,
-			contextLine: buildContextLine(input.context),
-			narrativeNote: `Best across ${surfacePB.sessionCount} ${surfaceLabel.toLowerCase()} sessions.`,
-			metric,
-			confidence: surfacePB.sessionCount >= 5 ? 'high' : 'moderate',
-			sensitivity: 'public-safe'
-		})
-	};
+function hit(
+  type: AchievementType,
+  scope: AchievementScope,
+  scoreBonus: number,
+  builder: (input: AchievementDetectorInput) => ShareableAchievement
+): Candidate {
+  return {
+    type, scope, suppressed: false,
+    score: SCORES[type] + scoreBonus,
+    buildAchievement: builder,
+  };
 }
 
-// ── Resilience detection ──────────────────────────────────────────────────────
-
-function detectResilience(input: AchievementDetectorInput) {
-	const { context, sessionStats, allTimePBs } = input;
-
-	// Need adversity — challenging conditions OR low readiness
-	const hasAdversity = context.isChallengingConditions || context.isLowReadiness;
-	if (!hasAdversity) {
-		return suppressed('resilience', 'session', 'no-meaningful-event');
-	}
-
-	// Need good data quality — resilience claims need reliable numbers
-	if (input.dataQualityRating === 'unknown' || input.dataQualityRating === 'calibrate') {
-		return suppressed('resilience', 'session', 'data-quality-unknown');
-	}
-
-	// Check for good performance despite adversity
-	// "Good" = within 5% of all-time PB
-	if (sessionStats.best_reaction_ms === null || allTimePBs.bestReactionMs === null) {
-		return suppressed('resilience', 'session', 'no-meaningful-event');
-	}
-
-	const withinPct =
-		((sessionStats.best_reaction_ms - allTimePBs.bestReactionMs) / allTimePBs.bestReactionMs) * 100;
-
-	// Must be within 5% of PB to qualify as "good despite adversity"
-	if (withinPct > 5) {
-		return suppressed('resilience', 'session', 'no-meaningful-event');
-	}
-
-	const adversityDescription = buildAdversityDescription(context);
-	const metric: AchievementMetric = {
-		label: 'Reaction Time',
-		value: (sessionStats.best_reaction_ms / 1000).toFixed(3),
-		unit: 's',
-		rawValue: sessionStats.best_reaction_ms
-	};
-
-	return {
-		type: 'resilience' as AchievementType,
-		scope: 'session' as AchievementScope,
-		suppressed: false,
-		score: SCORES['resilience'],
-		achievement: buildAchievement(input, {
-			type: 'resilience',
-			scope: 'session',
-			template: 'resilience',
-			title: 'Solid Session',
-			subtitle: `Near-PB performance ${adversityDescription}`,
-			contextLine: buildContextLine(context),
-			narrativeNote:
-				context.isLowReadiness && context.isChallengingConditions
-					? 'Low readiness and difficult conditions — maintaining this level takes real mental strength.'
-					: context.isChallengingConditions
-						? 'Difficult conditions — these numbers hold up well against dry-track standards.'
-						: 'Off day — the data held up better than it felt.',
-			metric,
-			confidence: 'moderate',
-			sensitivity: 'public-safe'
-		})
-	};
+function toSummary(c: Candidate) {
+  return {
+    type: c.type,
+    scope: c.scope,
+    suppressed: c.suppressed,
+    suppressionReason: c.suppressionReason,
+    score: c.score,
+  };
 }
 
-// ── Consistency detection ─────────────────────────────────────────────────────
+// ── Detector functions ────────────────────────────────────────────────────────
 
-function detectConsistency(input: AchievementDetectorInput) {
-	const { sessionStats } = input;
+function tryPB(input: AchievementDetectorInput): Candidate {
+  const { sessionStats, allTimePBs, context } = input;
 
-	if (sessionStats.reaction_cv === null) {
-		return suppressed('consistency', 'session', 'no-meaningful-event');
-	}
+  // Reaction time PB — highest priority, most meaningful for gate starts
+  if (
+    sessionStats.best_reaction_ms !== null &&
+    allTimePBs.bestReactionMs !== null &&
+    sessionStats.best_reaction_ms < allTimePBs.bestReactionMs
+  ) {
+    const improvePct = ((allTimePBs.bestReactionMs - sessionStats.best_reaction_ms) / allTimePBs.bestReactionMs) * 100;
+    const bonus = context.isChallengingConditions ? 5 : 0;
 
-	// Excellent consistency — tighter threshold
-	if (sessionStats.reaction_cv <= EXCELLENT_CV_THRESHOLD) {
-		const metric: AchievementMetric = {
-			label: 'Consistency (CV%)',
-			value: sessionStats.reaction_cv.toFixed(1),
-			unit: '%',
-			rawValue: sessionStats.reaction_cv
-		};
+    return hit('pb', 'session', bonus, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Reaction Time',
+        value: (sessionStats.best_reaction_ms! / 1000).toFixed(3),
+        unit: 's',
+        rawValue: sessionStats.best_reaction_ms!,
+        previousValue: allTimePBs.bestReactionMs!,
+        improvementPercent: improvePct,
+        improvementDisplay: `${((allTimePBs.bestReactionMs! - sessionStats.best_reaction_ms!) / 1000).toFixed(3)}s faster`,
+        context: context.isChallengingConditions ? `on ${formatSurface(context.trackSurface)}` : undefined,
+      };
 
-		return {
-			type: 'consistency' as AchievementType,
-			scope: 'session' as AchievementScope,
-			suppressed: false,
-			score: SCORES['consistency'] + 10,
-			achievement: buildAchievement(input, {
-				type: 'consistency',
-				scope: 'session',
-				template: 'consistency',
-				title: 'Excellent Consistency',
-				subtitle: `${sessionStats.reaction_cv.toFixed(1)}% CV — very tight session, runs were nearly identical`,
-				contextLine: buildContextLine(input.context),
-				narrativeNote: 'Low CV% across multiple runs indicates a reliable, repeatable start.',
-				metric,
-				confidence: 'high',
-				sensitivity: 'public-safe'
-			})
-		};
-	}
+      return buildAchievement(inp, {
+        type: 'pb',
+        scope: 'session',
+        template: 'pb',
+        headlineTitle: 'NEW PERSONAL\nBEST',
+        headlineSubtitle: 'Fastest reaction time ever recorded',
+        metric,
+        taglines: buildTaglines('pb', context),
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
 
-	// Good consistency — only surface if no stronger achievement was found
-	// (this is checked at ranking time — low score means it only wins if nothing else fires)
-	if (sessionStats.reaction_cv <= GOOD_CV_THRESHOLD) {
-		const metric: AchievementMetric = {
-			label: 'Consistency (CV%)',
-			value: sessionStats.reaction_cv.toFixed(1),
-			unit: '%',
-			rawValue: sessionStats.reaction_cv
-		};
+  // Session quality PB
+  if (
+    input.intelligence.sessionQuality !== null &&
+    allTimePBs.bestSessionQuality !== null &&
+    input.intelligence.sessionQuality > allTimePBs.bestSessionQuality
+  ) {
+    const q = input.intelligence.sessionQuality;
+    return hit('pb', 'session', -5, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Session Quality',
+        value: q.toFixed(0),
+        unit: '/100',
+        rawValue: q,
+        previousValue: allTimePBs.bestSessionQuality!,
+        improvementDisplay: `${(q - allTimePBs.bestSessionQuality!).toFixed(0)} points better`,
+      };
+      return buildAchievement(inp, {
+        type: 'pb', scope: 'session', template: 'pb',
+        headlineTitle: 'BEST SESSION\nEVER',
+        headlineSubtitle: 'Highest quality score on record',
+        metric,
+        taglines: buildTaglines('pb', context),
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
 
-		return {
-			type: 'consistency' as AchievementType,
-			scope: 'session' as AchievementScope,
-			suppressed: false,
-			score: SCORES['consistency'],
-			achievement: buildAchievement(input, {
-				type: 'consistency',
-				scope: 'session',
-				template: 'consistency',
-				title: 'Consistent Session',
-				subtitle: `${sessionStats.reaction_cv.toFixed(1)}% CV across ${sessionStats.included_run_count} runs`,
-				contextLine: buildContextLine(input.context),
-				narrativeNote: null,
-				metric,
-				confidence: 'high',
-				sensitivity: 'public-safe'
-			})
-		};
-	}
+  // Max G PB
+  if (
+    sessionStats.best_max_g !== null &&
+    allTimePBs.bestMaxG !== null &&
+    sessionStats.best_max_g > allTimePBs.bestMaxG
+  ) {
+    const improvePct = ((sessionStats.best_max_g - allTimePBs.bestMaxG) / allTimePBs.bestMaxG) * 100;
+    return hit('pb', 'session', -10, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Peak G-Force',
+        value: sessionStats.best_max_g!.toFixed(2),
+        unit: 'G',
+        rawValue: sessionStats.best_max_g!,
+        previousValue: allTimePBs.bestMaxG!,
+        improvementPercent: improvePct,
+        improvementDisplay: `+${(sessionStats.best_max_g! - allTimePBs.bestMaxG!).toFixed(2)}G`,
+      };
+      return buildAchievement(inp, {
+        type: 'pb', scope: 'session', template: 'pb',
+        headlineTitle: 'NEW PERSONAL\nBEST',
+        headlineSubtitle: 'Highest peak G-force on record',
+        metric,
+        taglines: buildTaglines('pb', context),
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
 
-	return suppressed('consistency', 'session', 'no-meaningful-event');
+  // Peak speed PB — only when valid
+  if (
+    sessionStats.has_valid_speed &&
+    sessionStats.best_peak_speed_ms !== null &&
+    allTimePBs.bestSpeedMs !== null &&
+    sessionStats.best_peak_speed_ms > allTimePBs.bestSpeedMs &&
+    input.dataQualityRating !== 'unknown'
+  ) {
+    const currentKmh  = sessionStats.best_peak_speed_ms * 3.6;
+    const previousKmh = allTimePBs.bestSpeedMs * 3.6;
+    return hit('pb', 'session', -8, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Peak Speed',
+        value: currentKmh.toFixed(1),
+        unit: ' km/h',
+        rawValue: sessionStats.best_peak_speed_ms!,
+        previousValue: allTimePBs.bestSpeedMs!,
+        improvementDisplay: `+${(currentKmh - previousKmh).toFixed(1)} km/h`,
+      };
+      return buildAchievement(inp, {
+        type: 'pb', scope: 'session', template: 'pb',
+        headlineTitle: 'NEW PERSONAL\nBEST',
+        headlineSubtitle: 'Fastest gate exit speed on record',
+        metric,
+        taglines: buildTaglines('pb', context),
+        confidence: 'moderate', // speed is IMU-estimated
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  // Consistency PB (lowest CV% ever)
+  if (
+    sessionStats.reaction_cv !== null &&
+    allTimePBs.bestConsistencyCv !== null &&
+    sessionStats.reaction_cv < allTimePBs.bestConsistencyCv
+  ) {
+    const cv = sessionStats.reaction_cv;
+    return hit('pb', 'session', -3, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Consistency',
+        value: cv.toFixed(1),
+        unit: '% variation',
+        rawValue: cv,
+        previousValue: allTimePBs.bestConsistencyCv!,
+        improvementDisplay: `${(allTimePBs.bestConsistencyCv! - cv).toFixed(1)}% more consistent`,
+      };
+      return buildAchievement(inp, {
+        type: 'pb', scope: 'session', template: 'pb',
+        headlineTitle: 'MOST CONSISTENT\nEVER',
+        headlineSubtitle: 'Tightest gate sequence ever recorded',
+        metric,
+        taglines: ['Every run.', 'Nearly identical.', "That's control."],
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  return miss('pb', 'session', 'no-meaningful-event');
 }
 
-// ── Longitudinal progression detection ───────────────────────────────────────
+function tryMilestone(input: AchievementDetectorInput): Candidate {
+  const significant = input.goalProgress?.find(g => g.isSignificant);
+  if (!significant) return miss('milestone', 'session', 'no-meaningful-event');
 
-function detectProgression(input: AchievementDetectorInput) {
-	const { longitudinal } = input;
+  const nearTarget = significant.percentToGoal >= 80;
+  const bonus = nearTarget ? 5 : 0;
 
-	if (!longitudinal || longitudinal.sessionCount < MIN_SESSIONS_LONGITUDINAL) {
-		return suppressed('progression', 'longitudinal', 'insufficient-history');
-	}
+  return hit('milestone', 'session', bonus, (inp) => {
+    const rawValue = significant.newValue ?? 0;
+    const isReaction = significant.metric === 'reactionTime';
+    const isSpeed    = significant.metric === 'peakSpeed' || significant.metric === 'speed';
 
-	const reactionTrend = longitudinal.reactionTrend;
+    const metric: AchievementMetric = {
+      label: significant.metricLabel,
+      value: isReaction ? (rawValue / 1000).toFixed(3) : isSpeed ? (rawValue * 3.6).toFixed(1) : rawValue.toFixed(2),
+      unit: isReaction ? 's' : isSpeed ? ' km/h' : 'G',
+      rawValue,
+      improvementDisplay: significant.improvement,
+    };
 
-	// Need a meaningful improving trend
-	if (!reactionTrend.improving || reactionTrend.changePercent === null) {
-		return suppressed('progression', 'longitudinal', 'no-meaningful-event');
-	}
-
-	const improvePct = Math.abs(reactionTrend.changePercent);
-	if (improvePct < MIN_PROGRESSION_PCT) {
-		return suppressed('progression', 'longitudinal', 'no-meaningful-event');
-	}
-
-	const metric: AchievementMetric = {
-		label: 'Reaction Time Trend',
-		value: improvePct.toFixed(1),
-		unit: '% faster',
-		rawValue: improvePct,
-		improvementPercent: improvePct,
-		improvementDisplay: `${improvePct.toFixed(1)}% improvement`
-	};
-
-	return {
-		type: 'progression' as AchievementType,
-		scope: 'longitudinal' as AchievementScope,
-		suppressed: false,
-		score: SCORES['progression'],
-		achievement: buildAchievement(input, {
-			type: 'progression',
-			scope: 'longitudinal',
-			template: 'progression',
-			title: 'Progress Trend',
-			subtitle: `Reaction times ${improvePct.toFixed(1)}% faster over recent sessions`,
-			contextLine: null,
-			narrativeNote: `Based on ${longitudinal.sessionCount} sessions.`,
-			metric,
-			confidence: longitudinal.sessionCount >= 10 ? 'high' : 'moderate',
-			sensitivity: 'public-safe'
-		})
-	};
+    return buildAchievement(inp, {
+      type: 'milestone', scope: 'session', template: 'milestone',
+      headlineTitle: nearTarget ? 'GOAL ALMOST\nCOMPLETE' : 'GOAL\nMILESTONE',
+      headlineSubtitle: `${significant.metricLabel} — ${significant.percentToGoal}% to target`,
+      metric,
+      taglines: ['Set the goal.', 'Do the work.', 'Hit the target.'],
+      confidence: 'high',
+      sensitivity: 'public-safe',
+    });
+  });
 }
 
-// ── Builder helpers ───────────────────────────────────────────────────────────
+function tryConditionPB(input: AchievementDetectorInput): Candidate {
+  const { context, sessionStats, longitudinal, allTimePBs } = input;
 
-interface AchievementSpec {
-	type: AchievementType;
-	scope: AchievementScope;
-	template: CardTemplate;
-	title: string;
-	subtitle: string;
-	contextLine: string | null;
-	narrativeNote: string | null;
-	metric: AchievementMetric;
-	confidence: 'low' | 'moderate' | 'high';
-	sensitivity: SensitivityLevel;
+  if (!context.trackSurface || !longitudinal?.contextualPatterns?.pbsByCondition) {
+    return miss('condition-pb', 'session', 'insufficient-history');
+  }
+
+  const surfacePB = longitudinal.contextualPatterns.pbsByCondition[context.trackSurface];
+  if (!surfacePB || surfacePB.sessionCount < MIN_CONDITION_SESSIONS) {
+    return miss('condition-pb', 'session', 'condition-pb-insufficient-data');
+  }
+
+  if (!sessionStats.best_reaction_ms || !surfacePB.bestReactionMs) {
+    return miss('condition-pb', 'session', 'no-meaningful-event');
+  }
+
+  // Don't surface condition PB when it's also an all-time PB — that wins outright
+  if (allTimePBs.bestReactionMs !== null && sessionStats.best_reaction_ms < allTimePBs.bestReactionMs) {
+    return miss('condition-pb', 'session', 'no-meaningful-event');
+  }
+
+  if (sessionStats.best_reaction_ms >= surfacePB.bestReactionMs) {
+    return miss('condition-pb', 'session', 'no-meaningful-event');
+  }
+
+  const surfaceLabel  = formatSurface(context.trackSurface);
+  const improvePct    = ((surfacePB.bestReactionMs - sessionStats.best_reaction_ms) / surfacePB.bestReactionMs) * 100;
+  const bonus         = context.isChallengingConditions ? 5 : 0;
+
+  return hit('condition-pb', 'session', bonus, (inp) => {
+    const metric: AchievementMetric = {
+      label: 'Reaction Time',
+      value: (sessionStats.best_reaction_ms! / 1000).toFixed(3),
+      unit: 's',
+      rawValue: sessionStats.best_reaction_ms!,
+      previousValue: surfacePB.bestReactionMs!,
+      improvementPercent: improvePct,
+      improvementDisplay: `${improvePct.toFixed(1)}% faster`,
+      context: `on ${surfaceLabel.toLowerCase()}`,
+    };
+
+    return buildAchievement(inp, {
+      type: 'condition-pb', scope: 'session', template: 'pb',
+      headlineTitle: `${surfaceLabel.toUpperCase()}\nPERSONAL BEST`,
+      headlineSubtitle: `Best reaction time across ${surfacePB.sessionCount} ${surfaceLabel.toLowerCase()} sessions`,
+      metric,
+      taglines: ['Different conditions.', 'Same commitment.', 'Better every time.'],
+      confidence: surfacePB.sessionCount >= 5 ? 'high' : 'moderate',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+function tryFocusAlignment(input: AchievementDetectorInput): Candidate {
+  const { context, sessionStats, intelligence, techniqueScores } = input;
+  const focus = context.sessionFocus;
+  if (!focus) return miss('focus-alignment', 'session', 'no-meaningful-event');
+
+  let fires = false;
+  let metric: AchievementMetric | null = null;
+  let headlineSubtitle = '';
+
+  switch (focus) {
+    case 'reaction-time': {
+      const withinPct = sessionStats.best_reaction_ms && input.allTimePBs.bestReactionMs
+        ? ((sessionStats.best_reaction_ms - input.allTimePBs.bestReactionMs) / input.allTimePBs.bestReactionMs) * 100
+        : Infinity;
+      const bestBeatAvgPct = sessionStats.best_reaction_ms && sessionStats.avg_reaction_ms
+        ? ((sessionStats.avg_reaction_ms - sessionStats.best_reaction_ms) / sessionStats.avg_reaction_ms) * 100
+        : 0;
+      if (withinPct <= 5 || bestBeatAvgPct >= 10) {
+        fires = true;
+        metric = {
+          label: 'Reaction Time',
+          value: (sessionStats.best_reaction_ms! / 1000).toFixed(3),
+          unit: 's',
+          rawValue: sessionStats.best_reaction_ms!,
+        };
+        headlineSubtitle = 'Reaction focus backed up by the data';
+      }
+      break;
+    }
+    case 'consistency': {
+      if (
+        (intelligence.repeatabilityScore !== null && intelligence.repeatabilityScore >= TECHNIQUE_GOOD) ||
+        (sessionStats.reaction_cv !== null && sessionStats.reaction_cv <= CV_GOOD)
+      ) {
+        fires = true;
+        const cv = sessionStats.reaction_cv ?? intelligence.repeatabilityCv;
+        metric = {
+          label: 'Consistency',
+          value: cv !== null ? cv.toFixed(1) : '—',
+          unit: '% variation',
+          rawValue: cv ?? 0,
+        };
+        headlineSubtitle = 'Consistency focus — data delivered';
+      }
+      break;
+    }
+    case 'explosiveness': {
+      if (
+        (sessionStats.best_max_g !== null && input.allTimePBs.bestMaxG !== null && sessionStats.best_max_g >= input.allTimePBs.bestMaxG * 0.95) ||
+        (techniqueScores?.explosiveness !== null && (techniqueScores?.explosiveness ?? 0) >= TECHNIQUE_GOOD)
+      ) {
+        fires = true;
+        metric = {
+          label: 'Peak G-Force',
+          value: (sessionStats.best_max_g ?? 0).toFixed(2),
+          unit: 'G',
+          rawValue: sessionStats.best_max_g ?? 0,
+        };
+        headlineSubtitle = 'Explosiveness focus — gate force confirmed';
+      }
+      break;
+    }
+    case 'speed-carry': {
+      if (
+        sessionStats.has_valid_speed &&
+        ((techniqueScores?.speedCarry !== null && (techniqueScores?.speedCarry ?? 0) >= TECHNIQUE_GOOD) ||
+        (sessionStats.best_peak_speed_ms !== null && input.allTimePBs.bestSpeedMs !== null && sessionStats.best_peak_speed_ms >= input.allTimePBs.bestSpeedMs * 0.97))
+      ) {
+        fires = true;
+        const kmh = (sessionStats.best_peak_speed_ms ?? 0) * 3.6;
+        metric = {
+          label: 'Peak Speed',
+          value: kmh.toFixed(1),
+          unit: ' km/h',
+          rawValue: sessionStats.best_peak_speed_ms ?? 0,
+        };
+        headlineSubtitle = 'Speed & carry focus — speed confirmed';
+      }
+      break;
+    }
+    case 'endurance': {
+      const avgRunCount = 6; // TODO: derive from rider history when available
+      if (
+        sessionStats.included_run_count >= avgRunCount &&
+        intelligence.dropOffRun === null
+      ) {
+        fires = true;
+        metric = {
+          label: 'Runs Completed',
+          value: String(sessionStats.included_run_count),
+          unit: ' runs',
+          rawValue: sessionStats.included_run_count,
+        };
+        headlineSubtitle = 'Endurance focus — quality held throughout';
+      }
+      break;
+    }
+  }
+
+  if (!fires || !metric) return miss('focus-alignment', 'session', 'no-meaningful-event');
+
+  const focusLabel = formatFocus(focus);
+  return hit('focus-alignment', 'session', 0, (inp) => {
+    return buildAchievement(inp, {
+      type: 'focus-alignment', scope: 'session', template: 'session',
+      headlineTitle: `${focusLabel.toUpperCase()}\nFOCUS`,
+      headlineSubtitle,
+      metric: metric!,
+      taglines: [
+        `Came to work on ${focusLabel.toLowerCase()}.`,
+        'The data backed it up.',
+        'That counts.',
+      ],
+      confidence: 'high',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+function trySessionQuality(input: AchievementDetectorInput): Candidate {
+  const { intelligence } = input;
+
+  // Excellent repeatability
+  if (intelligence.repeatabilityScore !== null && intelligence.repeatabilityScore >= REPEATABILITY_HIGH) {
+    return hit('session-quality', 'session', 5, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Repeatability',
+        value: intelligence.repeatabilityScore!.toFixed(0),
+        unit: '/100',
+        rawValue: intelligence.repeatabilityScore!,
+      };
+      return buildAchievement(inp, {
+        type: 'session-quality', scope: 'session', template: 'session',
+        headlineTitle: 'LOCKED\nIN',
+        headlineSubtitle: 'Exceptional repeatability across all runs',
+        metric,
+        taglines: ['Not just fast.', 'Consistently fast.', "That's the difference."],
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  // High session quality
+  if (intelligence.sessionQuality !== null && intelligence.sessionQuality >= QUALITY_HIGH) {
+    return hit('session-quality', 'session', 0, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Session Quality',
+        value: intelligence.sessionQuality!.toFixed(0),
+        unit: '/100',
+        rawValue: intelligence.sessionQuality!,
+      };
+      return buildAchievement(inp, {
+        type: 'session-quality', scope: 'session', template: 'session',
+        headlineTitle: 'HIGH QUALITY\nSESSION',
+        headlineSubtitle: 'Composite session score in the top range',
+        metric,
+        taglines: ['Every run.', 'Every metric.', 'Solid throughout.'],
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  // Quality held all the way through — no drop-off
+  if (
+    intelligence.dropOffRun === null &&
+    intelligence.optimalSetLength !== null &&
+    intelligence.sessionQuality !== null &&
+    intelligence.sessionQuality >= QUALITY_MODERATE &&
+    input.sessionStats.included_run_count >= 5
+  ) {
+    return hit('session-quality', 'session', -5, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Runs at Quality',
+        value: String(input.sessionStats.included_run_count),
+        unit: ' runs',
+        rawValue: input.sessionStats.included_run_count,
+      };
+      return buildAchievement(inp, {
+        type: 'session-quality', scope: 'session', template: 'session',
+        headlineTitle: 'QUALITY\nSUSTAINED',
+        headlineSubtitle: `${input.sessionStats.included_run_count} runs — no drop-off detected`,
+        metric,
+        taglines: ['Start to finish.', 'No fade.', 'That takes conditioning.'],
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  return miss('session-quality', 'session', 'no-meaningful-event');
+}
+
+function tryConsistency(input: AchievementDetectorInput): Candidate {
+  const cv = input.sessionStats.reaction_cv;
+  if (cv === null) return miss('consistency', 'session', 'no-meaningful-event');
+
+  // Excellent consistency
+  if (cv <= CV_EXCELLENT) {
+    return hit('consistency', 'session', 5, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Consistency',
+        value: cv.toFixed(1),
+        unit: '% variation',
+        rawValue: cv,
+        context: 'across all runs — nearly identical each time',
+      };
+      return buildAchievement(inp, {
+        type: 'consistency', scope: 'session', template: 'session',
+        headlineTitle: 'LOCKED\nIN',
+        headlineSubtitle: 'Gate sequence was exceptionally consistent',
+        metric,
+        taglines: ['Not just fast.', 'Consistently fast.', "That's the difference."],
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  // Good consistency
+  if (cv <= CV_GOOD) {
+    return hit('consistency', 'session', 0, (inp) => {
+      const metric: AchievementMetric = {
+        label: 'Consistency',
+        value: cv.toFixed(1),
+        unit: '% variation',
+        rawValue: cv,
+        context: `across ${input.sessionStats.included_run_count} runs`,
+      };
+      return buildAchievement(inp, {
+        type: 'consistency', scope: 'session', template: 'session',
+        headlineTitle: 'CONSISTENT\nSESSION',
+        headlineSubtitle: `Gate sequence was solid across ${input.sessionStats.included_run_count} runs`,
+        metric,
+        taglines: ['Repeatable.', 'Reliable.', 'Building something real.'],
+        confidence: 'high',
+        sensitivity: 'public-safe',
+      });
+    });
+  }
+
+  return miss('consistency', 'session', 'no-meaningful-event');
+}
+
+function tryResilience(input: AchievementDetectorInput): Candidate {
+  const { context, sessionStats, allTimePBs, intelligence } = input;
+
+  const hasAdversity = context.isChallengingConditions || context.isLowReadiness;
+  if (!hasAdversity) return miss('resilience', 'session', 'no-meaningful-event');
+
+  if (input.dataQualityRating === 'unknown' || input.dataQualityRating === 'calibrate') {
+    return miss('resilience', 'session', 'data-quality-unknown');
+  }
+
+  // Check for good output despite adversity
+  const reactionNearPB = sessionStats.best_reaction_ms !== null &&
+    allTimePBs.bestReactionMs !== null &&
+    ((sessionStats.best_reaction_ms - allTimePBs.bestReactionMs) / allTimePBs.bestReactionMs) * 100 <= RESILIENCE_WITHIN_PCT;
+
+  const goodRepeatability = intelligence.repeatabilityScore !== null &&
+    intelligence.repeatabilityScore >= REPEATABILITY_MODERATE;
+
+  const goodQuality = intelligence.sessionQuality !== null &&
+    intelligence.sessionQuality >= QUALITY_MODERATE;
+
+  if (!reactionNearPB && !goodRepeatability && !goodQuality) {
+    return miss('resilience', 'session', 'no-meaningful-event');
+  }
+
+  // Score bonus for double adversity
+  const bonus = context.isChallengingConditions && context.isLowReadiness ? 5 : 0;
+
+  return hit('resilience', 'session', bonus, (inp) => {
+    const metric: AchievementMetric = reactionNearPB
+      ? {
+          label: 'Reaction Time',
+          value: (sessionStats.best_reaction_ms! / 1000).toFixed(3),
+          unit: 's',
+          rawValue: sessionStats.best_reaction_ms!,
+          context: 'despite difficult conditions',
+        }
+      : {
+          label: 'Session Quality',
+          value: intelligence.sessionQuality!.toFixed(0),
+          unit: '/100',
+          rawValue: intelligence.sessionQuality!,
+          context: 'despite difficult conditions',
+        };
+
+    return buildAchievement(inp, {
+      type: 'resilience', scope: 'session', template: 'resilience',
+      headlineTitle: 'SOLID\nUNDER PRESSURE',
+      headlineSubtitle: buildAdversitySubtitle(context),
+      metric,
+      taglines: buildTaglines('resilience', context),
+      confidence: 'moderate',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+function tryGoalProgress(input: AchievementDetectorInput): Candidate {
+  const progress = input.goalProgress?.find(g => !g.isSignificant && g.percentToGoal > 0);
+  if (!progress) return miss('goal-progress', 'session', 'no-meaningful-event');
+
+  return hit('goal-progress', 'session', 0, (inp) => {
+    const metric: AchievementMetric = {
+      label: progress.metricLabel,
+      value: String(progress.percentToGoal),
+      unit: '% to goal',
+      rawValue: progress.percentToGoal,
+      improvementDisplay: progress.improvement,
+    };
+    return buildAchievement(inp, {
+      type: 'goal-progress', scope: 'session', template: 'milestone',
+      headlineTitle: 'MOVING\nFORWARD',
+      headlineSubtitle: `${progress.metricLabel} — ${progress.percentToGoal}% of the way there`,
+      metric,
+      taglines: ['Every session.', 'Getting closer.', 'The goal is real.'],
+      confidence: 'high',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+function tryEngineStrength(input: AchievementDetectorInput): Candidate {
+  const { insightPack, intelligence } = input;
+
+  if (
+    !insightPack ||
+    insightPack.strengths.length === 0 ||
+    (intelligence.sessionQuality !== null && intelligence.sessionQuality < QUALITY_MODERATE)
+  ) {
+    return miss('engine-strength', 'session', 'no-meaningful-event');
+  }
+
+  return hit('engine-strength', 'session', 0, (inp) => {
+    const topStrength = insightPack!.strengths[0];
+    const metric: AchievementMetric = {
+      label: topStrength.title,
+      value: intelligence.sessionQuality?.toFixed(0) ?? '—',
+      unit: '/100',
+      rawValue: intelligence.sessionQuality ?? 0,
+      context: topStrength.body,
+    };
+    return buildAchievement(inp, {
+      type: 'engine-strength', scope: 'session', template: 'session',
+      headlineTitle: 'STRENGTH\nIDENTIFIED',
+      headlineSubtitle: topStrength.title,
+      metric,
+      taglines: ['The data noticed.', 'Something is working.', 'Keep going.'],
+      confidence: 'moderate',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+function tryProgression(input: AchievementDetectorInput): Candidate {
+  const { longitudinal } = input;
+
+  if (!longitudinal || longitudinal.sessionCount < MIN_LONGITUDINAL_SESSIONS) {
+    return miss('progression', 'longitudinal', 'insufficient-history');
+  }
+
+  if (!longitudinal.reactionTrend.improving || !longitudinal.reactionTrend.changePercent) {
+    return miss('progression', 'longitudinal', 'no-meaningful-event');
+  }
+
+  const pct = Math.abs(longitudinal.reactionTrend.changePercent);
+  if (pct < MIN_PROGRESSION_PCT) return miss('progression', 'longitudinal', 'no-meaningful-event');
+
+  return hit('progression', 'longitudinal', 0, (inp) => {
+    const metric: AchievementMetric = {
+      label: 'Reaction Time Trend',
+      value: pct.toFixed(1),
+      unit: '% faster',
+      rawValue: pct,
+      improvementPercent: pct,
+      improvementDisplay: `${pct.toFixed(1)}% improvement`,
+    };
+    return buildAchievement(inp, {
+      type: 'progression', scope: 'longitudinal', template: 'progression',
+      headlineTitle: 'MOVING\nFORWARD',
+      headlineSubtitle: `Reaction times ${pct.toFixed(1)}% faster over recent sessions`,
+      metric,
+      taglines: ["Progress isn't always", 'visible. Until it is.'],
+      confidence: longitudinal.sessionCount >= 10 ? 'high' : 'moderate',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+function trySolidSession(input: AchievementDetectorInput): Candidate {
+  const { sessionStats, intelligence, context } = input;
+
+  const hasContext = context.weatherCondition || context.trackSurface ||
+    context.sessionFocus || context.rideFeel;
+
+  if (
+    !hasContext ||
+    intelligence.sessionQuality === null ||
+    intelligence.sessionQuality < QUALITY_MODERATE
+  ) {
+    return miss('solid-session', 'session', 'no-meaningful-event');
+  }
+
+  return hit('solid-session', 'session', 0, (inp) => {
+    const metric: AchievementMetric = {
+      label: 'Session Quality',
+      value: intelligence.sessionQuality!.toFixed(0),
+      unit: '/100',
+      rawValue: intelligence.sessionQuality!,
+    };
+    return buildAchievement(inp, {
+      type: 'solid-session', scope: 'session', template: 'session',
+      headlineTitle: 'SOLID\nSESSION',
+      headlineSubtitle: `${sessionStats.included_run_count} runs — the work is accumulating`,
+      metric,
+      taglines: ['Showed up.', 'Put the work in.', 'Every session counts.'],
+      confidence: 'moderate',
+      sensitivity: 'public-safe',
+    });
+  });
+}
+
+// ── Achievement builder ───────────────────────────────────────────────────────
+
+interface BuildSpec {
+  type: AchievementType;
+  scope: AchievementScope;
+  template: CardTemplate;
+  headlineTitle: string;
+  headlineSubtitle: string;
+  metric: AchievementMetric;
+  taglines: string[];
+  confidence: 'low' | 'moderate' | 'high';
+  sensitivity: SensitivityLevel;
 }
 
 function buildAchievement(
-	input: AchievementDetectorInput,
-	spec: AchievementSpec
+  input: AchievementDetectorInput,
+  spec: BuildSpec
 ): ShareableAchievement {
-	const isShareable = spec.confidence !== 'low' && spec.sensitivity === 'public-safe';
-
-	return {
-		id: `${input.sessionId}-${spec.type}-${spec.scope}`,
-		sessionId: input.sessionId,
-		riderId: input.riderId,
-		scope: spec.scope,
-		type: spec.type,
-		template: spec.template,
-		title: spec.title,
-		subtitle: spec.subtitle,
-		contextLine: spec.contextLine,
-		narrativeNote: spec.narrativeNote,
-		metric: spec.metric,
-		context: input.context,
-		confidence: spec.confidence,
-		sensitivity: spec.sensitivity,
-		isShareable,
-		privacyMode: input.privacyMode,
-		riderDisplayName: input.riderDisplayName,
-		sessionDate: input.sessionDate,
-		createdAt: new Date().toISOString()
-	};
+  return {
+    id: `${input.sessionId}-${spec.type}-${spec.scope}`,
+    sessionId: input.sessionId,
+    riderId: input.riderId,
+    scope: spec.scope,
+    type: spec.type,
+    template: spec.template,
+    headlineTitle: spec.headlineTitle,
+    headlineSubtitle: spec.headlineSubtitle,
+    metric: spec.metric,
+    conditionsBadge: buildConditionsBadge(input, spec.type),
+    taglines: spec.taglines,
+    supporting: buildSupportingContext(input, spec),
+    context: input.context,
+    confidence: spec.confidence,
+    sensitivity: spec.sensitivity,
+    isShareable: spec.confidence !== 'low' && spec.sensitivity === 'public-safe',
+    privacyMode: input.privacyMode,
+    riderDisplayName: input.riderDisplayName,
+    riderClass: input.riderClass,
+    sessionDate: input.sessionDate,
+    createdAt: new Date().toISOString(),
+  };
 }
 
-function suppressed(type: AchievementType, scope: AchievementScope, reason: SuppressionReason) {
-	return {
-		type,
-		scope,
-		suppressed: true,
-		suppressionReason: reason,
-		score: 0
-	};
+// ── Conditions badge ──────────────────────────────────────────────────────────
+
+function buildConditionsBadge(input: AchievementDetectorInput, type: AchievementType): import('./types').ConditionsBadge | null {
+  const { context } = input;
+  const conditions: string[] = [];
+
+  if (context.weatherCondition) conditions.push(formatWeather(context.weatherCondition));
+  if (context.trackSurface) conditions.push(formatSurface(context.trackSurface));
+  if (context.rideFeel === 'off') conditions.push('Low readiness');
+  if (context.rideFeel === 'dialled' || context.rideFeel === 'peak') conditions.push('Peak readiness');
+
+  if (conditions.length === 0) return null;
+
+  const label = buildBadgeLabel(input);
+  const icon  = buildBadgeIcon(context);
+  const description = buildBadgeDescription(type, conditions);
+
+  return { label, description, icon, conditions };
 }
 
-// ── Context line builders ─────────────────────────────────────────────────────
+function buildBadgeLabel(input: AchievementDetectorInput): string {
+  const { context } = input;
 
-function buildContextLine(context: AchievementContext): string | null {
-	const parts: string[] = [];
-
-	if (context.isLowReadiness && context.isChallengingConditions) {
-		parts.push('Despite low readiness and difficult conditions');
-	} else if (context.isLowReadiness) {
-		parts.push('Despite an off day');
-	} else if (context.isChallengingConditions) {
-		parts.push(`Despite ${formatConditions(context)}`);
-	}
-
-	if (parts.length === 0) return null;
-	return parts.join(', ');
+  if (context.isChallengingConditions && context.isLowReadiness) return 'Adversity Overcome';
+  if (context.isChallengingConditions) {
+    if (context.trackSurface === 'wet' || context.trackSurface === 'muddy') return 'Wet Weather Warrior';
+    if (context.weatherCondition === 'cold') return 'Cold Start';
+    if (context.weatherCondition === 'windy') return 'Into the Wind';
+    return 'Conditions Conquered';
+  }
+  if (context.isLowReadiness) return 'Off Day Delivery';
+  if (context.isHighReadiness) return 'Peak Readiness';
+  if (context.sessionFocus) return `${formatFocus(context.sessionFocus)} Focus`;
+  return 'Session Context';
 }
 
-function buildAdversityDescription(context: AchievementContext): string {
-	if (context.isLowReadiness && context.isChallengingConditions) {
-		return `despite low readiness and ${formatConditions(context)}`;
-	}
-	if (context.isLowReadiness) return 'on an off day';
-	if (context.isChallengingConditions) return `in ${formatConditions(context)}`;
-	return 'in adverse conditions';
+function buildBadgeIcon(context: import('./types').AchievementContext): string {
+  if (context.trackSurface === 'wet' || context.trackSurface === 'muddy') return '🌧️';
+  if (context.weatherCondition === 'cold') return '🥶';
+  if (context.weatherCondition === 'windy') return '💨';
+  if (context.weatherCondition === 'rain' || context.weatherCondition === 'light-rain') return '🌧️';
+  if (context.isLowReadiness) return '😔';
+  if (context.isHighReadiness) return '🔥';
+  if (context.sessionFocus === 'consistency') return '🎯';
+  if (context.sessionFocus === 'reaction-time') return '⚡';
+  if (context.sessionFocus === 'explosiveness') return '💥';
+  return '📍';
 }
 
-function formatConditions(context: AchievementContext): string {
-	const parts: string[] = [];
-	if (context.trackSurface === 'wet') parts.push('wet track');
-	if (context.trackSurface === 'muddy') parts.push('muddy conditions');
-	if (context.trackSurface === 'damp') parts.push('damp surface');
-	if (context.weatherCondition === 'rain' || context.weatherCondition === 'light-rain')
-		parts.push('rain');
-	if (context.weatherCondition === 'windy') parts.push('wind');
-	if (context.weatherCondition === 'cold') parts.push('cold conditions');
-	return parts.join(' and ') || 'difficult conditions';
+function buildBadgeDescription(type: AchievementType, conditions: string[]): string {
+  const condStr = conditions.join(', ');
+  switch (type as string) {
+    case 'pb':         return `Personal best achieved — ${condStr}`;
+    case 'condition-pb': return `Condition best — ${condStr}`;
+    case 'resilience': return `Strong output despite ${condStr}`;
+    default:           return condStr;
+  }
 }
 
-function formatSurface(surface: string): string {
-	const map: Record<string, string> = {
-		wet: 'Wet Track',
-		muddy: 'Muddy Track',
-		damp: 'Damp Surface',
-		'dry-concrete': 'Dry Concrete',
-		'dry-asphalt': 'Dry Asphalt',
-		indoor: 'Indoor'
-	};
-	return map[surface] ?? surface;
+// ── Supporting context builder ─────────────────────────────────────────────────
+
+function buildSupportingContext(
+  input: AchievementDetectorInput,
+  spec: BuildSpec
+): SupportingContext {
+  // Quote panel — derived from feel + achievement
+  const { quoteNote, quotePunchline } = buildQuote(input, spec.type);
+
+  // Progress since onboarding — when longitudinal data exists
+  const progressSinceOnboarding = buildProgressRows(input);
+
+  // Session highlights from intelligence
+  const sessionHighlights = buildSessionHighlights(input);
+
+  return { quoteNote, quotePunchline, progressSinceOnboarding, sessionHighlights };
+}
+
+function buildQuote(
+  input: AchievementDetectorInput,
+  type: AchievementType
+): { quoteNote: string | null; quotePunchline: string | null } {
+  const { context } = input;
+
+  if (context.isLowReadiness && context.isChallengingConditions) {
+    return {
+      quoteNote: 'Not the best conditions today, not the best feeling...',
+      quotePunchline: 'BUT STILL DELIVERED.',
+    };
+  }
+
+  if (context.isLowReadiness) {
+    return {
+      quoteNote: 'Not feeling it today...',
+      quotePunchline: 'BUT STILL BETTER.',
+    };
+  }
+
+  if (context.isChallengingConditions) {
+    return {
+      quoteNote: 'Difficult conditions, not ideal...',
+      quotePunchline: 'BUT THE DATA HELD UP.',
+    };
+  }
+
+  if (context.isHighReadiness && (type === 'pb' || type === 'condition-pb')) {
+    return {
+      quoteNote: 'Feeling dialled, conditions solid...',
+      quotePunchline: 'AND THE DATA AGREED.',
+    };
+  }
+
+  switch (type) {
+    case 'pb':           return { quoteNote: null, quotePunchline: 'RECORDS EXIST TO BE BROKEN.' };
+    case 'milestone':    return { quoteNote: null, quotePunchline: 'THE GOAL IS IN SIGHT.' };
+    case 'consistency':  return { quoteNote: null, quotePunchline: 'CONSISTENCY IS THE REAL SKILL.' };
+    case 'resilience':   return { quoteNote: null, quotePunchline: "CONDITIONS DON'T DEFINE YOU." };
+    case 'progression':  return { quoteNote: null, quotePunchline: 'PROGRESS IS HAPPENING.' };
+    case 'solid-session': return { quoteNote: null, quotePunchline: 'THE WORK IS ACCUMULATING.' };
+    default:             return { quoteNote: null, quotePunchline: 'KEEP GOING.' };
+  }
+}
+
+function buildProgressRows(input: AchievementDetectorInput) {
+  const { longitudinal } = input;
+  if (!longitudinal || longitudinal.sessionCount < 3) return null;
+
+  const rows = [];
+
+  if (longitudinal.reactionTrend.changePercent !== null) {
+    const pct = Math.abs(longitudinal.reactionTrend.changePercent);
+    rows.push({
+      label: 'Reaction Time',
+      value: longitudinal.reactionTrend.improving ? `-${pct.toFixed(1)}%` : `+${pct.toFixed(1)}%`,
+      trend: longitudinal.reactionTrend.improving ? 'improving' as const : 'declining' as const,
+      trendLabel: longitudinal.reactionTrend.improving
+        ? `${pct.toFixed(0)}% improvement`
+        : `${pct.toFixed(0)}% slower`,
+    });
+  }
+
+  if (longitudinal.consistencyTrend.improving) {
+    rows.push({
+      label: 'Consistency',
+      value: 'Improving',
+      trend: 'improving' as const,
+      trendLabel: 'Great trend',
+    });
+  }
+
+  return rows.length > 0 ? rows : null;
+}
+
+function buildSessionHighlights(input: AchievementDetectorInput) {
+  const { intelligence, sessionStats } = input;
+  const highlights = [];
+
+  if (intelligence.sessionQuality !== null) {
+    const label = intelligence.sessionQuality >= 75 ? 'Excellent'
+      : intelligence.sessionQuality >= 60 ? 'Good'
+      : 'Fair';
+    highlights.push({ label: 'Session Quality', value: `${intelligence.sessionQuality.toFixed(0)}/100 · ${label}` });
+  }
+
+  if (intelligence.bestVsAvgGapPercent !== null && intelligence.bestVsAvgGapPercent <= BEST_VS_AVG_TIGHT) {
+    highlights.push({ label: 'Best vs Average Gap', value: `${intelligence.bestVsAvgGapPercent.toFixed(1)}% · Excellent` });
+  }
+
+  return highlights.length > 0 ? highlights : null;
+}
+
+// ── Language helpers ──────────────────────────────────────────────────────────
+
+function buildTaglines(type: AchievementType, context: import('./types').AchievementContext): string[] {
+  if (context.isChallengingConditions && type === 'pb') {
+    return ['Every session.', 'Every condition.', 'Every step forward.'];
+  }
+  if (type === 'resilience') {
+    return ["Doesn't matter", 'how it feels.', 'The data speaks.'];
+  }
+  if (type === 'pb') {
+    return ['Every session.', 'Every condition.', 'Every step forward.'];
+  }
+  return ['Every session.', 'Every step forward.'];
+}
+
+function buildAdversitySubtitle(context: import('./types').AchievementContext): string {
+  if (context.isLowReadiness && context.isChallengingConditions) {
+    return `Low readiness and ${formatConditionShort(context)} — delivered anyway`;
+  }
+  if (context.isLowReadiness) return 'Off day — the data held up';
+  if (context.isChallengingConditions) return `${formatConditionShort(context)} — strong output`;
+  return 'Adverse conditions — delivered';
+}
+
+function formatConditionShort(context: import('./types').AchievementContext): string {
+  if (context.trackSurface === 'wet') return 'wet track';
+  if (context.trackSurface === 'muddy') return 'muddy conditions';
+  if (context.weatherCondition === 'rain' || context.weatherCondition === 'light-rain') return 'rain';
+  if (context.weatherCondition === 'cold') return 'cold conditions';
+  if (context.weatherCondition === 'windy') return 'wind';
+  return 'difficult conditions';
+}
+
+function formatSurface(surface: string | null): string {
+  if (!surface) return 'Track';
+  const map: Record<string, string> = {
+    'wet':          'Wet Track',
+    'muddy':        'Muddy Track',
+    'damp':         'Damp Surface',
+    'dry-concrete': 'Dry Concrete',
+    'dry-asphalt':  'Dry Asphalt',
+    'indoor':       'Indoor',
+  };
+  return map[surface] ?? surface;
+}
+
+function formatWeather(weather: string | null): string {
+  if (!weather) return '';
+  const map: Record<string, string> = {
+    'sunny':       'Sunny',
+    'partly-cloudy': 'Partly Cloudy',
+    'cloudy':      'Cloudy',
+    'light-rain':  'Light Rain',
+    'rain':        'Rain',
+    'windy':       'Windy',
+    'cold':        'Cold',
+    'hot':         'Hot',
+  };
+  return map[weather] ?? weather;
+}
+
+function formatFocus(focus: string): string {
+  const map: Record<string, string> = {
+    'reaction-time': 'Reaction Time',
+    'explosiveness': 'Explosiveness',
+    'speed-carry':   'Speed & Carry',
+    'consistency':   'Consistency',
+    'endurance':     'Endurance',
+    'technique':     'Technique',
+    'recovery':      'Recovery',
+    'testing':       'Testing',
+  };
+  return map[focus] ?? focus;
 }
