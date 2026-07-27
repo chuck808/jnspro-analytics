@@ -87,8 +87,8 @@ interface SessionPageData {
   } | null;
   // From buildPerformanceInsightPack
   insightPack?: {
-    strengths?: Array<{ id: string; title: string; body: string }>;
-    limiters?: Array<{ id: string; title: string; body: string }>;
+    strengths?: string[];
+    limiters?: string[];
   } | null;
   hasCalibrationWarning?: boolean;
   dataQualityRating?: 'excellent' | 'good' | 'fair' | 'calibrate' | 'unknown' | null;

@@ -752,16 +752,15 @@ function tryEngineStrength(input: AchievementDetectorInput): Candidate {
   return hit('engine-strength', 'session', 0, (inp) => {
     const topStrength = insightPack!.strengths[0];
     const metric: AchievementMetric = {
-      label: topStrength.title,
+      label: topStrength,
       value: intelligence.sessionQuality?.toFixed(0) ?? '—',
       unit: '/100',
       rawValue: intelligence.sessionQuality ?? 0,
-      context: topStrength.body,
     };
     return buildAchievement(inp, {
       type: 'engine-strength', scope: 'session', template: 'session',
       headlineTitle: 'STRENGTH\nIDENTIFIED',
-      headlineSubtitle: topStrength.title,
+      headlineSubtitle: topStrength,
       metric,
       taglines: ['The data noticed.', 'Something is working.', 'Keep going.'],
       confidence: 'moderate',

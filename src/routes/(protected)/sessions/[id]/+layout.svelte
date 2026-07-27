@@ -8,11 +8,9 @@
 	import { buildCoachSessionReport } from '$lib/report-engine';
 	import type { GeneratedReport, ReportDetailLevel } from '$lib/report-engine/types';
 	import {
-		analyseSession,
 		type DetailLevel,
-		scoreRunTechnique,
 		buildCoachDiagnostics,
-		buildPerformanceInsightPack
+		computeSessionInsights
 	} from '$lib/performance-engine';
 	import { analyseSessionIntelligence } from '$lib/performance-engine';
 	import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
@@ -86,11 +84,13 @@
 	});
 
 	// ── Performance Engine (single source of truth) ───────────────────────────
+	// Runs through computeSessionInsights() — shared with the client-side live
+	// setup preview on the Overview page, so the two can never drift apart.
 
-	let performanceAnalysis = $derived(
-		analyseSession(
-			{ ...data.session, runs: (data as any).analysisRuns as any },
-			{
+	let sessionInsights = $derived(
+		computeSessionInsights({
+			session: { ...data.session, runs: (data as any).analysisRuns as any },
+			riderContext: {
 				riderLevel: (data.session.rider_profiles as any)?.rider_level,
 				riderWeightKg: data.riderWeight,
 				bikeWeightKg: data.bikeWeight,
@@ -100,9 +100,14 @@
 				weatherCondition: (data.session as any).weather_conditions ?? null,
 				trackSurface: (data.session as any).track_surface ?? null
 			},
-			{ selectedRunIndex: selectedRunIdx }
-		)
+			selectedRunIndex: selectedRunIdx,
+			riderLevel: (data.session.rider_profiles as any)?.rider_level
+		})
 	);
+
+	let performanceAnalysis = $derived(sessionInsights.performanceAnalysis);
+	let techniqueScoreBreakdown = $derived(sessionInsights.techniqueScoreBreakdown);
+	let insightPack = $derived(sessionInsights.insightPack);
 
 	let analysisView = $derived(createAnalysisView(performanceAnalysis, 'coach'));
 	let chartSeries = $derived(buildChartSeries(performanceAnalysis));
@@ -111,14 +116,6 @@
 	let selectedGate = $derived((selectedRun as any)?.gate_runs ?? null);
 	let riderLevel = $derived((data.session.rider_profiles as any)?.rider_level ?? null);
 
-	// ── NEW: Performance Engine Detailed Analysis ──────────────────────────────
-	let techniqueScoreBreakdown = $derived.by(() => {
-		if (!performanceAnalysis.selectedRun) return null;
-		return scoreRunTechnique(performanceAnalysis.selectedRun, performanceAnalysis, {
-			riderLevel: (riderLevel as DetailLevel) || 'rider'
-		});
-	});
-
 	let coachDiagnostics = $derived.by(() => {
 		if (!techniqueScoreBreakdown) return [];
 		return buildCoachDiagnostics(performanceAnalysis, techniqueScoreBreakdown, {
@@ -126,10 +123,6 @@
 			rideFeel: (data.session as any).ride_feel ?? null
 		});
 	});
-
-	let insightPack = $derived(
-		buildPerformanceInsightPack(performanceAnalysis, (riderLevel as DetailLevel) || 'rider')
-	);
 	let uciCategory = $derived(getUCICategory((data.session.rider_profiles as any)?.date_of_birth));
 
 	let sessionDate = $derived(

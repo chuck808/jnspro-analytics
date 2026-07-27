@@ -8,13 +8,15 @@
 		runNumber,
 		currentTags = [],
 		sessionId,
-		compact = false
+		compact = false,
+		onDraftChange
 	}: {
 		runId: string;
 		runNumber: number;
 		currentTags?: RunTag[];
 		sessionId: string;
 		compact?: boolean;
+		onDraftChange?: (runId: string, tags: RunTag[]) => void;
 	} = $props();
 
 	let isOpen = $state(false);
@@ -34,6 +36,7 @@
 		} else {
 			selectedTags = [...selectedTags, tag];
 		}
+		onDraftChange?.(runId, selectedTags);
 	}
 
 	function close() {

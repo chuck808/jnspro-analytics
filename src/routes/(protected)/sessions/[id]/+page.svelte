@@ -5,9 +5,19 @@
 	import CrossRunProgression from '$lib/components/CrossRunProgression.svelte';
 	import SessionNarrativeCard from '$lib/components/performance-insights/SessionNarrativeCard.svelte';
 	import StrengthsLimiters from '$lib/components/session/StrengthsLimiters.svelte';
+	import SessionHero from '$lib/components/session/SessionHero.svelte';
 	import { buildSessionNarrative } from '$lib/performance-engine/sessionNarrative';
 	import { detectAchievement, buildDetectorInput } from '$lib/social';
 	import SocialShareModal from '$lib/components/social/SocialShareModal.svelte';
+	import { computeSessionInsights, computeSessionStats } from '$lib/performance-engine';
+	import { shouldExcludeFromStats, type RunTag } from '$lib/types/runs';
+	import type {
+		WeatherCondition,
+		TrackSurface,
+		SessionFocus,
+		RideFeel
+	} from '$lib/types/sessionContext';
+	import type { SessionInsights } from '$lib/performance-engine/computeSessionInsights';
 
 	let { data }: { data: LayoutData } = $props();
 
@@ -34,180 +44,207 @@
 		return ms !== null ? fmt(ms * 3.6, 1, ' km/h') : '—';
 	}
 
-	// ── Hero metric ────────────────────────────────────────────────────────────
-	let personalBests = $derived({
-		bestReactionMs: data.allTimePBs?.bestReactionMs ?? null,
-		bestSpeedMs: data.allTimePBs?.bestSpeedMs ?? null,
-		bestMaxG: data.allTimePBs?.bestMaxG ?? null
-	});
-
-	type HeroMetric = {
-		type: 'reaction' | 'speed' | 'maxG' | 'goalMilestone';
-		label: string;
-		value: string;
-		unit: string;
-		rawValue: number;
-		isPersonalBest: boolean;
-		isGoalMilestone: boolean;
-	};
-
-	let heroMetric = $derived.by((): HeroMetric => {
-		const significantGoal = data.goalProgress?.find((g: any) => g.isSignificant);
-		if (significantGoal) {
-			const value = significantGoal.newValue;
-			return {
-				type: 'goalMilestone',
-				label: significantGoal.metricLabel,
-				value: significantGoal.metricLabel.toLowerCase().includes('reaction')
-					? (value / 1000).toFixed(3)
-					: significantGoal.metricLabel.toLowerCase().includes('speed')
-						? (value * 3.6).toFixed(1)
-						: value.toFixed(2),
-				unit: significantGoal.metricLabel.toLowerCase().includes('reaction')
-					? 's'
-					: significantGoal.metricLabel.toLowerCase().includes('speed')
-						? ' km/h'
-						: 'G',
-				rawValue: value,
-				isPersonalBest: false,
-				isGoalMilestone: true
-			};
-		}
-		if (
-			data.sessionStats.best_reaction_ms !== null &&
-			personalBests.bestReactionMs !== null &&
-			data.sessionStats.best_reaction_ms < personalBests.bestReactionMs
-		) {
-			return {
-				type: 'reaction',
-				label: 'Reaction Time',
-				value: (data.sessionStats.best_reaction_ms / 1000).toFixed(3),
-				unit: 's',
-				rawValue: data.sessionStats.best_reaction_ms,
-				isPersonalBest: true,
-				isGoalMilestone: false
-			};
-		}
-		if (
-			data.sessionStats.has_valid_speed &&
-			data.sessionStats.best_peak_speed_ms !== null &&
-			personalBests.bestSpeedMs !== null &&
-			data.sessionStats.best_peak_speed_ms > personalBests.bestSpeedMs
-		) {
-			return {
-				type: 'speed',
-				label: 'Peak Speed',
-				value: (data.sessionStats.best_peak_speed_ms * 3.6).toFixed(1),
-				unit: ' km/h',
-				rawValue: data.sessionStats.best_peak_speed_ms,
-				isPersonalBest: true,
-				isGoalMilestone: false
-			};
-		}
-		if (
-			data.sessionStats.best_max_g !== null &&
-			personalBests.bestMaxG !== null &&
-			data.sessionStats.best_max_g > personalBests.bestMaxG
-		) {
-			return {
-				type: 'maxG',
-				label: 'Peak G-Force',
-				value: data.sessionStats.best_max_g.toFixed(2),
-				unit: 'G',
-				rawValue: data.sessionStats.best_max_g,
-				isPersonalBest: true,
-				isGoalMilestone: false
-			};
-		}
-		if (
-			data.sessionStats.has_valid_speed &&
-			data.sessionStats.best_peak_speed_ms !== null &&
-			personalBests.bestSpeedMs !== null &&
-			data.sessionStats.best_peak_speed_ms >= personalBests.bestSpeedMs * 0.95
-		) {
-			return {
-				type: 'speed',
-				label: 'Peak Speed',
-				value: (data.sessionStats.best_peak_speed_ms * 3.6).toFixed(1),
-				unit: ' km/h',
-				rawValue: data.sessionStats.best_peak_speed_ms,
-				isPersonalBest: false,
-				isGoalMilestone: false
-			};
-		}
-		return {
-			type: 'reaction',
-			label: 'Reaction Time',
-			value: data.sessionStats.best_reaction_ms
-				? (data.sessionStats.best_reaction_ms / 1000).toFixed(3)
-				: '—',
-			unit: 's',
-			rawValue: data.sessionStats.best_reaction_ms ?? 0,
-			isPersonalBest: false,
-			isGoalMilestone: false
-		};
-	});
-
-	// ── Session narrative ──────────────────────────────────────────────────────
+	// ── Session narrative / intelligence (persisted) ──────────────────────────
 	let sessionIntelligence = $derived(performanceAnalysis.intelligence);
 	let quality = $derived(performanceAnalysis.selectedRun?.physics?.dataQuality);
-	let impulse = $derived(performanceAnalysis.selectedRun?.physics?.impulse);
+
+	// ── First-time setup detection ─────────────────────────────────────────────
+	// Same signal SessionSetupStrip computes internally as `showNudge` — a
+	// session nobody's touched yet gets the setup game above the hero; once
+	// context/tags exist, the hero leads and setup drops to its low-key spot.
+	let hasContext = $derived(
+		!!(
+			(data.session as any).weather_conditions ||
+			(data.session as any).track_surface ||
+			(data.session as any).session_focus ||
+			(data.session as any).ride_feel
+		)
+	);
+	let hasAnyStatsTag = $derived(
+		data.runs.some((r: any) => shouldExcludeFromStats(r.tags ?? null))
+	);
+	let isFirstTimeSetup = $derived(!hasContext && !hasAnyStatsTag && data.runs.length > 1);
+
+	// ── Live setup-game draft state ────────────────────────────────────────────
+	// Never touches `data` — only flips isFirstTimeSetup once a real save
+	// triggers a page-data reload, at which point the hero switches from this
+	// live preview to the real, persisted, shareable achievement.
+	type ContextDraft = {
+		weather: WeatherCondition | null;
+		surface: TrackSurface | null;
+		focus: SessionFocus | null;
+		feel: RideFeel | null;
+	};
+	let draftContext = $state<ContextDraft | null>(null);
+	let draftTagOverrides = $state<Map<string, RunTag[]>>(new Map());
+
+	function handleDraftContextChange(draft: ContextDraft) {
+		draftContext = draft;
+	}
+	function handleDraftRunTagsChange(runId: string, tags: RunTag[]) {
+		const next = new Map(draftTagOverrides);
+		next.set(runId, tags);
+		draftTagOverrides = next;
+	}
+
+	let effectiveRuns = $derived(
+		data.runs.map((r: any) => ({
+			...r,
+			tags: draftTagOverrides.get(r.id) ?? r.tags ?? null
+		}))
+	);
+	let effectiveContext = $derived({
+		weather_conditions: draftContext?.weather ?? (data.session as any).weather_conditions ?? null,
+		track_surface: draftContext?.surface ?? (data.session as any).track_surface ?? null,
+		session_focus: draftContext?.focus ?? (data.session as any).session_focus ?? null,
+		ride_feel: draftContext?.feel ?? (data.session as any).ride_feel ?? null
+	});
+
+	let previewSessionStats = $derived(
+		isFirstTimeSetup ? computeSessionStats(effectiveRuns) : data.sessionStats
+	);
+
+	let previewInsights = $derived.by((): SessionInsights | null => {
+		if (!isFirstTimeSetup) return null;
+		const includedRuns = effectiveRuns.filter(
+			(r: any) => !shouldExcludeFromStats(r.tags ?? null)
+		);
+		return computeSessionInsights({
+			session: { ...data.session, runs: includedRuns } as any,
+			riderContext: {
+				riderLevel: (data.session.rider_profiles as any)?.rider_level,
+				riderWeightKg: data.riderWeight,
+				bikeWeightKg: data.bikeWeight,
+				crankLengthMm: data.crankLength,
+				sessionFocus: effectiveContext.session_focus,
+				rideFeel: effectiveContext.ride_feel,
+				weatherCondition: effectiveContext.weather_conditions,
+				trackSurface: effectiveContext.track_surface
+			},
+			selectedRunIndex: ctx.selectedRunIdx,
+			riderLevel
+		});
+	});
 
 	// ── Achievement detection ─────────────────────────────────────────────────
 	// Runs deterministically from existing session data — no extra queries.
-	// Result is null when nothing meaningful happened or data can't be trusted.
-	let achievementResult = $derived.by(() => {
-		const detectorInput = buildDetectorInput({
-			session: data.session as any,
-			sessionStats: data.sessionStats as any,
+	// One builder, reused for the persisted result and the live draft preview,
+	// so they can never quietly disagree about what "the story" is.
+	function buildAchievementInput(opts: {
+		sessionContext: any;
+		sessionStats: any;
+		insights: SessionInsights;
+	}) {
+		const { sessionContext, sessionStats, insights } = opts;
+		const intel = insights.performanceAnalysis.intelligence;
+		const impulseData = insights.performanceAnalysis.selectedRun?.physics?.impulse;
+		const qualityRating = insights.performanceAnalysis.selectedRun?.physics?.dataQuality?.rating;
+		const tsb = insights.techniqueScoreBreakdown;
+		const ip = insights.insightPack;
+
+		return buildDetectorInput({
+			session: sessionContext,
+			sessionStats,
 			allTimePBs: data.allTimePBs as any,
 			goalProgress: (data as any).goalProgress ?? null,
 			profile: (data as any).profile ?? null,
 			crossSessionReport: (data as any).advancedAnalytics?.crossSessionReport ?? null,
-			hasCalibrationWarning: performanceAnalysis.hasCalibrationWarning ?? false,
-			dataQualityRating: (quality?.rating as any) ?? null,
-			// Performance engine intelligence outputs
-			intelligence: sessionIntelligence ? {
-				sessionQuality: sessionIntelligence.sessionQuality ?? null,
-				repeatability: sessionIntelligence.repeatability ?? null,
-				bestVsAvg: sessionIntelligence.bestVsAvg ?? null,
-				dropOff: sessionIntelligence.dropOff ?? null,
-				setLength: sessionIntelligence.setLength ?? null,
-				fatigue: sessionIntelligence.fatigue ?? null
-			} : null,
-			// Technique scores from selected run
-			techniqueScores: techniqueScoreBreakdown ? {
-				launchQuality: techniqueScoreBreakdown.launchQuality ?? null,
-				explosiveness: techniqueScoreBreakdown.explosiveness ?? null,
-				speedCarry: techniqueScoreBreakdown.speedCarry ?? null,
-				smoothness: techniqueScoreBreakdown.smoothness ?? null,
-				repeatability: techniqueScoreBreakdown.repeatability ?? null
-			} : null,
-			// Impulse analysis
-			impulse: impulse ? {
-				totalImpulseNs: impulse.totalImpulseNs,
-				timeToHalfImpulseS: impulse.timeToHalfImpulseS,
-				frontLoadedScore: impulse.frontLoadedScore,
-				impulseEfficiency: impulse.impulseEfficiency
-			} : null,
-			// Insight pack — engine-identified strengths and limiters
-			insightPack: insightPack ? {
-				strengths: (insightPack.strengths ?? []).map((s: any) => ({
-					id: s.id ?? '', title: s.title ?? '', body: s.body ?? ''
-				})),
-				limiters: (insightPack.limiters ?? []).map((l: any) => ({
-					id: l.id ?? '', title: l.title ?? '', body: l.body ?? ''
-				}))
-			} : null,
-			// Rider context
+			hasCalibrationWarning: insights.performanceAnalysis.hasCalibrationWarning ?? false,
+			dataQualityRating: (qualityRating as any) ?? null,
+			intelligence: intel
+				? {
+						sessionQuality: intel.sessionQuality ?? null,
+						repeatability: intel.repeatability ?? null,
+						bestVsAvg: intel.bestVsAvg ?? null,
+						dropOff: intel.dropOff ?? null,
+						setLength: intel.setLength ?? null,
+						fatigue: intel.fatigue ?? null
+					}
+				: null,
+			techniqueScores: tsb
+				? {
+						launchQuality: tsb.launchQuality ?? null,
+						explosiveness: tsb.explosiveness ?? null,
+						speedCarry: tsb.speedCarry ?? null,
+						smoothness: tsb.smoothness ?? null,
+						repeatability: tsb.repeatability ?? null
+					}
+				: null,
+			impulse: impulseData
+				? {
+						totalImpulseNs: impulseData.totalImpulseNs,
+						timeToHalfImpulseS: impulseData.timeToHalfImpulseS,
+						frontLoadedScore: impulseData.frontLoadedScore,
+						impulseEfficiency: impulseData.impulseEfficiency
+					}
+				: null,
+			insightPack: ip ? { strengths: ip.strengths ?? [], limiters: ip.limiters ?? [] } : null,
 			riderLevel: riderLevel ?? null,
 			uciCategory: uciCategory ?? null
 		});
-		return detectAchievement(detectorInput);
+	}
+
+	let achievementResult = $derived.by(() => {
+		const input = buildAchievementInput({
+			sessionContext: data.session as any,
+			sessionStats: data.sessionStats as any,
+			insights: { performanceAnalysis, techniqueScoreBreakdown, insightPack }
+		});
+		return detectAchievement(input);
 	});
 
-	let shareableAchievement = $derived(achievementResult.achievement);
+	let livePreviewResult = $derived.by(() => {
+		if (!isFirstTimeSetup || !previewInsights) return achievementResult;
+		const input = buildAchievementInput({
+			sessionContext: { ...data.session, ...effectiveContext } as any,
+			sessionStats: previewSessionStats as any,
+			insights: previewInsights
+		});
+		return detectAchievement(input);
+	});
+
+	// `SocialShareModal` always binds to this, never the live preview — nothing
+	// gets shared until it's actually saved.
+	let persistedAchievement = $derived(achievementResult.achievement);
+	let heroAchievement = $derived(
+		isFirstTimeSetup ? livePreviewResult.achievement : persistedAchievement
+	);
 	let showShareModal = $state(false);
+	function handleShare() {
+		showShareModal = true;
+	}
+
+	// ── Hero fallback + sparkline (used regardless of notable/ordinary state) ──
+	// The hero's own progression data — reflects the live draft while setting up
+	// a never-touched session, otherwise the persisted analysis. Separate from
+	// `progressionData` below, which always stays persisted-only for
+	// CrossRunProgression further down the page.
+	let heroProgressionData = $derived.by(() => {
+		const runs =
+			isFirstTimeSetup && previewInsights
+				? previewInsights.performanceAnalysis.runs
+				: performanceAnalysis.runs;
+		return (runs ?? []).map((r: any, idx: number) => ({
+			runNumber: r.runNumber ?? idx + 1,
+			reactionMs: r.reactionMs,
+			maxG: r.maxG,
+			peakSpeedKmh:
+				r.physics?.measuredPeakSpeedKmh ??
+				(r.physics?.speedKmh?.length ? Math.max(...r.physics.speedKmh) : null),
+			techniqueScore: r.technique?.overall ?? null
+		}));
+	});
+	let heroHasValidSpeed = $derived(
+		isFirstTimeSetup ? previewSessionStats.has_valid_speed : data.sessionStats.has_valid_speed
+	);
+	// `effectiveContext` already resolves to the persisted session value when
+	// there's no in-progress draft, so it's safe to use unconditionally here.
+	let heroConditions = $derived({
+		weatherCondition: effectiveContext.weather_conditions,
+		trackSurface: effectiveContext.track_surface,
+		sessionFocus: effectiveContext.session_focus,
+		rideFeel: effectiveContext.ride_feel
+	});
 
 	let totalMassKg = $derived(
 		(data.riderWeight ?? 0) + (data.bikeWeight ?? 0) > 0
@@ -314,21 +351,58 @@
 	</div>
 
 	<!-- ══════════════════════════════════════════════════════
-         SESSION SETUP — context + run tags + nudge
+         SESSION SETUP + HERO
+         A never-set-up session gets the setup strip prominently above the
+         hero, with the hero reacting live to in-progress edits. Once set up,
+         the hero leads and the strip drops to its low-key spot below.
          ══════════════════════════════════════════════════════ -->
-	<SessionSetupStrip
-		sessionId={data.session.id}
-		runs={data.runs.map((r: any) => ({
-			id: r.id,
-			run_number: r.run_number,
-			tags: r.tags ?? null,
-			gate_runs: Array.isArray(r.gate_runs) ? r.gate_runs[0] : r.gate_runs
-		}))}
-		initialWeather={(data.session as any).weather_conditions ?? null}
-		initialSurface={(data.session as any).track_surface ?? null}
-		initialFocus={(data.session as any).session_focus ?? null}
-		initialFeel={(data.session as any).ride_feel ?? null}
-	/>
+	{#if isFirstTimeSetup}
+		<SessionSetupStrip
+			sessionId={data.session.id}
+			runs={data.runs.map((r: any) => ({
+				id: r.id,
+				run_number: r.run_number,
+				tags: r.tags ?? null,
+				gate_runs: Array.isArray(r.gate_runs) ? r.gate_runs[0] : r.gate_runs
+			}))}
+			initialWeather={(data.session as any).weather_conditions ?? null}
+			initialSurface={(data.session as any).track_surface ?? null}
+			initialFocus={(data.session as any).session_focus ?? null}
+			initialFeel={(data.session as any).ride_feel ?? null}
+			onDraftContextChange={handleDraftContextChange}
+			onDraftRunTagsChange={handleDraftRunTagsChange}
+		/>
+		<SessionHero
+			achievement={heroAchievement}
+			isLivePreview={true}
+			progressionData={heroProgressionData}
+			hasValidSpeed={heroHasValidSpeed}
+			conditions={heroConditions}
+			onShare={handleShare}
+		/>
+	{:else}
+		<SessionHero
+			achievement={heroAchievement}
+			isLivePreview={false}
+			progressionData={heroProgressionData}
+			hasValidSpeed={heroHasValidSpeed}
+			conditions={heroConditions}
+			onShare={handleShare}
+		/>
+		<SessionSetupStrip
+			sessionId={data.session.id}
+			runs={data.runs.map((r: any) => ({
+				id: r.id,
+				run_number: r.run_number,
+				tags: r.tags ?? null,
+				gate_runs: Array.isArray(r.gate_runs) ? r.gate_runs[0] : r.gate_runs
+			}))}
+			initialWeather={(data.session as any).weather_conditions ?? null}
+			initialSurface={(data.session as any).track_surface ?? null}
+			initialFocus={(data.session as any).session_focus ?? null}
+			initialFeel={(data.session as any).ride_feel ?? null}
+		/>
+	{/if}
 
 	<!-- ══════════════════════════════════════════════════════
          GOAL PROGRESS ALERT
@@ -443,74 +517,20 @@
 	{/if}
 
 	<!-- ══════════════════════════════════════════════════════
-         HERO METRIC + SESSION NARRATIVE
+         SESSION NARRATIVE — supporting "why", underneath the hero
          ══════════════════════════════════════════════════════ -->
 	{#if sessionNarrative}
 		<div class="themed-card rounded-xl p-5">
-			<div class="mb-4 flex flex-wrap items-start justify-between gap-4">
-				<div>
-					<p class="themed-accent text-xs tracking-wide uppercase">Session Summary</p>
-					<h3 class="themed-text-primary mt-1 text-lg font-semibold">How This Session Went</h3>
-				</div>
-				<div class="flex items-start gap-3">
-					<!-- Share card button — only when achievement detected -->
-					{#if shareableAchievement?.isShareable}
-						<button
-							onclick={() => (showShareModal = true)}
-							class="flex items-center gap-1.5 rounded-lg border border-[rgba(0,229,255,0.25)] bg-[rgba(0,229,255,0.1)] px-3
-                                   py-1.5 text-xs font-semibold
-                                   text-[#00e5ff] transition-colors hover:bg-[rgba(0,229,255,0.18)]"
-							title="Share this achievement"
-						>
-							<svg
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2.5"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle
-									cx="18"
-									cy="19"
-									r="3"
-								/>
-								<line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line
-									x1="15.41"
-									y1="6.51"
-									x2="8.59"
-									y2="10.49"
-								/>
-							</svg>
-							Share
-						</button>
-					{/if}
-					<div class="text-right">
-						<p class="themed-text-subtle mb-0.5 text-[10px] tracking-wider uppercase">
-							{heroMetric.isPersonalBest
-								? '🏆 Personal Best'
-								: heroMetric.isGoalMilestone
-									? '🎯 Goal Milestone'
-									: 'Best Today'}
-						</p>
-						<div class="flex items-baseline justify-end gap-1">
-							<span class="themed-accent text-2xl font-black">{heroMetric.value}</span>
-							<span class="themed-text-secondary text-sm">{heroMetric.unit}</span>
-						</div>
-						<p class="themed-text-subtle text-xs">{heroMetric.label}</p>
-					</div>
-				</div>
-			</div>
+			<p class="themed-accent text-xs tracking-wide uppercase">Session Summary</p>
+			<h3 class="themed-text-primary mt-1 mb-4 text-lg font-semibold">How This Session Went</h3>
 			<SessionNarrativeCard narrative={sessionNarrative} detailLevel="coach" />
 		</div>
 	{/if}
 
-	<!-- Social share modal — rendered when achievement detected and user clicks Share -->
-	{#if showShareModal && shareableAchievement}
+	<!-- Social share modal — always the persisted, saved achievement, never the live preview -->
+	{#if showShareModal && persistedAchievement}
 		<SocialShareModal
-			achievement={shareableAchievement}
+			achievement={persistedAchievement}
 			backgroundImageUrl={(data as any).profile?.background_image_url ?? null}
 			profileIconUrl={(data as any).profile?.profile_icon_url ?? null}
 			showProfileIcon={data.userPreferences?.show_profile_icon ?? true}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import {
 		WEATHER_OPTIONS,
 		SURFACE_OPTIONS,
@@ -14,12 +15,20 @@
 		getRideFeelMeta
 	} from '$lib/types/sessionContext';
 
+	interface ContextDraft {
+		weather: WeatherCondition | null;
+		surface: TrackSurface | null;
+		focus: SessionFocus | null;
+		feel: RideFeel | null;
+	}
+
 	interface Props {
 		sessionId: string;
 		initialWeather?: WeatherCondition | null;
 		initialSurface?: TrackSurface | null;
 		initialFocus?: SessionFocus | null;
 		initialFeel?: RideFeel | null;
+		onDraftChange?: (draft: ContextDraft) => void;
 	}
 
 	let {
@@ -27,7 +36,8 @@
 		initialWeather = null,
 		initialSurface = null,
 		initialFocus = null,
-		initialFeel = null
+		initialFeel = null,
+		onDraftChange
 	}: Props = $props();
 
 	// Initialize state without directly referencing props
@@ -50,6 +60,12 @@
 		}
 	});
 
+	// Report in-progress selections to a parent (e.g. a live hero preview) as
+	// they change, before anything is actually saved.
+	$effect(() => {
+		if (isEditing) onDraftChange?.({ weather, surface, focus, feel });
+	});
+
 	async function saveContext() {
 		isSaving = true;
 		const formData = new FormData();
@@ -60,7 +76,10 @@
 		if (feel) formData.set('feel', feel);
 		try {
 			const response = await fetch('?/updateSessionContext', { method: 'POST', body: formData });
-			if (response.ok) isEditing = false;
+			if (response.ok) {
+				isEditing = false;
+				await invalidateAll();
+			}
 		} catch (error) {
 			console.error('Failed to save session context:', error);
 		} finally {

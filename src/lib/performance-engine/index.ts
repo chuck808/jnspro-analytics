@@ -24,3 +24,5 @@ export * from './dataQuality';
 export * from './phaseConsistency';
 export * from './phaseAnalysis';
 export * from './sessionAnalysis';
+export * from './sessionStatsAggregate';
+export * from './computeSessionInsights';

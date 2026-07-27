@@ -11,6 +11,7 @@ import { processGoalImprovements, isSignificantImprovement } from '$lib/server/g
 import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
 import { buildSessionSummaries } from '$lib/server/sessionSummaryBuilder';
 import { shouldExcludeFromStats } from '$lib/types/runs';
+import { computeSessionStats } from '$lib/performance-engine/sessionStatsAggregate';
 
 function getMetricLabel(metric: string): string {
 	const labels: Record<string, string> = {
@@ -140,45 +141,8 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 	// Filter runs: exclude warmup and explicitly excluded runs
 	const allRuns = runs ?? [];
 	const includedRuns = allRuns.filter((r) => !shouldExcludeFromStats(r.tags as any));
-	const excludedCount = allRuns.length - includedRuns.length;
 
-	const gateRuns = includedRuns
-		.map((r) => r.gate_runs)
-		.flat()
-		.filter(Boolean);
-
-	const validRuns = gateRuns.filter((g) => g!.analytics_valid);
-
-	const sessionStats = {
-		run_count: allRuns.length,
-		included_run_count: includedRuns.length,
-		excluded_run_count: excludedCount,
-		best_reaction_ms:
-			gateRuns.length > 0 ? Math.min(...gateRuns.map((g) => g!.reaction_time_ms)) : null,
-		avg_reaction_ms:
-			gateRuns.length > 0
-				? gateRuns.reduce((s, g) => s + g!.reaction_time_ms, 0) / gateRuns.length
-				: null,
-		best_peak_speed_ms:
-			validRuns.length > 0 ? Math.max(...validRuns.map((g) => g!.peak_speed_ms ?? 0)) : null,
-		avg_peak_speed_ms:
-			validRuns.length > 0
-				? validRuns.reduce((s, g) => s + (g!.peak_speed_ms ?? 0), 0) / validRuns.length
-				: null,
-		best_max_g: gateRuns.length > 0 ? Math.max(...gateRuns.map((g) => g!.max_g)) : null,
-		// Consistency — CV of reaction times (using filtered runs only)
-		reaction_cv:
-			gateRuns.length > 1
-				? (() => {
-						const times = gateRuns.map((g) => g!.reaction_time_ms);
-						const mean = times.reduce((s, t) => s + t, 0) / times.length;
-						const variance = times.reduce((s, t) => s + Math.pow(t - mean, 2), 0) / times.length;
-						return mean > 0 ? (Math.sqrt(variance) / mean) * 100 : null;
-					})()
-				: null,
-		wheelie_count: gateRuns.filter((g) => g!.front_wheel_lifted).length,
-		has_valid_speed: validRuns.length > 0
-	};
+	const sessionStats = computeSessionStats(allRuns);
 
 	// Fetch active goals to check if this session improved any metrics
 	const { data: goals } = await supabase

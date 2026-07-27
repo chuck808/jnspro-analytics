@@ -23,6 +23,13 @@
 		initialSurface?: TrackSurface | null;
 		initialFocus?: SessionFocus | null;
 		initialFeel?: RideFeel | null;
+		onDraftContextChange?: (draft: {
+			weather: WeatherCondition | null;
+			surface: TrackSurface | null;
+			focus: SessionFocus | null;
+			feel: RideFeel | null;
+		}) => void;
+		onDraftRunTagsChange?: (runId: string, tags: RunTag[]) => void;
 	}
 
 	let {
@@ -31,7 +38,9 @@
 		initialWeather = null,
 		initialSurface = null,
 		initialFocus = null,
-		initialFeel = null
+		initialFeel = null,
+		onDraftContextChange,
+		onDraftRunTagsChange
 	}: Props = $props();
 
 	// Track whether context has been set — derived from props so it updates
@@ -103,6 +112,7 @@
 		{initialSurface}
 		{initialFocus}
 		{initialFeel}
+		onDraftChange={onDraftContextChange}
 	/>
 
 	<!-- ── Run tagging strip ─────────────────────────────────────────────── -->
@@ -193,6 +203,7 @@
 									currentTags={run.tags ?? []}
 									{sessionId}
 									compact={true}
+									onDraftChange={onDraftRunTagsChange}
 								/>
 							</div>
 						{/each}
