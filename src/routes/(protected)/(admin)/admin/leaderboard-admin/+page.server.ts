@@ -57,6 +57,9 @@ export const load: PageServerLoad = async () => {
 		},
 		topParticipants,
 		recentOptIns: optedIn.slice(0, 20),
-		flaggedDisplayNames: [] // In production, implement display name moderation
+		// Moderation isn't implemented yet — this is always empty, not a
+		// "checked, none found" result. See the "Privacy Flags" tile in
+		// +page.svelte for how this is labeled to avoid implying otherwise.
+		flaggedDisplayNames: []
 	};
 };

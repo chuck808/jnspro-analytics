@@ -1,23 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { requireAdmin } from '$lib/server/adminAuth';
 
-export const POST: RequestHandler = async ({ request, locals: { supabase, getSession } }) => {
-	const session = await getSession();
-
-	if (!session) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	// Check if user is admin
-	const { data: profile } = await supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', session.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		return json({ error: 'Forbidden' }, { status: 403 });
-	}
+export const POST: RequestHandler = async ({ request, locals: { supabase, user } }) => {
+	await requireAdmin(user?.id, supabase);
 
 	try {
 		const body = await request.json();
@@ -31,7 +17,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, getSes
 				category,
 				display_order,
 				is_published,
-				updated_by: session.user.id
+				updated_by: user!.id
 			})
 			.eq('id', id)
 			.select()

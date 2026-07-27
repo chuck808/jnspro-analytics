@@ -1,34 +1,17 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { requireAdmin } from '$lib/server/adminAuth';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
+	await requireAdmin(locals.user?.id, locals.supabase);
+
 	try {
 		const { id, status, admin_notes } = await request.json();
 
 		// Validate required fields
 		if (!id || !status) {
 			return json({ error: 'Missing required fields' }, { status: 400 });
-		}
-
-		// Get user and verify they are admin
-		const supabase = locals.supabase;
-		const {
-			data: { user }
-		} = await supabase.auth.getUser();
-
-		if (!user) {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		const { data: profile } = await supabase
-			.from('profiles')
-			.select('role')
-			.eq('id', user.id)
-			.single();
-
-		if (profile?.role !== 'admin') {
-			return json({ error: 'Access denied' }, { status: 403 });
 		}
 
 		// Update feedback using admin client

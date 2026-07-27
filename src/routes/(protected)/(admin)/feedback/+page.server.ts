@@ -1,30 +1,13 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { requireAdminFromProfile } from '$lib/server/adminAuth';
 
-export const load: PageServerLoad = async ({ locals, parent }) => {
-	// Get user from parent layout
-	await parent();
-
-	const supabase = locals.supabase;
-	const {
-		data: { user }
-	} = await supabase.auth.getUser();
-
-	if (!user) {
-		throw error(401, 'Unauthorized');
-	}
-
-	// Check if user is admin (this is already checked in admin layout, but double-check)
-	const { data: profile } = await supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		throw error(403, 'Access denied. Admin privileges required.');
-	}
+export const load: PageServerLoad = async ({ parent }) => {
+	// Already enforced by the (admin) group layout; double-checked here for
+	// defense-in-depth since this page reads all users' feedback.
+	const { profile } = await parent();
+	requireAdminFromProfile(profile);
 
 	// Use admin client to fetch feedback (bypasses RLS for cleaner queries)
 	const supabaseAdmin = createSupabaseAdminClient();

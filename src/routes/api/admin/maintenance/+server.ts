@@ -1,21 +1,9 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { requireAdmin } from '$lib/server/adminAuth';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user?.id) {
-		throw error(401, 'Unauthorized');
-	}
-
-	// Check if user is admin
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		throw error(403, 'Access denied. Admin privileges required.');
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	const body = await request.json();
 	const { title, description, start_time, end_time } = body;
@@ -40,20 +28,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 };
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user?.id) {
-		throw error(401, 'Unauthorized');
-	}
-
-	// Check if user is admin
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		throw error(403, 'Access denied. Admin privileges required.');
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	const body = await request.json();
 	const { id, is_active } = body;
@@ -73,20 +48,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user?.id) {
-		throw error(401, 'Unauthorized');
-	}
-
-	// Check if user is admin
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		throw error(403, 'Access denied. Admin privileges required.');
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	const body = await request.json();
 	const { id } = body;

@@ -1,4 +1,4 @@
-﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
 	// Allows to automatically instantiate createClient with right options
@@ -6,8 +6,63 @@ export type Database = {
 	__InternalSupabase: {
 		PostgrestVersion: '14.1';
 	};
+	graphql_public: {
+		Tables: {
+			[_ in never]: never;
+		};
+		Views: {
+			[_ in never]: never;
+		};
+		Functions: {
+			graphql: {
+				Args: {
+					extensions?: Json;
+					operationName?: string;
+					query?: string;
+					variables?: Json;
+				};
+				Returns: Json;
+			};
+		};
+		Enums: {
+			[_ in never]: never;
+		};
+		CompositeTypes: {
+			[_ in never]: never;
+		};
+	};
 	public: {
 		Tables: {
+			admin_export_log: {
+				Row: {
+					admin_id: string | null;
+					date_from: string | null;
+					date_to: string | null;
+					export_level: string;
+					exported_at: string;
+					id: string;
+					row_count: number;
+				};
+				Insert: {
+					admin_id?: string | null;
+					date_from?: string | null;
+					date_to?: string | null;
+					export_level: string;
+					exported_at?: string;
+					id?: string;
+					row_count?: number;
+				};
+				Update: {
+					admin_id?: string | null;
+					date_from?: string | null;
+					date_to?: string | null;
+					export_level?: string;
+					exported_at?: string;
+					id?: string;
+					row_count?: number;
+				};
+				Relationships: [];
+			};
 			admin_role_audit: {
 				Row: {
 					actor_id: string | null;
@@ -1912,6 +1967,9 @@ export type CompositeTypes<
 		: never;
 
 export const Constants = {
+	graphql_public: {
+		Enums: {}
+	},
 	public: {
 		Enums: {}
 	}

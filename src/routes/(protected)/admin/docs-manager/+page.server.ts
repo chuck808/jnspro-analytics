@@ -1,7 +1,7 @@
 import { requireAdminFromProfile } from '$lib/server/adminAuth';
-import type { LayoutServerLoad } from './$types';
+import type { PageServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ parent }) => {
+export const load: PageServerLoad = async ({ parent }) => {
 	const { profile } = await parent();
 	requireAdminFromProfile(profile);
 	return {};

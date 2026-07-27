@@ -18,7 +18,7 @@ export function createSupabaseServerClient(cookies: Cookies) {
 						path: '/',
 						httpOnly: true,
 						secure: true,
-						sameSite: 'none'
+						sameSite: 'lax'
 					});
 				});
 			}

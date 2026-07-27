@@ -321,7 +321,7 @@ const supabaseHandle: Handle = async ({ event, resolve }) => {
 						path: '/',
 						httpOnly: true,
 						secure: true,
-						sameSite: 'none'
+						sameSite: 'lax'
 					});
 				});
 			}

@@ -21,19 +21,11 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { requireAdmin } from '$lib/server/adminAuth';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-	// Admin check — must be authenticated and have admin role
-	const { session, user } = await locals.safeGetSession();
-	if (!session || !user) throw error(401, 'Not authenticated');
-
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', user.id)
-		.single();
-
-	if (profile?.role !== 'admin') throw error(403, 'Admin access required');
+	await requireAdmin(locals.user?.id, locals.supabase);
+	const adminUserId = locals.user!.id;
 
 	const level = url.searchParams.get('level') ?? 'session';
 	const from = url.searchParams.get('from') ?? null;
@@ -46,16 +38,39 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	const admin = createSupabaseAdminClient();
 
 	if (level === 'session') {
-		return sessionExport(admin, from, to);
+		return sessionExport(admin, adminUserId, from, to);
 	} else {
-		return runExport(admin, from, to);
+		return runExport(admin, adminUserId, from, to);
 	}
 };
+
+// ── Audit logging ──────────────────────────────────────────────────────────────
+
+async function logExport(
+	admin: ReturnType<typeof createSupabaseAdminClient>,
+	adminId: string,
+	level: 'session' | 'run',
+	from: string | null,
+	to: string | null,
+	rowCount: number
+): Promise<void> {
+	const { error: logErr } = await admin.from('admin_export_log').insert({
+		admin_id: adminId,
+		export_level: level,
+		date_from: from,
+		date_to: to,
+		row_count: rowCount
+	});
+	// Don't fail the export if logging fails — the export itself is more
+	// important to the requester than the audit trail.
+	if (logErr) console.error('Failed to log research export:', logErr);
+}
 
 // ── Session-level export ──────────────────────────────────────────────────────
 
 async function sessionExport(
 	admin: ReturnType<typeof createSupabaseAdminClient>,
+	adminId: string,
 	from: string | null,
 	to: string | null
 ): Promise<Response> {
@@ -81,6 +96,7 @@ async function sessionExport(
 
 	const riderIds = (riders ?? []).map((r) => r.id);
 	if (riderIds.length === 0) {
+		await logExport(admin, adminId, 'session', from, to, 0);
 		return csvResponse('No consented riders found.', 'research_sessions.csv');
 	}
 
@@ -211,6 +227,8 @@ async function sessionExport(
 		.map((row) => row.map((cell) => csvCell(cell)).join(','))
 		.join('\n');
 
+	await logExport(admin, adminId, 'session', from, to, rows.length);
+
 	const filename = `appgatepro_research_sessions_${dateStamp()}.csv`;
 	return csvResponse(csv, filename);
 }
@@ -219,6 +237,7 @@ async function sessionExport(
 
 async function runExport(
 	admin: ReturnType<typeof createSupabaseAdminClient>,
+	adminId: string,
 	from: string | null,
 	to: string | null
 ): Promise<Response> {
@@ -232,6 +251,7 @@ async function runExport(
 
 	const riderIds = (riders ?? []).map((r) => r.id);
 	if (riderIds.length === 0) {
+		await logExport(admin, adminId, 'run', from, to, 0);
 		return csvResponse('No consented riders found.', 'research_runs.csv');
 	}
 
@@ -367,6 +387,8 @@ async function runExport(
 	const csv = [headers, ...rows]
 		.map((row) => row.map((cell) => csvCell(cell)).join(','))
 		.join('\n');
+
+	await logExport(admin, adminId, 'run', from, to, rows.length);
 
 	const filename = `appgatepro_research_runs_${dateStamp()}.csv`;
 	return csvResponse(csv, filename);

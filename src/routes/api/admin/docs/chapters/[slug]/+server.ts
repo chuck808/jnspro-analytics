@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import fs from 'fs/promises';
 import path from 'path';
+import { requireAdmin } from '$lib/server/adminAuth';
 
 const CHAPTERS_DIR = path.join(process.cwd(), 'docs', 'chapters');
 
@@ -32,20 +33,7 @@ async function findChapterFile(slug: string): Promise<string | null> {
 }
 
 export const GET: RequestHandler = async ({ locals, params }) => {
-	if (!locals.user?.id) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	// Check if user is admin by querying the profiles table
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		return json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	const { slug } = params;
 
@@ -69,20 +57,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 };
 
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
-	if (!locals.user?.id) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	// Check if user is admin by querying the profiles table
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		return json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	const { slug } = params;
 	const { markdown } = await request.json();

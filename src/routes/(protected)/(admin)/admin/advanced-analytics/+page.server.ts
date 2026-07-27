@@ -46,7 +46,9 @@ export const load: PageServerLoad = async () => {
 	const avgSessionsPerUser =
 		sessionCounts.length > 0 ? sessionCounts.reduce((a, b) => a + b, 0) / sessionCounts.length : 0;
 
-	// Performance percentiles (simulated - in production, calculate from actual data)
+	// Placeholder percentiles — NOT calculated from actual session data.
+	// See performanceDistributionSimulated below, which +page.svelte uses to
+	// badge this panel so it isn't mistaken for real benchmarking data.
 	const performanceDistribution = {
 		p10: 180, // reaction time ms
 		p25: 220,
@@ -54,6 +56,7 @@ export const load: PageServerLoad = async () => {
 		p75: 320,
 		p90: 380
 	};
+	const performanceDistributionSimulated = true;
 
 	// Data quality metrics
 	const sessionsWithRuns = (sessions || []).filter((s) => {
@@ -71,6 +74,7 @@ export const load: PageServerLoad = async () => {
 		},
 		userSegments,
 		performanceDistribution,
+		performanceDistributionSimulated,
 		sessionsByUser: Object.entries(sessionsByUser)
 			.map(([user_id, count]) => ({
 				user_id,

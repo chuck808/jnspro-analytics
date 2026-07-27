@@ -227,7 +227,15 @@
 					<form
 						method="POST"
 						action="?/updateThreshold"
-						use:enhance={() => {
+						use:enhance={({ cancel }) => {
+							if (
+								!confirm(
+									`Save this override for the "${PROFILE_LABELS[level] ?? level}" profile? This immediately changes how every rider at this level is scored.`
+								)
+							) {
+								cancel();
+								return;
+							}
 							return async ({ update }) => {
 								await update();
 								editingLevel = null;

@@ -2,22 +2,10 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import fs from 'fs/promises';
 import path from 'path';
+import { requireAdmin } from '$lib/server/adminAuth';
 
 export const GET: RequestHandler = async ({ locals }) => {
-	if (!locals.user?.id) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	// Check if user is admin by querying the profiles table
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		return json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	try {
 		// Read markdown files from docs/chapters directory

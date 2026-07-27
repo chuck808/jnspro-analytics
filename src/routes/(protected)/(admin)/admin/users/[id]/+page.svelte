@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let roleSaving = $state(false);
+	let selectedRole = $state(data.profile?.role ?? 'user');
 
 	function fmtDate(ts: string | null) {
 		if (!ts) return '—';
@@ -117,17 +119,42 @@
 				</div>
 			{/if}
 
-			<form method="POST" action="?/setRole" onsubmit={() => (roleSaving = true)} class="space-y-3">
+			<form
+				method="POST"
+				action="?/setRole"
+				use:enhance={({ cancel }) => {
+					if (selectedRole === data.profile?.role) {
+						cancel();
+						return;
+					}
+					const verb = selectedRole === 'admin' ? 'promote' : 'demote';
+					if (
+						!confirm(
+							`Are you sure you want to ${verb} ${data.profile?.name ?? 'this user'} to "${selectedRole}"? This change takes effect immediately.`
+						)
+					) {
+						cancel();
+						return;
+					}
+					roleSaving = true;
+					return async ({ update }) => {
+						await update();
+						roleSaving = false;
+					};
+				}}
+				class="space-y-3"
+			>
 				<div>
 					<label for="role" class="themed-text-secondary mb-1 block text-xs">New role</label>
 					<select
 						id="role"
 						name="role"
+						bind:value={selectedRole}
 						class="themed-text-primary w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] px-3
                                    py-2 text-sm focus:border-[color:var(--accent)] focus:outline-none"
 					>
-						<option value="user" selected={data.profile?.role === 'user'}>User</option>
-						<option value="admin" selected={data.profile?.role === 'admin'}>Admin</option>
+						<option value="user">User</option>
+						<option value="admin">Admin</option>
 					</select>
 				</div>
 

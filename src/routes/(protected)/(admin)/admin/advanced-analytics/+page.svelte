@@ -73,9 +73,19 @@
 
 		<!-- Performance Distribution -->
 		<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
-			<h3 class="mb-4 text-sm font-semibold text-[#f0ece4]">
-				📊 Performance Distribution (Reaction Time)
-			</h3>
+			<div class="mb-4 flex items-center justify-between">
+				<h3 class="text-sm font-semibold text-[#f0ece4]">
+					📊 Performance Distribution (Reaction Time)
+				</h3>
+				{#if data.performanceDistributionSimulated}
+					<span
+						class="rounded border border-jns-speed/30 bg-jns-speed/10 px-2 py-0.5 text-xs text-jns-speed"
+						title="Fixed placeholder values, not calculated from real session data"
+					>
+						Simulated
+					</span>
+				{/if}
+			</div>
 			<div class="space-y-3">
 				{#each [{ label: 'Top 10%', value: data.performanceDistribution.p10, color: '#3de8c8' }, { label: 'Top 25%', value: data.performanceDistribution.p25, color: '#f5a623' }, { label: 'Median', value: data.performanceDistribution.p50, color: '#ff6b3d' }, { label: 'Bottom 25%', value: data.performanceDistribution.p75, color: '#9a8f7a' }, { label: 'Bottom 10%', value: data.performanceDistribution.p90, color: '#4a4038' }] as perc}
 					<div class="flex items-center justify-between rounded-lg bg-[#0a0809] p-3">

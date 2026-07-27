@@ -1,30 +1,18 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
+import { requireAdmin } from '$lib/server/adminAuth';
 
 const execAsync = promisify(exec);
 
 export const POST: RequestHandler = async ({ locals }) => {
-	// Check if user is authenticated
-	if (!locals.user?.id) {
-		throw error(401, 'Unauthorized');
-	}
-
-	// Check if user has admin role in database
-	const { data: profile } = await locals.supabase
-		.from('profiles')
-		.select('role')
-		.eq('id', locals.user.id)
-		.single();
-
-	if (profile?.role !== 'admin') {
-		throw error(403, 'Access denied');
-	}
+	await requireAdmin(locals.user?.id, locals.supabase);
 
 	try {
-		// Run the Python script to regenerate docs
+		// Fixed script path with no request-derived input — if this endpoint
+		// ever grows parameters, do not interpolate them into this command.
 		const scriptPath = join(process.cwd(), 'scripts', 'generate-docs.py');
 		const { stdout, stderr } = await execAsync(`python "${scriptPath}"`);
 
