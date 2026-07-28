@@ -81,7 +81,7 @@
 				>Report Type</legend
 			>
 			<div class="space-y-1.5">
-				{#each reportTypes as rt}
+				{#each reportTypes as rt (rt.value)}
 					{@const disabled = rt.value === 'progress' && !progressAvailable}
 					<label
 						class="flex items-start gap-3 rounded-lg p-2.5 transition-colors
@@ -122,7 +122,7 @@
 				>Audience</legend
 			>
 			<div class="space-y-1.5">
-				{#each detailLevels as dl}
+				{#each detailLevels as dl (dl.value)}
 					<label
 						class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-colors
                                   {detailLevel === dl.value
