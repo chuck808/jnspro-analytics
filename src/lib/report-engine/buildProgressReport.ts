@@ -36,7 +36,11 @@ export function buildProgressReport(
 	const recommendations = includeRecs ? buildProgressRecommendations(input) : [];
 
 	// ── Charts ────────────────────────────────────────────────────────────────
-	const charts: ReportChart[] = includeCharts ? (input.charts ?? defaultProgressCharts()) : [];
+	// Chart data is built by the caller from real per-session history via
+	// buildProgressChartSeries() (progressCharts.ts) and passed as input.charts.
+	// No charts is honest when the caller has no per-session data to give —
+	// fabricating placeholder chart metadata with no data was the original bug.
+	const charts: ReportChart[] = includeCharts ? (input.charts ?? []) : [];
 
 	// ── Sections ──────────────────────────────────────────────────────────────
 
@@ -699,90 +703,3 @@ function buildProgressRecommendations(input: ProgressReportInput) {
 	];
 }
 
-// ─── Default charts ───────────────────────────────────────────────────────────
-
-function defaultProgressCharts(): ReportChart[] {
-	return [
-		// Core performance trends
-		{
-			id: 'reaction-time-trend',
-			title: 'Reaction Time Trend',
-			description: 'Best and average reaction times across all sessions — lower is better.',
-			chartType: 'line',
-			dataKey: 'reactionTimeTrend',
-			includeByDefault: true
-		},
-		{
-			id: 'best-vs-average-gap-trend',
-			title: 'Best vs Average Gap',
-			description:
-				'Shows whether peak performance is becoming more repeatable. Smaller gap = better consistency.',
-			chartType: 'line',
-			dataKey: 'bestVsAverageGapTrend',
-			includeByDefault: true
-		},
-
-		// Performance Engine Analytics
-		{
-			id: 'technique-quality-trend',
-			title: 'Technique Consistency Over Time',
-			description:
-				'How repeatably you execute starts across sessions. Higher scores indicate more consistent technique.',
-			chartType: 'line',
-			dataKey: 'techniqueQualityTrend',
-			includeByDefault: true
-		},
-		{
-			id: 'power-output-trend',
-			title: 'Power Development',
-			description:
-				'Estimated peak power output showing strength progression. Calculated from G-force × body mass.',
-			chartType: 'line',
-			dataKey: 'powerOutputTrend',
-			includeByDefault: true
-		},
-		{
-			id: 'smoothness-trend',
-			title: 'Force Application Smoothness',
-			description:
-				'How cleanly power is applied through the start. Smoother = more efficient technique.',
-			chartType: 'line',
-			dataKey: 'smoothnessTrend',
-			includeByDefault: true
-		},
-		{
-			id: 'data-quality-trend',
-			title: 'Sensor Data Quality',
-			description: 'Calibration stability across sessions. Shows reliability of measurements.',
-			chartType: 'bar',
-			dataKey: 'dataQualityTrend',
-			includeByDefault: false
-		},
-		{
-			id: 'wheelie-pattern-analysis',
-			title: 'Wheelie Patterns & Impact',
-			description: 'Wheelie frequency and correlation with reaction time performance.',
-			chartType: 'bar',
-			dataKey: 'wheeliePatternTrend',
-			includeByDefault: false
-		},
-
-		// Fatigue analysis
-		{
-			id: 'optimal-set-length-trend',
-			title: 'Optimal Set Length',
-			description: 'How many quality runs per session before fatigue sets in.',
-			chartType: 'bar',
-			dataKey: 'optimalSetLengthTrend',
-			includeByDefault: true
-		},
-		{
-			id: 'drop-off-position-trend',
-			title: 'Drop-Off Position',
-			description: 'Where performance deteriorates within a session — later is better.',
-			chartType: 'line',
-			dataKey: 'dropOffPositionTrend',
-			includeByDefault: false
-		}
-	];
-}

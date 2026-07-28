@@ -9,6 +9,7 @@
 		includeAppendix = $bindable(false),
 		includeGoals = $bindable(false),
 		hasActiveGoals = false,
+		progressAvailable = true,
 		onGenerate,
 		generating = false
 	}: {
@@ -19,9 +20,18 @@
 		includeAppendix: boolean;
 		includeGoals: boolean;
 		hasActiveGoals?: boolean;
+		progressAvailable?: boolean;
 		onGenerate: () => void;
 		generating?: boolean;
 	} = $props();
+
+	// If Progress becomes unavailable while it's selected, fall back so
+	// Generate can't silently produce a broken report.
+	$effect(() => {
+		if (reportType === 'progress' && !progressAvailable) {
+			reportType = 'coach-session';
+		}
+	});
 
 	// Auto-adjust defaults when audience changes
 	$effect(() => {
@@ -72,27 +82,34 @@
 			>
 			<div class="space-y-1.5">
 				{#each reportTypes as rt}
+					{@const disabled = rt.value === 'progress' && !progressAvailable}
 					<label
-						class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-colors
-                                  {reportType === rt.value
-							? 'border border-[#f5a623]/30 bg-[#f5a623]/10'
-							: 'border border-[#221c18] bg-[#0a0809] hover:border-[#f5a623]/20'}"
+						class="flex items-start gap-3 rounded-lg p-2.5 transition-colors
+                                  {disabled
+							? 'cursor-not-allowed border border-[#221c18] bg-[#0a0809] opacity-50'
+							: 'cursor-pointer ' +
+								(reportType === rt.value
+									? 'border border-[#f5a623]/30 bg-[#f5a623]/10'
+									: 'border border-[#221c18] bg-[#0a0809] hover:border-[#f5a623]/20')}"
 					>
 						<input
 							type="radio"
 							bind:group={reportType}
 							value={rt.value}
+							{disabled}
 							class="mt-0.5 accent-[#f5a623]"
 						/>
 						<div>
 							<p
-								class="text-sm font-medium {reportType === rt.value
+								class="text-sm font-medium {reportType === rt.value && !disabled
 									? 'text-[#f5a623]'
 									: 'text-[#f0ece4]'}"
 							>
 								{rt.label}
 							</p>
-							<p class="text-xs text-[#6b5f4d]">{rt.description}</p>
+							<p class="text-xs text-[#6b5f4d]">
+								{disabled ? 'Needs 3+ sessions' : rt.description}
+							</p>
 						</div>
 					</label>
 				{/each}

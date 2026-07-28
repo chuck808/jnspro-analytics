@@ -234,6 +234,10 @@ export interface CoachSessionReportInput {
 	}> | null;
 }
 
+export type RiderParentReportInput =
+	| { kind: 'session'; session: CoachSessionReportInput }
+	| { kind: 'progress'; progress: ProgressReportInput };
+
 export interface ProgressReportInput {
 	riderName?: string;
 	dateRange?: string;

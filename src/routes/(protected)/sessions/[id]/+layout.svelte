@@ -5,8 +5,20 @@
 	import { page } from '$app/stores';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import { ReportOptionsPanel, ReportPreview } from '$lib/components/reports';
-	import { buildCoachSessionReport } from '$lib/report-engine';
-	import type { GeneratedReport, ReportDetailLevel } from '$lib/report-engine/types';
+	import {
+		buildCoachSessionReport,
+		buildDiagnosticReport,
+		buildRiderParentReport,
+		buildProgressReport,
+		buildProgressChartSeries
+	} from '$lib/report-engine';
+	import type {
+		GeneratedReport,
+		ReportDetailLevel,
+		ReportType,
+		ProgressReportInput
+	} from '$lib/report-engine/types';
+	import type { ProgressChartSessionPoint } from '$lib/report-engine/progressCharts';
 	import {
 		type DetailLevel,
 		buildCoachDiagnostics,
@@ -41,7 +53,7 @@
 	let generating = $state(false);
 	let showReport = $state(false);
 	let showReportOptions = $state(false);
-	let reportType = $state<'coach-session'>('coach-session');
+	let reportType = $state<ReportType>('coach-session');
 	let reportDetailLevel = $state<ReportDetailLevel>('coach');
 	let includeCharts = $state(true);
 	let includeDiag = $state(true);
@@ -411,12 +423,22 @@
 					: undefined
 			};
 
-			report = buildCoachSessionReport(sessionInput, {
+			const buildOptions = {
 				detailLevel: reportDetailLevel,
 				includeCharts,
 				includeDiagnostics: includeDiag,
 				includeAppendix
-			});
+			};
+
+			if (reportType === 'diagnostic') {
+				report = buildDiagnosticReport(sessionInput, buildOptions);
+			} else if (reportType === 'rider-parent') {
+				report = buildRiderParentReport({ kind: 'session', session: sessionInput }, buildOptions);
+			} else if (reportType === 'progress') {
+				report = buildProgressReport(buildProgressInputFromSession(), buildOptions);
+			} else {
+				report = buildCoachSessionReport(sessionInput, buildOptions);
+			}
 
 			showReport = true;
 		} catch (error) {
@@ -432,12 +454,14 @@
 
 	// ── Cross-Session Intelligence ────────────────────────────────────────────
 
-	let crossSessionReport = $derived.by(() => {
+	// Per-session summaries — shared by crossSessionReport (below) and the
+	// Progress Report chart wiring (buildProgressInputFromSession), so this
+	// computation only happens once.
+	let sessionIntelligenceSummaries = $derived.by(() => {
 		const sessions = (data as any).advancedAnalytics?.sessions;
-		if (!sessions || sessions.length < 3) return null;
+		if (!sessions) return [];
 
-		// Transform session data for cross-session intelligence
-		const sessionSummaries = sessions.map((s: any) => {
+		return sessions.map((s: any) => {
 			const runs =
 				s.runs?.map((r: any) => ({
 					reactionMs: r.reaction_time_ms,
@@ -468,10 +492,64 @@
 				avgPeakG: s.avg_max_g
 			};
 		});
+	});
 
-		const rawReport = analyseCrossSessionIntelligence(sessionSummaries);
+	let crossSessionReport = $derived.by(() => {
+		if (sessionIntelligenceSummaries.length < 3) return null;
+		const rawReport = analyseCrossSessionIntelligence(sessionIntelligenceSummaries);
 		return applyTruthRulesToReport(rawReport);
 	});
+
+	// Builds a ProgressReportInput (crossSessionReport + real chart series) for
+	// generating a Progress Report from the session-detail page. Only 6 of the
+	// 9 progress chart series are available here (technique/power/smoothness
+	// need chart_data-driven analyseSession(), which only the Analytics page
+	// runs today — see progressCharts.ts).
+	function buildProgressInputFromSession(): ProgressReportInput {
+		const allRuns: any[] = (data as any).advancedAnalytics?.allRuns ?? [];
+
+		const chartPoints: ProgressChartSessionPoint[] = sessionIntelligenceSummaries.map(
+			(s: any, i: number) => {
+				const sessionRuns = allRuns.filter((r) => r.session_id === s.sessionId);
+				const validBias = sessionRuns
+					.map((r) => r.bias_correction_ms2)
+					.filter((v): v is number => typeof v === 'number');
+				const wheelieCount = sessionRuns.filter((r) => r.front_wheel_lifted).length;
+
+				return {
+					sessionId: s.sessionId,
+					sessionIndex: i + 1,
+					date: s.date,
+					bestReactionTimeSec: s.bestReactionTimeSec,
+					avgReactionTimeSec: s.avgReactionTimeSec,
+					bestVsAvgGapPercent: s.bestVsAvgGapPercent,
+					optimalSetLength: s.optimalSetLength,
+					dropOffRun: s.dropOffRun,
+					runCount: s.runCount,
+					dataQualityBias:
+						validBias.length > 0 ? validBias.reduce((a, b) => a + b, 0) / validBias.length : null,
+					dataQualityValid:
+						sessionRuns.length > 0 ? sessionRuns.every((r) => r.analytics_valid) : null,
+					wheelieRatePercent:
+						sessionRuns.length > 0 ? (wheelieCount / sessionRuns.length) * 100 : null
+				};
+			}
+		);
+
+		return {
+			riderName: (data as any).profile?.name ?? (data as any).profile?.display_name ?? undefined,
+			sessionCount: (data as any).advancedAnalytics?.sessionCount ?? sessionIntelligenceSummaries.length,
+			personalBests: {
+				bestReactionMs: (data as any).allTimePBs?.bestReactionMs ?? null,
+				bestPeakSpeedKmh: (data as any).allTimePBs?.bestSpeedMs
+					? (data as any).allTimePBs.bestSpeedMs * 3.6
+					: null,
+				bestMaxG: (data as any).allTimePBs?.bestMaxG ?? null
+			},
+			crossSessionReport: crossSessionReport ?? undefined,
+			charts: buildProgressChartSeries(chartPoints)
+		};
+	}
 
 	// ── Expose shared state to child pages via Svelte context ─────────────────
 
@@ -710,6 +788,7 @@
 							bind:includeAppendix
 							bind:includeGoals
 							hasActiveGoals={(data as any).goalProgress?.length > 0}
+							progressAvailable={sessionIntelligenceSummaries.length >= 3}
 							onGenerate={async () => {
 								await generateReport();
 								showReportOptions = false;

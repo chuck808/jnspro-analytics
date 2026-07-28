@@ -336,7 +336,9 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
                 reaction_time_ms,
                 max_g,
                 peak_speed_ms,
-                analytics_valid
+                analytics_valid,
+                bias_correction_ms2,
+                front_wheel_lifted
             )
         `
 		)
@@ -354,15 +356,17 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 	// Flatten stats-eligible runs only for cross-run analysis
 	const allRunsData = (allRecentRuns ?? [])
 		.filter((r) => !shouldExcludeFromStats(r.tags as any))
-		.map((r) => r.gate_runs)
-		.flat()
-		.filter(Boolean)
-		.map((g) => ({
-			reaction_time_ms: g!.reaction_time_ms,
-			peak_speed_ms: g!.peak_speed_ms,
-			max_g: g!.max_g,
-			analytics_valid: g!.analytics_valid
-		}));
+		.flatMap((r) =>
+			(Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []).map((g) => ({
+				session_id: r.session_id,
+				reaction_time_ms: g.reaction_time_ms,
+				peak_speed_ms: g.peak_speed_ms,
+				max_g: g.max_g,
+				analytics_valid: g.analytics_valid,
+				bias_correction_ms2: g.bias_correction_ms2,
+				front_wheel_lifted: g.front_wheel_lifted
+			}))
+		);
 
 	// ── SESSION NOTES ──
 	// Load notes for this session

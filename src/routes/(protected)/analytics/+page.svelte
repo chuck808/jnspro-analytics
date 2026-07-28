@@ -23,9 +23,10 @@
 	import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
 	import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
 	import { rateSessionMetrics } from '$lib/performance-engine/thresholds';
-	import { buildProgressReport } from '$lib/report-engine';
+	import { buildProgressReport, buildProgressChartSeries } from '$lib/report-engine';
 	import { ReportPreview } from '$lib/components/reports';
 	import type { GeneratedReport, ReportDetailLevel } from '$lib/report-engine/types';
+	import type { ProgressChartSessionPoint } from '$lib/report-engine/progressCharts';
 
 	let { data }: { data: PageData } = $props();
 
@@ -108,11 +109,11 @@
 		return lastReport ? lastReport.intelligence : null;
 	});
 
-	// Transform session summaries for cross-session intelligence (v8.1 + v8.2)
-	let crossSessionReport = $derived.by(() => {
-		if (data.sessionCount < 3) return null;
-
-		const sessionSummaries = data.sessions.map((s) => {
+	// Per-session summaries — shared by crossSessionReport (below) and the
+	// Progress Report chart wiring (progressChartPoints), so this computation
+	// only happens once.
+	let sessionIntelligenceSummaries = $derived.by(() => {
+		return data.sessions.map((s) => {
 			const sessionReport = allSessionReports.find((r) => r && r.sessionId === s.id);
 			const intelligence = sessionReport?.intelligence;
 
@@ -144,11 +145,55 @@
 				rideFeel: (s as any).ride_feel ?? null
 			};
 		});
+	});
 
-		const rawReport = analyseCrossSessionIntelligence(sessionSummaries);
+	// Transform session summaries for cross-session intelligence (v8.1 + v8.2)
+	let crossSessionReport = $derived.by(() => {
+		if (data.sessionCount < 3) return null;
+		const rawReport = analyseCrossSessionIntelligence(sessionIntelligenceSummaries);
 
 		// v8.2: Apply truth rules
 		return applyTruthRulesToReport(rawReport);
+	});
+
+	// Real per-session chart series for the Progress Report — reuses
+	// sessionIntelligenceSummaries (reaction/gap/set-length/drop-off) and adds
+	// technique/power/smoothness from sessionAnalyses (real analyseSession()
+	// output, not the placeholder techniqueData array used by the on-page
+	// trend components below) plus data-quality/wheelie from allRuns.
+	let progressChartPoints = $derived.by((): ProgressChartSessionPoint[] => {
+		return sessionIntelligenceSummaries.map((s, i) => {
+			const sessionRuns = (data.allRuns as any[]).filter((r) => r.session_id === s.sessionId);
+			const sessionAnalysis = (data as any).sessionAnalyses?.find(
+				(a: any) => a.sessionId === s.sessionId
+			);
+
+			const validBias = sessionRuns
+				.map((r) => r.bias_correction_ms2)
+				.filter((v): v is number => typeof v === 'number');
+			const wheelieCount = sessionRuns.filter((r) => r.front_wheel_lifted).length;
+
+			return {
+				sessionId: s.sessionId,
+				sessionIndex: i + 1,
+				date: s.date as string,
+				bestReactionTimeSec: s.bestReactionTimeSec,
+				avgReactionTimeSec: s.avgReactionTimeSec,
+				bestVsAvgGapPercent: s.bestVsAvgGapPercent,
+				optimalSetLength: s.optimalSetLength,
+				dropOffRun: s.dropOffRun,
+				runCount: s.runCount,
+				techniqueOverall: sessionAnalysis?.techniqueScores?.overall ?? null,
+				smoothness: sessionAnalysis?.techniqueScores?.smoothness ?? null,
+				powerAverageW: sessionAnalysis?.analysis?.selectedRun?.physics?.power?.averageW ?? null,
+				dataQualityBias:
+					validBias.length > 0 ? validBias.reduce((a, b) => a + b, 0) / validBias.length : null,
+				dataQualityValid:
+					sessionRuns.length > 0 ? sessionRuns.every((r) => r.analytics_valid) : null,
+				wheelieRatePercent:
+					sessionRuns.length > 0 ? (wheelieCount / sessionRuns.length) * 100 : null
+			};
+		});
 	});
 
 	// ── BMX Threshold Ratings ──
@@ -507,10 +552,10 @@
 				recommendations: crossRecs,
 
 				// Goal context
-				goalContext
+				goalContext,
 
-				// Charts - allow report engine to use default charts
-				// charts: [],
+				// Real per-session chart series — see progressChartPoints above.
+				charts: progressIncludeCharts ? buildProgressChartSeries(progressChartPoints) : []
 			};
 
 			progressReport = buildProgressReport(progressInput, {

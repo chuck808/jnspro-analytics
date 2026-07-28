@@ -115,7 +115,9 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 					reaction_time_ms: g.reaction_time_ms,
 					max_g: g.max_g,
 					peak_speed_ms: g.analytics_valid ? (g.peak_speed_ms ?? null) : null,
-					analytics_valid: g.analytics_valid
+					analytics_valid: g.analytics_valid,
+					bias_correction_ms2: g.bias_correction_ms2,
+					front_wheel_lifted: g.front_wheel_lifted
 				}))
 			)
 	);
