@@ -1,20 +1,18 @@
 /**
  * report-print.css
  *
- * Drop this into app.css or import it on the report preview page.
- * Controls how the report looks when printed or saved as PDF.
+ * Global print rules, imported once in app.css. Controls how the report
+ * looks when printed or saved as PDF. Add class="no-print" to anything
+ * that should be hidden when printing (buttons, nav, etc).
  *
- * Usage: add class="print-report" to the element wrapping the
- * printed content, and class="no-print" to anything that should
- * be hidden when printing (buttons, nav, etc).
+ * A previous version of this file also hid every direct child of <body>
+ * that lacked a "print-report" class — that class was never actually
+ * applied anywhere in the app (it assumed the printed content was a direct
+ * child of <body>, which it isn't in this app's nested layout structure),
+ * so that rule silently made printing produce a blank page app-wide. Removed.
  */
 
 @media print {
-	/* Hide everything that isn't the report */
-	body > *:not(.print-report) {
-		display: none !important;
-	}
-
 	.no-print,
 	nav,
 	aside,

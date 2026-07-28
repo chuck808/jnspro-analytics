@@ -589,7 +589,7 @@
 	<title>Analytics — AppGatePro</title>
 </svelte:head>
 
-<div class="space-y-6 pb-20">
+<div class="no-print space-y-6 pb-20">
 	<!-- ══════════════════════════════════════════════════════
          HERO SECTION
          ══════════════════════════════════════════════════════ -->
@@ -1025,7 +1025,7 @@
      ══════════════════════════════════════════════════════ -->
 {#if scrolled && data.sessionCount > 0}
 	<div
-		class="fixed right-0 bottom-0 left-0 z-40 border-t border-[color:var(--border)] bg-[color:var(--card)]/95 shadow-lg backdrop-blur-sm"
+		class="no-print fixed right-0 bottom-0 left-0 z-40 border-t border-[color:var(--border)] bg-[color:var(--card)]/95 shadow-lg backdrop-blur-sm"
 	>
 		<div class="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 lg:px-8">
 			<div class="flex items-center justify-between gap-4">
@@ -1083,7 +1083,7 @@
 <!-- ── Report Options Modal ── -->
 {#if showProgressOptions}
 	<div
-		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
+		class="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
 		role="button"
 		tabindex="0"
 		onclick={(e) => e.target === e.currentTarget && (showProgressOptions = false)}
@@ -1379,7 +1379,7 @@
 <!-- ── Report Preview Modal ── -->
 {#if showProgressReport && progressReport}
 	<div
-		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
+		class="report-modal-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
 		role="button"
 		tabindex="0"
 		onclick={(e) => e.target === e.currentTarget && closeProgressReport()}
@@ -1389,7 +1389,7 @@
 		aria-label="Close progress report"
 	>
 		<div
-			class="my-8 w-full max-w-5xl"
+			class="report-modal-dialog my-8 w-full max-w-5xl"
 			role="dialog"
 			tabindex="-1"
 			aria-modal="true"
@@ -1401,4 +1401,27 @@
 	</div>
 {/if}
 
-<HelpPanel bind:open={helpOpen} {helpKey} />
+<style>
+	/* See sessions/[id]/+layout.svelte for why this reset is needed — the
+	   modal's position:fixed + overflow-y-auto breaks print pagination. */
+	@media print {
+		.report-modal-backdrop {
+			position: static !important;
+			inset: auto !important;
+			z-index: auto !important;
+			display: block !important;
+			overflow: visible !important;
+			background: none !important;
+			padding: 0 !important;
+		}
+		.report-modal-dialog {
+			margin: 0 !important;
+			max-width: none !important;
+			width: auto !important;
+		}
+	}
+</style>
+
+<div class="no-print">
+	<HelpPanel bind:open={helpOpen} {helpKey} />
+</div>

@@ -651,7 +651,7 @@
      OPTION A: UNDERLINE TAB BAR — always visible below header
      ══════════════════════════════════════════════════════ -->
 <div
-	class="mb-5 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]"
+	class="no-print mb-5 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]"
 >
 	<nav class="flex items-center px-1" aria-label="Session sections">
 		<a href={sessionBase} class={tabClass(sessionBase)}>Overview</a>
@@ -660,7 +660,7 @@
 	</nav>
 </div>
 
-<div class="pb-20">
+<div class="no-print pb-20">
 	{@render children()}
 </div>
 
@@ -669,7 +669,7 @@
      ══════════════════════════════════════════════════════ -->
 {#if scrolled}
 	<div
-		class="fixed right-0 bottom-0 left-0 z-40 border-t border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/95 shadow-lg backdrop-blur-sm"
+		class="no-print fixed right-0 bottom-0 left-0 z-40 border-t border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/95 shadow-lg backdrop-blur-sm"
 	>
 		<div class="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 lg:px-8">
 			<div class="flex items-center justify-between gap-4">
@@ -716,7 +716,7 @@
 <!-- Report Options Modal -->
 {#if showReportOptions}
 	<div
-		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
+		class="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
 		role="button"
 		tabindex="0"
 		onclick={(e) => e.target === e.currentTarget && (showReportOptions = false)}
@@ -847,7 +847,7 @@
 <!-- Report Preview Modal -->
 {#if showReport && report}
 	<div
-		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
+		class="report-modal-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
 		role="button"
 		tabindex="0"
 		onclick={(e) => e.target === e.currentTarget && closeReport()}
@@ -856,7 +856,7 @@
 		aria-label="Close report preview"
 	>
 		<div
-			class="my-8 w-full max-w-5xl"
+			class="report-modal-dialog my-8 w-full max-w-5xl"
 			role="dialog"
 			tabindex="-1"
 			aria-modal="true"
@@ -869,4 +869,30 @@
 	</div>
 {/if}
 
-<HelpPanel {helpKey} bind:open={helpOpen} />
+<style>
+	/* The report modal is a position:fixed overlay with overflow-y-auto, which
+	   browsers generally can't paginate correctly when printing — content
+	   renders blank or clipped to one page. Reset it to normal flow for print
+	   so ReportPreview's own print styles (report-print.css equivalent inline
+	   in that component) can lay out the full multi-page document. */
+	@media print {
+		.report-modal-backdrop {
+			position: static !important;
+			inset: auto !important;
+			z-index: auto !important;
+			display: block !important;
+			overflow: visible !important;
+			background: none !important;
+			padding: 0 !important;
+		}
+		.report-modal-dialog {
+			margin: 0 !important;
+			max-width: none !important;
+			width: auto !important;
+		}
+	}
+</style>
+
+<div class="no-print">
+	<HelpPanel {helpKey} bind:open={helpOpen} />
+</div>
