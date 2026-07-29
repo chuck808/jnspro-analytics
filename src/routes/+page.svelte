@@ -45,6 +45,7 @@
 			<a href="#what-it-does" class="nav-link">What it does</a>
 			<a href="#how-it-works" class="nav-link">How it works</a>
 			<a href="#for-coaches" class="nav-link">For coaches</a>
+			<a href="/about" class="nav-link">About</a>
 		</div>
 
 		<div class="nav-actions">
@@ -72,6 +73,7 @@
 			<a href="#what-it-does" class="mob-link" onclick={closeMenu}>What it does</a>
 			<a href="#how-it-works" class="mob-link" onclick={closeMenu}>How it works</a>
 			<a href="#for-coaches" class="mob-link" onclick={closeMenu}>For coaches</a>
+			<a href="/about" class="mob-link" onclick={closeMenu}>About</a>
 			<div class="mob-divider"></div>
 			<a href="/auth/sign-in" class="mob-link" onclick={closeMenu}>Sign in</a>
 			<a href="/auth/sign-up" class="mob-cta" onclick={closeMenu}>Join the beta</a>
@@ -331,6 +333,7 @@
 					<a href="#what-it-does" class="fn-link">What it does</a>
 					<a href="#how-it-works" class="fn-link">How it works</a>
 					<a href="#for-coaches" class="fn-link">For coaches</a>
+					<a href="/about" class="fn-link">About</a>
 				</div>
 				<div class="fn-col">
 					<h4 class="fn-title">Account</h4>
