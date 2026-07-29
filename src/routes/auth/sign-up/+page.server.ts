@@ -6,6 +6,7 @@ import {
 	isValidPastDate,
 	requiresParentalConsent
 } from '$lib/server/consent';
+import { submitApplication } from '$lib/server/coachApplications';
 
 export const actions: Actions = {
 	default: async ({ request, locals, url }) => {
@@ -101,6 +102,27 @@ export const actions: Actions = {
 			}
 		}
 
-		return { success: true, email, isMinor };
+		// Gate on !isMinor server-side too — never trust the hidden checkbox
+		// alone. A brand-new minor account is already gated behind parental
+		// consent; layering coach vetting onto that moment is
+		// safeguarding-nonsensical, so it's simply ignored here.
+		const applyAsCoach = !isMinor && form.get('applyAsCoach') === 'on';
+		if (applyAsCoach) {
+			const club = (form.get('club') as string | null)?.trim() || null;
+			const qualificationDetails =
+				(form.get('qualificationDetails') as string | null)?.trim() ?? '';
+			const { error: coachAppError } = await submitApplication(
+				data.user.id,
+				qualificationDetails,
+				club
+			);
+			if (coachAppError) {
+				// Not fatal to signup — same non-fatal precedent as the
+				// parental-consent invite above.
+				console.error('Failed to submit coach application at signup:', coachAppError);
+			}
+		}
+
+		return { success: true, email, isMinor, appliedAsCoach: applyAsCoach };
 	}
 };

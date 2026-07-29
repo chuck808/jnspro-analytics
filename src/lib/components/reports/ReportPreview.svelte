@@ -6,11 +6,15 @@
 	let {
 		report,
 		onClose,
-		onExport
+		onExport,
+		coachLinks = [],
+		onSendToCoach
 	}: {
 		report: GeneratedReport;
 		onClose?: () => void;
 		onExport?: (format: 'print' | 'json') => void;
+		coachLinks?: Array<{ linkId: string; coachName: string }>;
+		onSendToCoach?: (linkId: string) => Promise<boolean>;
 	} = $props();
 
 	function handlePrint() {
@@ -27,6 +31,25 @@
 		a.click();
 		URL.revokeObjectURL(url);
 		onExport?.('json');
+	}
+
+	let showCoachPicker = $state(false);
+	let sendingToCoach = $state(false);
+	let sendResult: 'idle' | 'success' | 'error' = $state('idle');
+
+	async function handleSendToCoach(linkId: string) {
+		if (!onSendToCoach) return;
+		sendingToCoach = true;
+		sendResult = 'idle';
+		const ok = await onSendToCoach(linkId);
+		sendResult = ok ? 'success' : 'error';
+		sendingToCoach = false;
+		if (ok) {
+			setTimeout(() => {
+				showCoachPicker = false;
+				sendResult = 'idle';
+			}, 1500);
+		}
 	}
 
 	// Preserve section order — already ordered correctly by builder
@@ -79,7 +102,39 @@
 			<p class="text-sm font-semibold text-[#f0ece4]">{detailLabel} view</p>
 		</div>
 	</div>
-	<div class="flex items-center gap-2">
+	<div class="relative flex items-center gap-2">
+		{#if coachLinks.length > 0 && onSendToCoach}
+			<button
+				onclick={() => (showCoachPicker = !showCoachPicker)}
+				class="rounded border border-[#f5a623]/40 px-3 py-1.5 text-xs font-medium text-[#f5a623]
+                       transition-colors hover:bg-[#f5a623]/10 focus:ring-2 focus:ring-[#f5a623] focus:outline-none"
+			>
+				Send to Coach
+			</button>
+			{#if showCoachPicker}
+				<div
+					class="absolute top-full right-0 z-20 mt-2 w-56 rounded-lg border border-[#221c18] bg-[#131010] p-2 shadow-lg"
+				>
+					{#if sendResult === 'success'}
+						<p class="p-2 text-xs text-jns-success">Sent.</p>
+					{:else}
+						{#if sendResult === 'error'}
+							<p class="p-2 text-xs text-red-400">Failed to send — try again.</p>
+						{/if}
+						{#each coachLinks as coach (coach.linkId)}
+							<button
+								onclick={() => handleSendToCoach(coach.linkId)}
+								disabled={sendingToCoach}
+								class="block w-full rounded px-2 py-1.5 text-left text-xs text-[#f0ece4]
+                                       transition-colors hover:bg-[#221c18] disabled:opacity-50"
+							>
+								{sendingToCoach ? 'Sending…' : coach.coachName}
+							</button>
+						{/each}
+					{/if}
+				</div>
+			{/if}
+		{/if}
 		<button
 			onclick={handlePrint}
 			class="flex items-center gap-1.5 rounded bg-[#f5a623] px-3 py-1.5 text-xs

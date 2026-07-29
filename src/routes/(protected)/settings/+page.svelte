@@ -10,6 +10,8 @@
 	let showDeleteConfirm = $state(false);
 	let linkStatus: 'idle' | 'linking' | 'success' | 'error' = $state('idle');
 	let linkError = $state('');
+	let coachSaving = $state(false);
+	let coachAppSaving = $state(false);
 
 	function successFor(key: string) {
 		return (form as any)?.[key] === true;
@@ -476,6 +478,214 @@
 			support.
 		</p>
 	</div>
+</div>
+
+<!-- My Coaches - Full width section -->
+<div class="mt-6 rounded-xl border border-[#221c18] bg-[#131010] p-6">
+	<h2 class="mb-1 text-lg font-semibold text-[#f0ece4]">My Coaches</h2>
+	<p class="mb-6 text-xs text-[#9a8f7a]">
+		Coaches you've accepted can view your onboarding profile and goals, exchange messages with
+		you, and receive reports you choose to send them. They can never edit your data or see your
+		private notes.
+	</p>
+
+	{#if errorFor('coachError')}
+		<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+			{errorFor('coachError')}
+		</div>
+	{/if}
+	{#if successFor('coachSuccess')}
+		<div
+			class="mb-4 rounded-lg border border-[#3de8c8]/30 bg-[#3de8c8]/10 p-3 text-sm text-[#3de8c8]"
+		>
+			Done
+		</div>
+	{/if}
+
+	{#if (data.pendingCoachInvites?.length ?? 0) > 0}
+		<div class="mb-4 space-y-2">
+			<h3 class="mb-2 text-sm font-medium text-[#f0ece4]">Pending invites</h3>
+			{#each data.pendingCoachInvites as invite (invite.linkId)}
+				<div
+					class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#221c18] bg-[#0a0809] p-4"
+				>
+					<div>
+						<p class="text-sm font-medium text-[#f0ece4]">{invite.coachName}</p>
+						<p class="text-xs text-[#6b5f4d]">{invite.coachEmail}</p>
+					</div>
+					<div class="flex gap-2">
+						<form method="POST" action="?/acceptCoachInvite" onsubmit={() => (coachSaving = true)}>
+							<input type="hidden" name="linkId" value={invite.linkId} />
+							<button
+								type="submit"
+								disabled={coachSaving}
+								class="rounded-lg bg-[#f5a623] px-3 py-1.5 text-xs font-semibold text-[#0a0809]
+                                       transition-colors hover:bg-[#c97e0a] disabled:opacity-50"
+							>
+								Accept
+							</button>
+						</form>
+						<form method="POST" action="?/declineCoachInvite" onsubmit={() => (coachSaving = true)}>
+							<input type="hidden" name="linkId" value={invite.linkId} />
+							<button
+								type="submit"
+								disabled={coachSaving}
+								class="rounded-lg border border-[#221c18] px-3 py-1.5 text-xs text-[#9a8f7a]
+                                       transition-colors hover:text-[#f0ece4] disabled:opacity-50"
+							>
+								Decline
+							</button>
+						</form>
+					</div>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	{#if (data.pendingParentApproval?.length ?? 0) > 0}
+		<div class="mb-4 space-y-2">
+			<h3 class="mb-2 text-sm font-medium text-[#f0ece4]">Waiting on parent/guardian approval</h3>
+			{#each data.pendingParentApproval as invite (invite.linkId)}
+				<div class="rounded-lg border border-[#221c18] bg-[#0a0809] p-4">
+					<p class="text-sm font-medium text-[#f0ece4]">{invite.coachName}</p>
+					<p class="text-xs text-[#6b5f4d]">
+						An email has been sent to your parent/guardian for approval.
+					</p>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	{#if (data.activeCoaches?.length ?? 0) > 0}
+		<div class="space-y-2">
+			<h3 class="mb-2 text-sm font-medium text-[#f0ece4]">Active</h3>
+			{#each data.activeCoaches as coach (coach.linkId)}
+				<div
+					class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#221c18] bg-[#0a0809] p-4"
+				>
+					<div>
+						<p class="text-sm font-medium text-[#f0ece4]">{coach.coachName}</p>
+						<p class="text-xs text-[#6b5f4d]">{coach.coachEmail}</p>
+					</div>
+					<form method="POST" action="?/removeCoach" onsubmit={() => (coachSaving = true)}>
+						<input type="hidden" name="linkId" value={coach.linkId} />
+						<button
+							type="submit"
+							disabled={coachSaving}
+							class="rounded-lg border border-red-800/40 px-3 py-1.5 text-xs text-red-400
+                                   transition-colors hover:bg-red-900/20 disabled:opacity-50"
+						>
+							Remove
+						</button>
+					</form>
+				</div>
+			{/each}
+		</div>
+	{:else if (data.pendingCoachInvites?.length ?? 0) === 0 && (data.pendingParentApproval?.length ?? 0) === 0}
+		<p class="text-sm text-[#6b5f4d]">No coaches yet.</p>
+	{/if}
+</div>
+
+<!-- Become a Coach - Full width section -->
+<div class="mt-6 rounded-xl border border-[#221c18] bg-[#131010] p-6">
+	<h2 class="mb-1 text-lg font-semibold text-[#f0ece4]">Become a Coach</h2>
+	<p class="mb-6 text-sm text-[#9a8f7a]">
+		Apply to coach riders on AppGatePro. An admin reviews every application before you can invite
+		anyone.
+	</p>
+
+	{#if errorFor('coachAppError')}
+		<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+			{errorFor('coachAppError')}
+		</div>
+	{/if}
+	{#if successFor('coachAppSuccess')}
+		<div
+			class="mb-4 rounded-lg border border-[#3de8c8]/30 bg-[#3de8c8]/10 p-3 text-sm text-[#3de8c8]"
+		>
+			Application submitted — you'll see its status here once an admin reviews it.
+		</div>
+	{/if}
+
+	{#if data.profile?.coach_status === 'approved'}
+		<div class="rounded-lg border border-[#221c18] bg-[#0a0809] p-4">
+			<p class="mb-2 text-sm font-medium text-[#f0ece4]">You're an approved coach.</p>
+			<a
+				href="/coach"
+				class="text-sm font-medium text-[#f5a623] transition-colors hover:text-[#c97e0a]"
+			>
+				Go to your coach dashboard →
+			</a>
+		</div>
+	{:else if data.profile?.coach_status === 'pending'}
+		<div class="rounded-lg border border-[#221c18] bg-[#0a0809] p-4">
+			<p class="text-sm text-[#f0ece4]">Your coach application is pending review.</p>
+			{#if data.latestCoachApplication?.submitted_at}
+				<p class="mt-1 text-xs text-[#6b5f4d]">
+					Submitted {new Date(data.latestCoachApplication.submitted_at).toLocaleDateString('en-GB', {
+						day: 'numeric',
+						month: 'long',
+						year: 'numeric'
+					})}
+				</p>
+			{/if}
+		</div>
+	{:else}
+		{#if data.profile?.coach_status === 'rejected'}
+			<div class="mb-4 rounded-lg border border-[#221c18] bg-[#0a0809] p-3 text-sm text-[#9a8f7a]">
+				Your previous application wasn't approved{#if data.latestCoachApplication?.review_notes}:
+					{data.latestCoachApplication.review_notes}{/if}. You're welcome to apply again.
+			</div>
+		{/if}
+		<form
+			method="POST"
+			action="?/applyCoach"
+			onsubmit={() => (coachAppSaving = true)}
+			class="space-y-4"
+		>
+			<div>
+				<label for="coachClub" class="mb-1.5 block text-sm font-medium text-[#9a8f7a]">
+					Club / team
+				</label>
+				<input
+					id="coachClub"
+					name="club"
+					type="text"
+					value={data.profile?.club ?? ''}
+					class="w-full rounded-lg border border-[#221c18] bg-[#0a0809] px-4 py-2.5 text-sm
+                           text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
+                           focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
+					placeholder="Mid Lancs BMX Race Club"
+				/>
+			</div>
+			<div>
+				<label
+					for="coachQualificationDetails"
+					class="mb-1.5 block text-sm font-medium text-[#9a8f7a]"
+				>
+					Coaching qualifications / safeguarding certification
+				</label>
+				<textarea
+					id="coachQualificationDetails"
+					name="qualificationDetails"
+					rows="3"
+					value={data.latestCoachApplication?.qualification_details ?? ''}
+					class="w-full rounded-lg border border-[#221c18] bg-[#0a0809] px-4 py-2.5 text-sm
+                           text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
+                           focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
+					placeholder="Coaching qualification, DBS certificate number, governing body membership, etc."
+				></textarea>
+			</div>
+			<button
+				type="submit"
+				disabled={coachAppSaving}
+				class="rounded-lg bg-[#f5a623] px-4 py-2 text-sm font-semibold text-[#0a0809]
+                       transition-colors hover:bg-[#c97e0a] disabled:opacity-50"
+			>
+				{coachAppSaving ? 'Submitting…' : 'Submit application'}
+			</button>
+		</form>
+	{/if}
 </div>
 
 <!-- Danger Zone - Full width section -->

@@ -1,10 +1,20 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { containsProfanity } from '$lib/utils/profanityFilter';
+import { acceptInvite, declineInvite, revokeLinkAsRider } from '$lib/server/coachLinks';
+import { submitApplication } from '$lib/server/coachApplications';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
 	const { profile } = await parent();
-	if (!profile) return { profile: null, preferences: null };
+	if (!profile)
+		return {
+			profile: null,
+			preferences: null,
+			pendingCoachInvites: [],
+			pendingParentApproval: [],
+			activeCoaches: [],
+			latestCoachApplication: null
+		};
 
 	const { data: preferences } = await supabase
 		.from('user_preferences')
@@ -12,7 +22,49 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		.eq('user_id', profile.id)
 		.maybeSingle();
 
-	return { profile, preferences };
+	// Coach relationships — pending invites this rider can accept/decline,
+	// active coaches this rider can remove. pending_parent is shown as
+	// read-only ("waiting on your parent/guardian"), nothing to action here.
+	const { data: coachLinks } = await supabase
+		.from('coach_rider_links')
+		.select('id, status, coach_id, invited_at')
+		.eq('rider_id', profile.id)
+		.in('status', ['pending_rider', 'pending_parent', 'active'])
+		.order('invited_at', { ascending: false });
+
+	const coachIds = (coachLinks ?? []).map((l) => l.coach_id);
+	const { data: coachProfiles } =
+		coachIds.length > 0
+			? await supabase.from('profiles').select('id, name, email').in('id', coachIds)
+			: { data: [] };
+
+	const coachById = new Map((coachProfiles ?? []).map((c) => [c.id, c]));
+	const coaches = (coachLinks ?? []).map((link) => ({
+		linkId: link.id,
+		status: link.status,
+		invitedAt: link.invited_at,
+		coachName: coachById.get(link.coach_id)?.name ?? 'Unknown coach',
+		coachEmail: coachById.get(link.coach_id)?.email ?? null
+	}));
+
+	// Latest coach application, if any — drives the "Become a Coach" section
+	// (none/rejected show the form, pending is read-only, approved links out).
+	const { data: latestCoachApplication } = await supabase
+		.from('coach_applications')
+		.select('id, qualification_details, status, submitted_at, review_notes, reviewed_at')
+		.eq('applicant_id', profile.id)
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.maybeSingle();
+
+	return {
+		profile,
+		preferences,
+		pendingCoachInvites: coaches.filter((c) => c.status === 'pending_rider'),
+		pendingParentApproval: coaches.filter((c) => c.status === 'pending_parent'),
+		activeCoaches: coaches.filter((c) => c.status === 'active'),
+		latestCoachApplication
+	};
 };
 
 export const actions: Actions = {
@@ -171,5 +223,59 @@ export const actions: Actions = {
 				device_secret
 			}
 		};
+	},
+
+	acceptCoachInvite: async ({ request, locals, url }) => {
+		if (!locals.user) return fail(401, { coachError: 'Not authenticated' });
+
+		const form = await request.formData();
+		const linkId = form.get('linkId') as string;
+		if (!linkId) return fail(400, { coachError: 'Missing invite' });
+
+		const { error } = await acceptInvite(linkId, locals.user.id, url.origin);
+		if (error) return fail(400, { coachError: error });
+
+		return { coachSuccess: true };
+	},
+
+	declineCoachInvite: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { coachError: 'Not authenticated' });
+
+		const form = await request.formData();
+		const linkId = form.get('linkId') as string;
+		if (!linkId) return fail(400, { coachError: 'Missing invite' });
+
+		const { error } = await declineInvite(linkId, locals.user.id);
+		if (error) return fail(400, { coachError: error });
+
+		return { coachSuccess: true };
+	},
+
+	removeCoach: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { coachError: 'Not authenticated' });
+
+		const form = await request.formData();
+		const linkId = form.get('linkId') as string;
+		if (!linkId) return fail(400, { coachError: 'Missing coach link' });
+
+		const { error } = await revokeLinkAsRider(linkId, locals.user.id);
+		if (error) return fail(400, { coachError: error });
+
+		return { coachSuccess: true };
+	},
+
+	// Distinct coachApp* keys — the three actions above all share
+	// coachError/coachSuccess, so this must not collide with them.
+	applyCoach: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { coachAppError: 'Not authenticated' });
+
+		const form = await request.formData();
+		const club = (form.get('club') as string | null)?.trim() || null;
+		const qualificationDetails = (form.get('qualificationDetails') as string | null)?.trim() ?? '';
+
+		const { error } = await submitApplication(locals.user.id, qualificationDetails, club);
+		if (error) return fail(400, { coachAppError: error });
+
+		return { coachAppSuccess: true };
 	}
 };

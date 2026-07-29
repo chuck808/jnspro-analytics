@@ -5,6 +5,7 @@
 
 	let roleSaving = $state(false);
 	let selectedRole = $state(data.profile?.role ?? 'user');
+	let coachGrantSaving = $state(false);
 
 	function fmtDate(ts: string | null) {
 		if (!ts) return '—';
@@ -186,6 +187,88 @@
 			</form>
 		</div>
 
+		<!-- Coach status -->
+		<div class="themed-card rounded-xl p-5">
+			<h4 class="themed-text-primary mb-1 text-sm font-semibold">Coach Status</h4>
+			<p class="themed-text-secondary mb-4 text-xs">
+				Gates access to /coach — see the Coach Applications page for the formal review queue.
+			</p>
+
+			{#if (form as any)?.coachGrantSuccess}
+				<div
+					class="mb-4 rounded-lg border border-[#3de8c8]/30 bg-[#3de8c8]/10 p-3 text-sm text-[#3de8c8]"
+				>
+					Coach status granted.
+				</div>
+			{/if}
+			{#if (form as any)?.coachGrantError}
+				<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+					{(form as any).coachGrantError}
+				</div>
+			{/if}
+
+			<div class="mb-4">
+				<span
+					class="rounded px-2 py-0.5 text-xs
+                         {data.profile?.coach_status === 'approved'
+						? 'border border-[#3de8c8]/40 bg-[#3de8c8]/10 text-[#3de8c8]'
+						: data.profile?.coach_status === 'pending'
+							? 'border border-[#f5a623]/40 bg-[#f5a623]/10 text-[#f5a623]'
+							: data.profile?.coach_status === 'rejected'
+								? 'border border-red-800/40 bg-red-900/20 text-red-400'
+								: 'themed-text-secondary bg-[color:var(--border)]'}"
+				>
+					{data.profile?.coach_status ?? 'none'}
+				</span>
+			</div>
+
+			{#if data.profile?.coach_status !== 'approved'}
+				<form
+					method="POST"
+					action="?/grantCoach"
+					use:enhance={({ cancel }) => {
+						if (
+							!confirm(
+								`Directly grant coach status to ${data.profile?.name ?? 'this user'}? This bypasses the application review process and takes effect immediately.`
+							)
+						) {
+							cancel();
+							return;
+						}
+						coachGrantSaving = true;
+						return async ({ update }) => {
+							await update();
+							coachGrantSaving = false;
+						};
+					}}
+					class="space-y-3"
+				>
+					<div>
+						<label for="coachGrantReason" class="themed-text-secondary mb-1 block text-xs">
+							Reason <span class="text-[color:var(--text-subtle)]">(optional)</span>
+						</label>
+						<input
+							id="coachGrantReason"
+							name="reason"
+							type="text"
+							class="themed-text-primary w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] px-3
+                                  py-2 text-sm placeholder-[color:var(--text-subtle)] focus:border-[color:var(--accent)]
+                                  focus:outline-none"
+							placeholder="e.g. Known club coach, verified in person"
+						/>
+					</div>
+					<button
+						type="submit"
+						disabled={coachGrantSaving}
+						class="rounded-lg bg-[#f5a623] px-4 py-2 text-sm
+                               font-semibold text-[#0a0809] transition-colors hover:bg-[#c97e0a] disabled:opacity-50"
+					>
+						{coachGrantSaving ? 'Granting...' : 'Grant coach status'}
+					</button>
+				</form>
+			{/if}
+		</div>
+
 		<!-- Rider & bike summary -->
 		<div class="themed-card rounded-xl p-5">
 			<h4 class="themed-text-primary mb-4 text-sm font-semibold">Rider & Bike</h4>
@@ -250,6 +333,73 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Coach relationships (safeguarding oversight) -->
+	{#if data.coachLinks.length > 0}
+		<div class="themed-card rounded-xl p-5">
+			<h4 class="themed-text-primary mb-1 text-sm font-semibold">Coach Relationships</h4>
+			<p class="themed-text-secondary mb-4 text-xs">
+				Full history for safeguarding oversight. Force-revoking ends the relationship
+				immediately — the coach loses access, the rider's own data is untouched.
+			</p>
+
+			{#if (form as any)?.coachLinkSuccess}
+				<div
+					class="mb-4 rounded-lg border border-jns-success/30 bg-jns-success/10 p-3 text-sm text-jns-success"
+				>
+					Done
+				</div>
+			{/if}
+			{#if (form as any)?.coachLinkError}
+				<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+					{(form as any).coachLinkError}
+				</div>
+			{/if}
+
+			<div class="space-y-2">
+				{#each data.coachLinks as link (link.linkId)}
+					<div
+						class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[color:var(--background)] p-3 text-xs"
+					>
+						<div>
+							<p class="themed-text-primary font-medium">{link.coachName}</p>
+							<p class="text-[color:var(--text-subtle)]">{link.coachEmail}</p>
+						</div>
+						<div class="flex items-center gap-3">
+							<span
+								class="rounded px-2 py-0.5
+                                       {link.status === 'active'
+									? 'border border-jns-success/30 bg-jns-success/10 text-jns-success'
+									: 'themed-text-secondary bg-[color:var(--border)]'}"
+							>
+								{link.status}
+							</span>
+							{#if link.status === 'active'}
+								<form
+									method="POST"
+									action="?/forceRevokeCoach"
+									onsubmit={(e) => {
+										if (!confirm(`Force-revoke ${link.coachName}'s access to this rider?`)) {
+											e.preventDefault();
+										}
+									}}
+								>
+									<input type="hidden" name="linkId" value={link.linkId} />
+									<button
+										type="submit"
+										class="rounded border border-red-800/40 px-2 py-1 text-red-400
+                                               transition-colors hover:bg-red-900/20"
+									>
+										Force revoke
+									</button>
+								</form>
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 
 	<!-- Audit log -->
 	{#if data.auditLog.length > 0}

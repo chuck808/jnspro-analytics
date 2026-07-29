@@ -233,10 +233,12 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Custom invite email — used for both sign-up parental-consent and coach-link
+# parental-consent invites (see supabase/templates/invite.html for why the copy
+# is generic rather than per-flow).
+[auth.email.template.invite]
+subject = "You've been invited on AppGatePro Analytics"
+content_path = "./supabase/templates/invite.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

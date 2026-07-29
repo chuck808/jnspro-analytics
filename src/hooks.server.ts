@@ -386,6 +386,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/goals') ||
 		pathname.startsWith('/profile') ||
 		pathname.startsWith('/admin') ||
+		pathname.startsWith('/coach') ||
 		pathname.startsWith('/upload') ||
 		pathname.startsWith('/settings') ||
 		pathname.startsWith('/leaderboard') ||

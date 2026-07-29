@@ -1,0 +1,70 @@
+<!--
+  Supabase Auth's "Invite user" template. Used by BOTH admin.auth.admin.inviteUserByEmail()
+  call sites in this app:
+    - src/routes/auth/sign-up/+page.server.ts (parent/guardian consent at sign-up)
+    - src/lib/server/coachLinks.ts acceptInvite() (parent/guardian consent for a coach link)
+
+  Supabase only supports one global "invite" template — there's no per-call template
+  selection, and the Go template engine here only has access to the documented
+  variables below (NOT the custom `data` payload passed to inviteUserByEmail, e.g.
+  riderName/coachName aren't available here). So this copy is deliberately generic:
+  it tells the recipient AppGatePro sent it and that the specific "who/what" will be
+  shown once they land on the consent page (which already reads that detail from the
+  session's user_metadata after the confirmation link signs them in).
+
+  Available variables: {{ .SiteURL }} {{ .ConfirmationURL }} {{ .Email }} {{ .Token }}
+  {{ .TokenHash }} {{ .RedirectTo }}
+-->
+<!doctype html>
+<html>
+	<body style="margin:0; padding:0; background-color:#0a0809; font-family:Helvetica,Arial,sans-serif;">
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0809; padding:32px 16px;">
+			<tr>
+				<td align="center">
+					<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:#131010; border:1px solid #221c18; border-radius:12px; overflow:hidden;">
+						<tr>
+							<td style="padding:28px 32px 20px 32px; border-bottom:1px solid #221c18;">
+								<table role="presentation" cellpadding="0" cellspacing="0">
+									<tr>
+										<td style="width:4px; background-color:#f5a623; border-radius:2px;">&nbsp;</td>
+										<td style="padding-left:12px;">
+											<div style="font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:#6b5f4d;">AppGatePro Analytics</div>
+											<div style="font-size:15px; font-weight:600; color:#f0ece4;">You've been invited</div>
+										</td>
+									</tr>
+								</table>
+							</td>
+						</tr>
+						<tr>
+							<td style="padding:28px 32px;">
+								<p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#c9c0b3;">
+									Someone using AppGatePro Analytics has invited you to review and approve something on their behalf.
+								</p>
+								<p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#c9c0b3;">
+									Tap the button below to continue — you'll see exactly who invited you and what they're asking for before you need to decide anything.
+								</p>
+								<table role="presentation" cellpadding="0" cellspacing="0">
+									<tr>
+										<td style="border-radius:8px; background-color:#f5a623;">
+											<a href="{{ .ConfirmationURL }}" style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:600; color:#0a0809; text-decoration:none;">
+												Review invitation
+											</a>
+										</td>
+									</tr>
+								</table>
+								<p style="margin:24px 0 0 0; font-size:12px; line-height:1.6; color:#6b5f4d;">
+									If you weren't expecting this, you can safely ignore this email — no account changes will be made unless you follow the link and confirm.
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<td style="padding:16px 32px; border-top:1px solid #221c18; font-size:11px; color:#6b5f4d;">
+								AppGatePro Analytics &middot; JNS Pro Systems
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

@@ -174,9 +174,7 @@
 	let weaknesses = $derived(performanceAnalysis.weaknesses);
 	let recommendations = $derived(performanceAnalysis.recommendations);
 
-	async function generateReport() {
-		generating = true;
-		try {
+	function buildSessionInput() {
 			const engineDetailLevel =
 				reportDetailLevel === 'simple'
 					? 'grom'
@@ -419,16 +417,27 @@
 										}
 									]
 								: [])
-						]
-					: undefined
-			};
+					]
+				: undefined
+		};
 
-			const buildOptions = {
-				detailLevel: reportDetailLevel,
-				includeCharts,
-				includeDiagnostics: includeDiag,
-				includeAppendix
-			};
+		return sessionInput;
+	}
+
+	function currentBuildOptions() {
+		return {
+			detailLevel: reportDetailLevel,
+			includeCharts,
+			includeDiagnostics: includeDiag,
+			includeAppendix
+		};
+	}
+
+	async function generateReport() {
+		generating = true;
+		try {
+			const sessionInput = buildSessionInput();
+			const buildOptions = currentBuildOptions();
 
 			if (reportType === 'diagnostic') {
 				report = buildDiagnosticReport(sessionInput, buildOptions);
@@ -450,6 +459,45 @@
 
 	function closeReport() {
 		showReport = false;
+	}
+
+	/**
+	 * Builds and sends a report to a linked coach. Always rebuilds fresh
+	 * rather than reusing the on-screen `report` — for coach-session reports
+	 * specifically, sessionNotes is forced to [] here regardless of what's
+	 * shown on screen, since session_notes is rider-private and must never
+	 * ride along inside a report sent to a coach. The shared coaching thread
+	 * (coach_rider_messages) is how a coach sees rider-shared context instead.
+	 */
+	async function sendReportToCoach(linkId: string): Promise<boolean> {
+		const buildOptions = currentBuildOptions();
+		let reportToSend;
+
+		if (reportType === 'diagnostic') {
+			reportToSend = buildDiagnosticReport(buildSessionInput(), buildOptions);
+		} else if (reportType === 'rider-parent') {
+			reportToSend = buildRiderParentReport(
+				{ kind: 'session', session: buildSessionInput() },
+				buildOptions
+			);
+		} else if (reportType === 'progress') {
+			reportToSend = buildProgressReport(buildProgressInputFromSession(), buildOptions);
+		} else {
+			const safeInput = { ...buildSessionInput(), sessionNotes: [] };
+			reportToSend = buildCoachSessionReport(safeInput, buildOptions);
+		}
+
+		try {
+			const res = await fetch('/api/coach/report-shares', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ linkId, report: reportToSend })
+			});
+			return res.ok;
+		} catch (err) {
+			console.error('Failed to send report to coach:', err);
+			return false;
+		}
 	}
 
 	// ── Cross-Session Intelligence ────────────────────────────────────────────
@@ -864,7 +912,12 @@
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
 		>
-			<ReportPreview {report} onClose={closeReport} />
+			<ReportPreview
+				{report}
+				onClose={closeReport}
+				coachLinks={(data as any).coachLinks ?? []}
+				onSendToCoach={sendReportToCoach}
+			/>
 		</div>
 	</div>
 {/if}

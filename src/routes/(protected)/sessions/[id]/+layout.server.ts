@@ -469,7 +469,27 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 		.eq('user_id', profile.id)
 		.maybeSingle();
 
+	// ── ACTIVE COACH LINKS (for the "Send to Coach" report action) ────────────
+	const { data: coachLinkRows } = await supabase
+		.from('coach_rider_links')
+		.select('id, coach_id')
+		.eq('rider_id', profile.id)
+		.eq('status', 'active');
+
+	const coachIds = (coachLinkRows ?? []).map((l) => l.coach_id);
+	const { data: coachProfiles } =
+		coachIds.length > 0
+			? await supabase.from('profiles').select('id, name').in('id', coachIds)
+			: { data: [] };
+	const coachNameById = new Map((coachProfiles ?? []).map((c) => [c.id, c.name]));
+
+	const coachLinks = (coachLinkRows ?? []).map((l) => ({
+		linkId: l.id,
+		coachName: coachNameById.get(l.coach_id) ?? 'Coach'
+	}));
+
 	return {
+		coachLinks,
 		session,
 		runs: runs ?? [],
 		analysisRuns: includedRuns, // stats-eligible runs only — use for all engine/analysis calls

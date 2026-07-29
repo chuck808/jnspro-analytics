@@ -30,7 +30,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			trend: { reaction: null, speed: null },
 			activeGoalMetrics: [],
 			goalTargets: {},
-			bikes: []
+			bikes: [],
+			coachLinks: []
 		};
 
 	// Load bikes for power calculation
@@ -59,9 +60,29 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			personalBests: { reaction_ms: null, peak_speed_ms: null, max_g: null },
 			trend: { reaction: null, speed: null },
 			activeGoalMetrics: [],
-			goalTargets: {}
+			goalTargets: {},
+			coachLinks: []
 		};
 	}
+
+	// ── ACTIVE COACH LINKS (for the "Send to Coach" report action) ────────────
+	const { data: coachLinkRows } = await supabase
+		.from('coach_rider_links')
+		.select('id, coach_id')
+		.eq('rider_id', profile.id)
+		.eq('status', 'active');
+
+	const coachIds = (coachLinkRows ?? []).map((l) => l.coach_id);
+	const { data: coachProfiles } =
+		coachIds.length > 0
+			? await supabase.from('profiles').select('id, name').in('id', coachIds)
+			: { data: [] };
+	const coachNameById = new Map((coachProfiles ?? []).map((c) => [c.id, c.name]));
+
+	const coachLinks = (coachLinkRows ?? []).map((l) => ({
+		linkId: l.id,
+		coachName: coachNameById.get(l.coach_id) ?? 'Coach'
+	}));
 
 	// Fetch all runs for these sessions
 	const sessionIds = sessions.map((s) => s.id);
@@ -306,6 +327,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		activeGoalMetrics: Array.from(activeGoalMetrics),
 		goalTargets,
 		bikes: bikes ?? [],
+		coachLinks,
 		correlationInsights, // NEW: Pattern discovery insights
 		sessionAnalyses // NEW: Performance Engine analysis for last 10 sessions
 	};

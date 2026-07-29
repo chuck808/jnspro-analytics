@@ -578,6 +578,24 @@
 		showProgressReport = false;
 	}
 
+	// Progress Report input never includes sessionNotes, so unlike the
+	// session-detail page's Session Report, there's no private-notes leak
+	// risk here — the already-generated report can be sent as-is.
+	async function sendProgressReportToCoach(linkId: string): Promise<boolean> {
+		if (!progressReport) return false;
+		try {
+			const res = await fetch('/api/coach/report-shares', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ linkId, report: progressReport })
+			});
+			return res.ok;
+		} catch (err) {
+			console.error('Failed to send progress report to coach:', err);
+			return false;
+		}
+	}
+
 	function navClass(tab: typeof activeTab) {
 		return tab === activeTab
 			? 'px-4 py-1.5 rounded-lg text-xs font-semibold themed-bg-accent themed-accent border border-[color:var(--accent)]/30'
@@ -1396,7 +1414,12 @@
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
 		>
-			<ReportPreview report={progressReport} onClose={closeProgressReport} />
+			<ReportPreview
+				report={progressReport}
+				onClose={closeProgressReport}
+				coachLinks={data.coachLinks ?? []}
+				onSendToCoach={sendProgressReportToCoach}
+			/>
 		</div>
 	</div>
 {/if}

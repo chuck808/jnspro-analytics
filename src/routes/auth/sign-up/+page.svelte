@@ -7,6 +7,7 @@
 	let loading = $state(false);
 	let showPassword = $state(false);
 	let dateOfBirth = $state('');
+	let applyAsCoach = $state(false);
 
 	let isMinor = $derived(
 		dateOfBirth ? calculateAge(dateOfBirth) < MINOR_CONSENT_AGE_THRESHOLD : false
@@ -42,6 +43,12 @@
 			<p class="mt-4 rounded-lg border border-[#f5a623]/20 bg-[#131010] p-3 text-xs text-[#9a8f7a]">
 				We've also sent a consent request to the parent/guardian email you provided. The account
 				stays inactive until they confirm.
+			</p>
+		{/if}
+		{#if form.appliedAsCoach}
+			<p class="mt-4 rounded-lg border border-[#f5a623]/20 bg-[#131010] p-3 text-xs text-[#9a8f7a]">
+				Your coach application has been submitted — a JNS Pro admin will review it before you can
+				invite riders.
 			</p>
 		{/if}
 	</div>
@@ -183,6 +190,63 @@
 				</button>
 			</div>
 		</div>
+
+		{#if !isMinor}
+			<!-- Optional coach application — hidden for minors, since a
+			     brand-new minor account is already gated behind its own
+			     parental consent before it can do anything; layering an
+			     unrelated coach-vetting request onto that moment adds
+			     confusion with no benefit. Apply later from Settings instead. -->
+			<div class="rounded-lg border border-[#221c18] bg-[#0a0809] p-4">
+				<label class="flex items-start gap-2.5 text-sm text-[#9a8f7a]">
+					<input
+						type="checkbox"
+						name="applyAsCoach"
+						bind:checked={applyAsCoach}
+						class="mt-0.5 h-4 w-4 rounded border-[#221c18] bg-[#0a0809] text-[#f5a623] focus:ring-[#f5a623]"
+					/>
+					I'd also like to apply to become a coach
+				</label>
+				{#if applyAsCoach}
+					<div class="mt-4 space-y-4">
+						<div>
+							<label for="club" class="mb-1.5 block text-sm font-medium text-[#9a8f7a]">
+								Club / team
+							</label>
+							<input
+								id="club"
+								name="club"
+								type="text"
+								class="w-full rounded-lg border border-[#221c18] bg-[#131010] px-4 py-2.5 text-sm
+                                       text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
+                                       focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
+								placeholder="Mid Lancs BMX Race Club"
+							/>
+						</div>
+						<div>
+							<label
+								for="qualificationDetails"
+								class="mb-1.5 block text-sm font-medium text-[#9a8f7a]"
+							>
+								Coaching qualifications / safeguarding certification
+							</label>
+							<textarea
+								id="qualificationDetails"
+								name="qualificationDetails"
+								rows="3"
+								class="w-full rounded-lg border border-[#221c18] bg-[#131010] px-4 py-2.5 text-sm
+                                       text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
+                                       focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
+								placeholder="Coaching qualification, DBS certificate number, governing body membership, etc."
+							></textarea>
+							<p class="mt-1.5 text-xs text-[#4a4038]">
+								An admin will manually review this before you can invite riders.
+							</p>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Confirm Password -->
 		<div>
