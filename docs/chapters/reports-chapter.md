@@ -29,7 +29,9 @@ Every report includes an executive summary with a confidence indicator, session 
 
 ## Why you'd actually use this
 
-The obvious use is handing something to a coach who doesn't have (or want) direct access to the analytics platform — a self-contained document instead of a login. It's also useful for keeping an external record independent of the app, or for the JSON export specifically if you or someone else wants to run your own analysis outside the platform.
+If you've got an approved coach linked to your account, a **Send to Coach** button on the report itself pushes it straight into their dashboard — no PDF, no email, just there for them to open. See the Coaching chapter for how that link gets set up.
+
+Printing or exporting still matters beyond that: a coach who doesn't have (or want) direct access to the platform, an external record independent of the app, or the JSON export specifically if you or someone else wants to run your own analysis outside AppGatePro.
 
 ---
 
