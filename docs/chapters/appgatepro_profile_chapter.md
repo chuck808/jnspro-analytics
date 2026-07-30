@@ -19,13 +19,13 @@ The completeness bar isn't decorative — each field is weighted toward somethin
 | Field | Weight | What it actually unlocks |
 |---|---|---|
 | Weight | 20% | Power and impulse estimation |
-| Crank length | 20% | More accurate power/impulse calculation |
+| Crank length | 20% | Captured for future biomechanical calculations — not yet used by any live calculation |
 | Height | 15% | Biomechanical context for technique scoring |
 | Date of birth | 15% | Correct UCI age category and age-appropriate benchmarking |
 | Rider level | 10% | Sets which benchmark tier your scores are measured against |
-| Rear tyre / wheel diameter | 20% | Accurate speed calculation from wheel rotation data |
+| Rear tyre / wheel diameter | 20% | Captured for setup-change comparisons — not currently used in any speed calculation |
 
-Weight and crank length together are the biggest single lever — fill those in and you've unlocked the majority of what profile completeness gates.
+Weight is the single biggest real lever — rider weight and bike weight together are what actually unlock power and impulse estimation. Crank length and tyre/wheel diameter are still worth filling in (see below), just not for the reason the completeness weighting might imply.
 
 **Rider level** deserves a specific mention: it's not a badge, it's the benchmark tier your technique scores and reaction-time ratings get measured against. Setting it accurately matters more than setting it flatteringly — a novice rider scored against elite benchmarks will just see discouraging numbers that don't reflect real progress, and an elite rider scored against novice benchmarks won't get any useful signal about where they actually stand.
 
@@ -39,7 +39,15 @@ Two separate image slots — a profile icon (shown as a circle throughout the ap
 
 ## Bike setup
 
-Crank length and gear ratio (chainring/sprocket teeth) feed directly into the power and cadence-adjacent calculations. Wheel size matters specifically for speed accuracy — the system calculates speed from wheel rotation, so an incorrect tyre/wheel diameter entry will throw off every speed-derived number in your analytics, not just power. If you've got a non-standard wheel setup, use the custom wheel diameter field rather than picking the closest standard tyre — "close enough" here quietly degrades every speed calculation downstream.
+Rider weight and bike weight are the two fields that actually feed a live calculation — combined mass is what makes power and impulse estimation real physics rather than a guess (see above). Speed, for what it's worth, comes from the AppGatePro sensor's own measurements, not from wheel rotation — so an unusual wheel size doesn't throw off your speed numbers the way it might on a cycling computer.
+
+Crank length, gearing (chainring/sprocket teeth), and tyre choice are still worth recording honestly — they're what the setup-change comparison below actually compares — but none of them currently feed a calculation on their own the way weight does.
+
+### Keeping this current matters more than it looks like it should
+
+The app automatically compares your sessions from before and after any change to your bike setup or biometrics — new gearing, a different crank, a tyre swap, a growth spurt. It works out what changed by looking at what your profile said *at the time each session was ridden*, not what it says today, and shows you the difference on the session page once enough sessions exist on each side.
+
+That only works if you update your profile and bike setup **before** you ride with the change, not after you remember to log it a week later. If you update a spec retroactively, sessions ridden before the real-world change get misattributed to the new setup instead — quietly, with no error message, since there's no way for the app to tell "this was true when I rode" apart from "I just remembered to update this." Update it before you ride, and this mechanism does its job with zero extra effort from you.
 
 ---
 

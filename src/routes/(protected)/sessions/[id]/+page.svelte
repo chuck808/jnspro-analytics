@@ -18,6 +18,7 @@
 		RideFeel
 	} from '$lib/types/sessionContext';
 	import type { SessionInsights } from '$lib/performance-engine/computeSessionInsights';
+	import type { FormattedComparison } from '$lib/performance-engine/crossSession/comparisonFormatting';
 
 	let { data }: { data: LayoutData } = $props();
 
@@ -42,6 +43,32 @@
 	}
 	function fmtSpeed(ms: number | null) {
 		return ms !== null ? fmt(ms * 3.6, 1, ' km/h') : '—';
+	}
+
+	// ── Setup-change banner helpers ────────────────────────────────────────────
+	const SETUP_FIELD_LABELS: Record<string, string> = {
+		weight_kg: 'Bike weight',
+		profile_weight_kg: 'Rider weight',
+		height_cm: 'Height',
+		crank_length_mm: 'Crank length',
+		chainring_teeth: 'Gearing',
+		sprocket_teeth: 'Gearing',
+		front_tire_id: 'Tyres',
+		rear_tire_id: 'Tyres',
+		custom_wheel_diameter_inches: 'Wheel diameter'
+	};
+	function fieldLabel(field: string): string {
+		return SETUP_FIELD_LABELS[field] ?? field;
+	}
+	function fieldValue(field: string, value: number | null): string {
+		if (value === null) return '—';
+		if (field === 'front_tire_id' || field === 'rear_tire_id') {
+			return (data as any).tireLabelById?.[value] ?? `#${value}`;
+		}
+		if (field === 'weight_kg' || field === 'profile_weight_kg') return `${value}kg`;
+		if (field === 'height_cm') return `${value}cm`;
+		if (field === 'crank_length_mm') return `${value}mm`;
+		return `${value}`;
 	}
 
 	// ── Session narrative / intelligence (persisted) ──────────────────────────
@@ -511,6 +538,76 @@
 						</svg>
 						Create your first goal
 					</a>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ══════════════════════════════════════════════════════
+         SETUP CHANGE DETECTED
+         ══════════════════════════════════════════════════════ -->
+	{#if data.setupChangeReport && data.setupChangeReport.status !== 'none' && data.setupChangeReport.event}
+		<div class="rounded-xl border border-[#f5a623]/20 bg-[#f5a623]/10 p-5">
+			<div class="flex items-start gap-3">
+				<svg
+					class="mt-0.5 h-5 w-5 flex-shrink-0 text-[#f5a623]"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+					/>
+				</svg>
+				<div class="flex-1">
+					<h3 class="mb-2 text-sm font-semibold text-[#f5a623]">🔧 Setup changed</h3>
+					<ul class="mb-2 space-y-1 text-xs text-[#9a8f7a]">
+						{#each data.setupChangeReport.event.changes as change}
+							<li>
+								<span class="themed-text-primary font-medium">{fieldLabel(change.field)}:</span>
+								{fieldValue(change.field, change.from)} → {fieldValue(change.field, change.to)}
+							</li>
+						{/each}
+					</ul>
+
+					{#if data.setupChangeReport.status === 'gathering'}
+						<p class="themed-text-secondary text-xs">
+							Still gathering data — need {data.setupChangeReport.sessionsUntilReady} more session{data
+								.setupChangeReport.sessionsUntilReady === 1
+								? ''
+								: 's'} on the new setup before a fair before/after comparison is possible.
+						</p>
+					{:else if data.setupChangeReport.comparison}
+						{@const comp = data.setupChangeReport.comparison}
+						<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+							{#each [
+								['Reaction', comp.reactionTime],
+								['Speed', comp.speed],
+								['Consistency', comp.consistency],
+								['Quality', comp.sessionQuality]
+							] as [string, FormattedComparison | null][] as [label, c]}
+								{#if c}
+									<div>
+										<p class="text-[10px] text-[#9a8f7a]">{label}</p>
+										<p
+											class="text-xs font-medium"
+											class:text-[#3de8c8]={c.isImproving}
+											class:text-red-400={!c.isImproving}
+										>
+											{c.narrative}
+										</p>
+									</div>
+								{/if}
+							{/each}
+						</div>
+						<p class="themed-text-secondary mt-2 text-[10px]">
+							Based on {data.setupChangeReport.comparison.beforeCount} sessions before vs {data
+								.setupChangeReport.comparison.afterCount} after.
+						</p>
+					{/if}
 				</div>
 			</div>
 		</div>

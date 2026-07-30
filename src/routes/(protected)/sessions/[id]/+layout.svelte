@@ -25,7 +25,10 @@
 		computeSessionInsights
 	} from '$lib/performance-engine';
 	import { analyseSessionIntelligence } from '$lib/performance-engine';
-	import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
+	import {
+		analyseCrossSessionIntelligence,
+		buildSessionPerformanceSummary
+	} from '$lib/performance-engine/crossSession';
 	import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
 	import { createAnalysisView } from '$lib/analysis-views';
 	import { buildChartSeries } from '$lib/performance-engine';
@@ -519,26 +522,26 @@
 
 			const intelligence = runs.length > 0 ? analyseSessionIntelligence(runs) : null;
 
-			return {
-				sessionId: s.id,
-				date: s.timestamp,
-				runCount: s.run_count || runs.length,
-
-				// Session intelligence metrics
-				sessionQuality: intelligence?.sessionQuality ?? null,
-				repeatabilityScore: intelligence?.repeatability?.overall ?? null,
-				bestVsAvgGapPercent: intelligence?.bestVsAvg?.gapPercent ?? null,
-				dropOffRun: intelligence?.dropOff?.dropOffRun ?? null,
-				optimalSetLength: intelligence?.setLength?.optimal ?? null,
-
-				// Performance metrics
-				bestSpeedKmh: s.best_peak_speed_ms ? s.best_peak_speed_ms * 3.6 : null,
-				avgSpeedKmh: s.avg_peak_speed_ms ? s.avg_peak_speed_ms * 3.6 : null,
-				bestReactionTimeSec: s.best_reaction_ms ? s.best_reaction_ms / 1000 : null,
-				avgReactionTimeSec: s.avg_reaction_ms ? s.avg_reaction_ms / 1000 : null,
-				peakG: s.best_max_g,
-				avgPeakG: s.avg_max_g
-			};
+			return buildSessionPerformanceSummary(
+				{
+					sessionId: s.id,
+					date: s.timestamp,
+					runCount: s.run_count || runs.length,
+					bestReactionMs: s.best_reaction_ms,
+					avgReactionMs: s.avg_reaction_ms,
+					bestPeakSpeedMs: s.best_peak_speed_ms,
+					avgPeakSpeedMs: s.avg_peak_speed_ms,
+					bestMaxG: s.best_max_g,
+					avgMaxG: s.avg_max_g,
+					weatherCondition: s.weather_conditions ?? null,
+					trackSurface: s.track_surface ?? null,
+					sessionFocus: s.session_focus ?? null,
+					rideFeel: s.ride_feel ?? null,
+					bikeId: s.bike_id ?? null,
+					riderProfileId: s.rider_profile_id ?? null
+				},
+				intelligence
+			);
 		});
 	});
 

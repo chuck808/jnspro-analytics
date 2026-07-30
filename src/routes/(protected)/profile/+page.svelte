@@ -21,17 +21,104 @@
 	let uciCategory = $derived(() => getUCICategory(data.riderProfile?.date_of_birth));
 	let riderAge = $derived(() => calculateAge(data.riderProfile?.date_of_birth));
 
-	// Live gear ratio
+	// ── Form field state ────────────────────────────────────────────────────
+	// Every editable field below is a local $state variable bound two-way via
+	// bind:value/bind:checked/bind:group, synced FROM data via a per-source
+	// $effect (so a real reload after saving reflects the new values). This
+	// mirrors the pattern chainring/sprocket already used correctly.
+	//
+	// Previously most fields used a one-way `value={data.x ?? ''}` binding
+	// instead. That's what caused a real bug: Svelte 5 batches/reruns the
+	// template effects behind those one-way bindings whenever ANY $state on
+	// the page changes — including the `xSaving = true` flip in a form's own
+	// onsubmit handler — which reset every one-way-bound field back to its
+	// original loaded value in the same tick, before the browser read the
+	// form data to submit it. Two-way bind: bindings don't have this problem:
+	// the input's value IS the state variable, not a re-derived copy of it.
+
+	// Identity
+	let identityName = $state('');
+	let identityDisplayName = $state('');
+	let identityCountry = $state('');
+	let identityClub = $state('');
+	let identityTeam = $state('');
+
+	// Research & participation (same source object as identity, kept separate for clarity)
+	let participationType = $state('');
+	let researchConsent = $state(false);
+
+	// Sync with data.profile when it changes
+	$effect(() => {
+		identityName = data.profile?.name ?? '';
+		identityDisplayName = data.profile?.display_name ?? '';
+		identityCountry = data.profile?.country ?? '';
+		identityClub = data.profile?.club ?? '';
+		identityTeam = data.profile?.team ?? '';
+		participationType = data.profile?.participation_type ?? '';
+		researchConsent = !!data.profile?.research_consent;
+	});
+
+	// Biometrics
+	let dateOfBirth = $state('');
+	let sex = $state('');
+	let heightCm: number | '' = $state('');
+	let riderWeightKg: number | '' = $state('');
+	let riderLevel = $state('');
+	let yearsRacing: number | '' = $state('');
+	let dominantLeg = $state('');
+
+	// Sync with data.riderProfile when it changes
+	$effect(() => {
+		dateOfBirth = data.riderProfile?.date_of_birth ?? '';
+		sex = data.riderProfile?.sex ?? '';
+		heightCm = data.riderProfile?.height_cm ?? '';
+		riderWeightKg = data.riderProfile?.weight_kg ?? '';
+		riderLevel = data.riderProfile?.rider_level ?? '';
+		yearsRacing = data.riderProfile?.years_racing ?? '';
+		dominantLeg = data.riderProfile?.dominant_leg ?? '';
+	});
+
+	// Bike setup — chainring/sprocket already existed and were already correct
 	let chainring = $state(44);
 	let sprocket = $state(16);
+	let bikeName = $state('');
+	let bikeWeightKg: number | '' = $state('');
+	let crankLengthMm: number | '' = $state('');
+	let frontTireId: number | '' = $state('');
+	let rearTireId: number | '' = $state('');
+	let customWheelDiameter: number | '' = $state('');
+	let bikeNotes = $state('');
 
 	// Sync with data.bike when it changes
 	$effect(() => {
 		chainring = data.bike?.chainring_teeth ?? 44;
 		sprocket = data.bike?.sprocket_teeth ?? 16;
+		bikeName = data.bike?.name ?? '';
+		bikeWeightKg = data.bike?.weight_kg ?? '';
+		crankLengthMm = data.bike?.crank_length_mm ?? '';
+		frontTireId = data.bike?.front_tire_id ?? '';
+		rearTireId = data.bike?.rear_tire_id ?? '';
+		customWheelDiameter = data.bike?.custom_wheel_diameter_inches ?? '';
+		bikeNotes = data.bike?.notes ?? '';
 	});
 
 	let gearRatio = $derived((chainring / sprocket).toFixed(2));
+
+	// Preferences
+	let measurementUnit = $state('metric');
+	let showOnLeaderboard = $state(false);
+	let shareStats = $state(false);
+	let showProfileIconPref = $state(true);
+	let showBackgroundImagePref = $state(true);
+
+	// Sync with data.prefs when it changes
+	$effect(() => {
+		measurementUnit = data.prefs?.measurement_unit ?? 'metric';
+		showOnLeaderboard = !!data.prefs?.show_on_leaderboard;
+		shareStats = !!data.prefs?.share_stats;
+		showProfileIconPref = data.prefs?.show_profile_icon ?? true;
+		showBackgroundImagePref = data.prefs?.show_background_image ?? true;
+	});
 
 	// Profile completeness
 	let completeness = $derived(() => {
@@ -244,7 +331,7 @@
 								name="name"
 								type="text"
 								required
-								value={data.profile?.name ?? ''}
+								bind:value={identityName}
 								class="input-field w-full"
 								placeholder="Jamie Norris-Still"
 							/>
@@ -261,7 +348,7 @@
 								id="display_name"
 								name="display_name"
 								type="text"
-								value={data.profile?.display_name ?? ''}
+								bind:value={identityDisplayName}
 								class="input-field w-full"
 								placeholder="Jamie N-S"
 							/>
@@ -271,10 +358,10 @@
 							<label for="country" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">
 								Country
 							</label>
-							<select id="country" name="country" class="input-field w-full">
+							<select id="country" name="country" class="input-field w-full" bind:value={identityCountry}>
 								<option value="">Select...</option>
 								{#each countries as c}
-									<option value={c.code} selected={data.profile?.country === c.code}>
+									<option value={c.code}>
 										{c.name}
 									</option>
 								{/each}
@@ -289,7 +376,7 @@
 								id="club"
 								name="club"
 								type="text"
-								value={data.profile?.club ?? ''}
+								bind:value={identityClub}
 								class="input-field w-full"
 								placeholder="e.g. Mid Lancs BMX"
 							/>
@@ -303,7 +390,7 @@
 								id="team"
 								name="team"
 								type="text"
-								value={data.profile?.team ?? ''}
+								bind:value={identityTeam}
 								class="input-field w-full"
 								placeholder="e.g. TeamGB Development"
 							/>
@@ -353,24 +440,18 @@
 								id="date_of_birth"
 								name="date_of_birth"
 								type="date"
-								value={data.riderProfile?.date_of_birth ?? ''}
+								bind:value={dateOfBirth}
 								class="input-field w-full"
 							/>
 						</div>
 
 						<div>
 							<label for="sex" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]"> Sex </label>
-							<select id="sex" name="sex" class="input-field w-full">
+							<select id="sex" name="sex" class="input-field w-full" bind:value={sex}>
 								<option value="">Select...</option>
-								<option value="male" selected={data.riderProfile?.sex === 'male'}>Male</option>
-								<option value="female" selected={data.riderProfile?.sex === 'female'}>Female</option
-								>
-								<option
-									value="prefer_not_to_say"
-									selected={data.riderProfile?.sex === 'prefer_not_to_say'}
-								>
-									Prefer not to say
-								</option>
+								<option value="male">Male</option>
+								<option value="female">Female</option>
+								<option value="prefer_not_to_say">Prefer not to say</option>
 							</select>
 						</div>
 
@@ -385,7 +466,7 @@
 								min="50"
 								max="250"
 								step="0.1"
-								value={data.riderProfile?.height_cm ?? ''}
+								bind:value={heightCm}
 								class="input-field w-full"
 								placeholder="175"
 							/>
@@ -403,7 +484,7 @@
 								min="20"
 								max="200"
 								step="0.1"
-								value={data.riderProfile?.weight_kg ?? ''}
+								bind:value={riderWeightKg}
 								class="input-field w-full"
 								placeholder="72"
 							/>
@@ -414,15 +495,10 @@
 								Rider level
 								<span class="ml-1 font-normal text-[#4a4038]">— sets default analytics depth</span>
 							</label>
-							<select id="rider_level" name="rider_level" class="input-field w-full">
-								<option value="" disabled selected={!data.riderProfile?.rider_level}
-									>Select level...</option
-								>
+							<select id="rider_level" name="rider_level" class="input-field w-full" bind:value={riderLevel}>
+								<option value="" disabled>Select level...</option>
 								{#each [{ value: 'novice', label: 'Novice — just getting started' }, { value: 'intermediate', label: 'Intermediate — club level' }, { value: 'expert', label: 'Expert — regional / national' }, { value: 'elite', label: 'Elite — national team / professional' }] as level}
-									<option
-										value={level.value}
-										selected={data.riderProfile?.rider_level === level.value}
-									>
+									<option value={level.value}>
 										{level.label}
 									</option>
 								{/each}
@@ -441,7 +517,7 @@
 								min="0"
 								max="50"
 								step="1"
-								value={data.riderProfile?.years_racing ?? ''}
+								bind:value={yearsRacing}
 								placeholder="e.g. 3"
 								class="input-field w-full"
 							/>
@@ -456,21 +532,11 @@
 								Lead leg at the gate
 								<span class="ml-1 font-normal text-[#4a4038]">— which leg is forward</span>
 							</label>
-							<select id="dominant_leg" name="dominant_leg" class="input-field w-full">
-								<option value="" disabled selected={!data.riderProfile?.dominant_leg}
-									>Select...</option
-								>
-								<option value="left" selected={data.riderProfile?.dominant_leg === 'left'}
-									>Left leg forward</option
-								>
-								<option value="right" selected={data.riderProfile?.dominant_leg === 'right'}
-									>Right leg forward</option
-								>
-								<option
-									value="prefer_not_to_say"
-									selected={data.riderProfile?.dominant_leg === 'prefer_not_to_say'}
-									>Prefer not to say</option
-								>
+							<select id="dominant_leg" name="dominant_leg" class="input-field w-full" bind:value={dominantLeg}>
+								<option value="" disabled>Select...</option>
+								<option value="left">Left leg forward</option>
+								<option value="right">Right leg forward</option>
+								<option value="prefer_not_to_say">Prefer not to say</option>
 							</select>
 						</div>
 					</div>
@@ -511,10 +577,6 @@
 					onsubmit={() => (bikeSaving = true)}
 					class="space-y-4"
 				>
-					{#if data.bike?.id}
-						<input type="hidden" name="bike_id" value={data.bike.id} />
-					{/if}
-
 					<div class="grid grid-cols-2 gap-4">
 						<div class="col-span-2">
 							<label for="bike_name" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">
@@ -525,7 +587,7 @@
 								name="name"
 								type="text"
 								required
-								value={data.bike?.name ?? ''}
+								bind:value={bikeName}
 								class="input-field w-full"
 								placeholder="Race Bike 2024"
 							/>
@@ -542,7 +604,7 @@
 								min="1"
 								max="30"
 								step="0.1"
-								value={data.bike?.weight_kg ?? ''}
+								bind:value={bikeWeightKg}
 								class="input-field w-full"
 								placeholder="8.5"
 							/>
@@ -558,7 +620,7 @@
 								type="number"
 								min="100"
 								max="200"
-								value={data.bike?.crank_length_mm ?? ''}
+								bind:value={crankLengthMm}
 								class="input-field w-full"
 								placeholder="165"
 							/>
@@ -639,12 +701,17 @@
 						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<div>
 								<label for="front_tire_id" class="mb-1 block text-xs text-[#4a4038]">Front</label>
-								<select id="front_tire_id" name="front_tire_id" class="input-field w-full text-xs">
+								<select
+									id="front_tire_id"
+									name="front_tire_id"
+									class="input-field w-full text-xs"
+									bind:value={frontTireId}
+								>
 									<option value="">Select tyre...</option>
 									{#each Object.entries(tyresByBrand()) as [brand, tyres]}
 										<optgroup label={brand}>
 											{#each tyres as tyre}
-												<option value={tyre.id} selected={data.bike?.front_tire_id === tyre.id}>
+												<option value={tyre.id}>
 													{tyre.model}
 													{tyre.size} ({tyre.diameter_inches}")
 												</option>
@@ -656,12 +723,17 @@
 
 							<div>
 								<label for="rear_tire_id" class="mb-1 block text-xs text-[#4a4038]">Rear</label>
-								<select id="rear_tire_id" name="rear_tire_id" class="input-field w-full text-xs">
+								<select
+									id="rear_tire_id"
+									name="rear_tire_id"
+									class="input-field w-full text-xs"
+									bind:value={rearTireId}
+								>
 									<option value="">Select tyre...</option>
 									{#each Object.entries(tyresByBrand()) as [brand, tyres]}
 										<optgroup label={brand}>
 											{#each tyres as tyre}
-												<option value={tyre.id} selected={data.bike?.rear_tire_id === tyre.id}>
+												<option value={tyre.id}>
 													{tyre.model}
 													{tyre.size} ({tyre.diameter_inches}")
 												</option>
@@ -683,7 +755,7 @@
 								min="10"
 								max="30"
 								step="0.001"
-								value={data.bike?.custom_wheel_diameter_inches ?? ''}
+								bind:value={customWheelDiameter}
 								class="input-field w-full sm:w-40"
 								placeholder="e.g. 19.96"
 							/>
@@ -699,13 +771,18 @@
 							name="notes"
 							rows="2"
 							class="input-field w-full resize-none"
-							placeholder="Tyre pressures, setup notes...">{data.bike?.notes ?? ''}</textarea
-						>
+							placeholder="Tyre pressures, setup notes..."
+							bind:value={bikeNotes}
+						></textarea>
 					</div>
 
 					<button type="submit" disabled={bikeSaving} class="btn-primary">
 						{bikeSaving ? 'Saving...' : 'Save bike setup'}
 					</button>
+					<p class="mt-2 text-[10px] text-[#9a8f7a]">
+						Update this before your next session, not after — the app compares your sessions
+						before and after setup changes, and that only works with timely updates.
+					</p>
 				</form>
 			</div>
 
@@ -722,12 +799,15 @@
 						<label for="participation_type" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">
 							How do you participate in BMX?
 						</label>
-						<select id="participation_type" name="participation_type" class="input-field w-full">
-							<option value="" disabled selected={!data.profile?.participation_type}
-								>Select...</option
-							>
+						<select
+							id="participation_type"
+							name="participation_type"
+							class="input-field w-full"
+							bind:value={participationType}
+						>
+							<option value="" disabled>Select...</option>
 							{#each [{ value: 'training_only', label: 'Training only — not racing competitively' }, { value: 'club_racing', label: 'Club racing — local club events' }, { value: 'regional', label: 'Regional — regional or county level' }, { value: 'national', label: 'National — national series or championships' }, { value: 'international', label: 'International — UCI World Cups / World Championships' }] as opt}
-								<option value={opt.value} selected={data.profile?.participation_type === opt.value}>
+								<option value={opt.value}>
 									{opt.label}
 								</option>
 							{/each}
@@ -745,7 +825,7 @@
 								id="research_consent"
 								name="research_consent"
 								value="true"
-								checked={data.profile?.research_consent}
+								bind:checked={researchConsent}
 								class="mt-0.5 accent-[#f5a623]"
 							/>
 							<div>
@@ -811,7 +891,7 @@
 										type="radio"
 										name="measurement_unit"
 										value={unit.value}
-										checked={data.prefs?.measurement_unit === unit.value}
+										bind:group={measurementUnit}
 										class="accent-[#f5a623]"
 									/>
 									<span class="text-sm text-[#f0ece4]">{unit.label}</span>
@@ -827,7 +907,7 @@
 							id="show_on_leaderboard"
 							name="show_on_leaderboard"
 							value="true"
-							checked={data.prefs?.show_on_leaderboard}
+							bind:checked={showOnLeaderboard}
 							class="mt-0.5 accent-[#f5a623]"
 						/>
 						<div>
@@ -851,7 +931,7 @@
 							id="share_stats"
 							name="share_stats"
 							value="true"
-							checked={data.prefs?.share_stats}
+							bind:checked={shareStats}
 							class="mt-0.5 accent-[#f5a623]"
 						/>
 						<div>
@@ -872,7 +952,7 @@
 							id="show_profile_icon"
 							name="show_profile_icon"
 							value="true"
-							checked={data.prefs?.show_profile_icon ?? true}
+							bind:checked={showProfileIconPref}
 							class="mt-0.5 accent-[#f5a623]"
 						/>
 						<div>
@@ -895,7 +975,7 @@
 							id="show_background_image"
 							name="show_background_image"
 							value="true"
-							checked={data.prefs?.show_background_image ?? true}
+							bind:checked={showBackgroundImagePref}
 							class="mt-0.5 accent-[#f5a623]"
 						/>
 						<div>

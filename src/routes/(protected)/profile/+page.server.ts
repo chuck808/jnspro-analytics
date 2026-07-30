@@ -126,53 +126,44 @@ export const actions: Actions = {
 			? parseFloat(form.get('custom_wheel_diameter') as string)
 			: null;
 		const notes = (form.get('notes') as string) || null;
-		const bikeId = form.get('bike_id') ? parseInt(form.get('bike_id') as string) : null;
 
 		if (!name || !chainring_teeth || !sprocket_teeth) {
 			return fail(400, { bikeError: 'Name, chainring and sprocket teeth are required' });
 		}
 
-		if (bikeId) {
-			const { error } = await supabase
-				.from('bikes')
-				.update({
-					name,
-					weight_kg,
-					crank_length_mm,
-					chainring_teeth,
-					sprocket_teeth,
-					front_tire_id,
-					rear_tire_id,
-					custom_wheel_diameter_inches: custom_wheel_diameter,
-					notes
-				})
-				.eq('id', bikeId)
-				.eq('user_id', userId);
+		// Bikes are versioned exactly like rider_profiles (see saveProfile
+		// above): every save deactivates the current bike and inserts a new
+		// row rather than mutating in place. This is what lets sessions.bike_id
+		// keep pointing at an immutable historical snapshot of the setup that
+		// was actually true when a session was ridden.
+		//
+		// KNOWN LIMITATION (cannot be fixed retroactively): before this change,
+		// this action UPDATEd the active bike row in place when editing an
+		// existing bike. Any bike row already edited under that old code path
+		// has permanently lost whatever values were true for sessions ridden
+		// before that edit — there is no way to recover them. This only
+		// prevents the problem from recurring going forward.
+		await supabase
+			.from('bikes')
+			.update({ is_active: false })
+			.eq('user_id', userId)
+			.eq('is_active', true);
 
-			if (error) return fail(500, { bikeError: error.message });
-		} else {
-			await supabase
-				.from('bikes')
-				.update({ is_active: false })
-				.eq('user_id', userId)
-				.eq('is_active', true);
+		const { error } = await supabase.from('bikes').insert({
+			user_id: userId,
+			name,
+			weight_kg,
+			crank_length_mm,
+			chainring_teeth,
+			sprocket_teeth,
+			front_tire_id,
+			rear_tire_id,
+			custom_wheel_diameter_inches: custom_wheel_diameter,
+			notes,
+			is_active: true
+		});
 
-			const { error } = await supabase.from('bikes').insert({
-				user_id: userId,
-				name,
-				weight_kg,
-				crank_length_mm,
-				chainring_teeth,
-				sprocket_teeth,
-				front_tire_id,
-				rear_tire_id,
-				custom_wheel_diameter_inches: custom_wheel_diameter,
-				notes,
-				is_active: true
-			});
-
-			if (error) return fail(500, { bikeError: error.message });
-		}
+		if (error) return fail(500, { bikeError: error.message });
 
 		return { bikeSuccess: true };
 	},

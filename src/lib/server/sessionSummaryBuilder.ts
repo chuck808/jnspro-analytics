@@ -52,6 +52,8 @@ export interface SessionInput {
 	track_surface?: string | null;
 	session_focus?: string | null;
 	ride_feel?: string | null;
+	bike_id?: number | null;
+	rider_profile_id?: number | null;
 	runs: RunInput[];
 }
 
@@ -74,6 +76,9 @@ export interface SessionSummary {
 	track_surface: string | null;
 	session_focus: string | null;
 	ride_feel: string | null;
+	// Resolved bike/rider-profile snapshot FKs — null when not loaded
+	bike_id: number | null;
+	rider_profile_id: number | null;
 }
 
 /**
@@ -153,7 +158,9 @@ export function buildSessionSummary(session: SessionInput): SessionSummary | nul
 		weather_conditions: session.weather_conditions ?? null,
 		track_surface: session.track_surface ?? null,
 		session_focus: session.session_focus ?? null,
-		ride_feel: session.ride_feel ?? null
+		ride_feel: session.ride_feel ?? null,
+		bike_id: session.bike_id ?? null,
+		rider_profile_id: session.rider_profile_id ?? null
 	};
 }
 

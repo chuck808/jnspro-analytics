@@ -28,6 +28,8 @@ Below that is **Tag runs** — mark a run as a warmup, your best effort, an expe
 
 > **Worth knowing:** if you've got active training goals, a small progress indicator shows up here too, telling you which metric moved and by how much. And if the session produced something genuinely worth celebrating — a real personal best, not just "a decent run" — you'll see a **Share** button that generates a card you can post or send to your coach. It only shows up when something real happened; the system won't manufacture excitement out of an ordinary Tuesday.
 
+> **Also worth knowing:** if your bike setup or biometrics (height/weight) changed since your last session, you'll see a **Setup changed** banner here showing exactly what changed and, once enough sessions exist on the new setup, a before/after comparison of reaction time, speed, consistency, and session quality — so you can actually tell whether that equipment tweak helped. This is entirely automatic; see the Profile & Bike Setup chapter for why keeping your profile current matters here.
+
 Scroll down and you'll hit the session narrative — a plain-English paragraph, not a wall of numbers, telling you what the data actually shows. Then strengths/focus areas, the headline stats (best reaction, best peak speed, best max G, consistency), and finally a chart showing how you trended across the runs in this session:
 
 ![Cross-run progression chart, tracking reaction time across the session](/docs/session-overview-progression.png)

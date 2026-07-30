@@ -31,6 +31,13 @@ export interface SessionPerformanceSummary {
 	trackSurface: string | null;
 	sessionFocus: string | null;
 	rideFeel: string | null;
+
+	// Resolved bike/rider-profile snapshot FKs — used by setupChangeDetection
+	// to find when a rider's equipment or biometrics changed between sessions.
+	// Optional (rather than required) so existing test fixtures/consumers
+	// built before this field existed don't need updating.
+	bikeId?: number | null;
+	riderProfileId?: number | null;
 }
 
 export type TrendDirection = 'up' | 'down' | 'stable' | 'unknown';

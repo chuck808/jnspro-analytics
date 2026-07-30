@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 	const { data: sessions, error } = await supabase
 		.from('sessions')
 		.select(
-			'id, timestamp, session_type, weather_conditions, track_surface, session_focus, ride_feel'
+			'id, timestamp, session_type, weather_conditions, track_surface, session_focus, ride_feel, bike_id, rider_profile_id'
 		)
 		.eq('user_id', profile.id)
 		.eq('archived', false)

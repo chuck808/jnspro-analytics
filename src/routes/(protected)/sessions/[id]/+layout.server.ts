@@ -12,6 +12,12 @@ import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
 import { buildSessionSummaries } from '$lib/server/sessionSummaryBuilder';
 import { shouldExcludeFromStats } from '$lib/types/runs';
 import { computeSessionStats } from '$lib/performance-engine/sessionStatsAggregate';
+import {
+	analyseSetupChange,
+	type BikeSnapshot,
+	type RiderProfileSnapshot,
+	type SetupSession
+} from '$lib/performance-engine/crossSession/setupChangeDetection';
 
 function getMetricLabel(metric: string): string {
 	const labels: Record<string, string> = {
@@ -313,7 +319,9 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 	// ── ADVANCED ANALYTICS: Load recent sessions for cross-session analysis ──
 	const { data: recentSessions } = await supabase
 		.from('sessions')
-		.select('id, timestamp, weather_conditions, track_surface, session_focus, ride_feel')
+		.select(
+			'id, timestamp, weather_conditions, track_surface, session_focus, ride_feel, bike_id, rider_profile_id'
+		)
 		.eq('user_id', profile.id)
 		.eq('session_type', 'gate')
 		.eq('archived', false)
@@ -352,6 +360,78 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 			runs: (allRecentRuns ?? []).filter((r) => r.session_id === s.id)
 		})) as any
 	);
+
+	// ── SETUP CHANGE DETECTION ──
+	// Automatically detects when the rider's bike or biometrics changed
+	// between sessions, and — once enough sessions exist on each side —
+	// compares performance before vs after. Fully automatic: no rider
+	// tagging step. See setupChangeDetection.ts for why this is a separate
+	// module from contextualPatterns.ts (a one-time regime change isn't the
+	// same shape as a recurring/alternating condition).
+	const bikeIds = [
+		...new Set((recentSessions ?? []).map((s) => s.bike_id).filter((v): v is number => v !== null))
+	];
+	const riderProfileIds = [
+		...new Set(
+			(recentSessions ?? []).map((s) => s.rider_profile_id).filter((v): v is number => v !== null)
+		)
+	];
+
+	const [{ data: setupBikes }, { data: setupProfiles }] = await Promise.all([
+		bikeIds.length > 0
+			? supabase
+					.from('bikes')
+					.select(
+						'id, weight_kg, crank_length_mm, chainring_teeth, sprocket_teeth, front_tire_id, rear_tire_id, custom_wheel_diameter_inches'
+					)
+					.in('id', bikeIds)
+			: Promise.resolve({ data: [] as BikeSnapshot[] }),
+		riderProfileIds.length > 0
+			? supabase.from('rider_profiles').select('id, height_cm, weight_kg').in('id', riderProfileIds)
+			: Promise.resolve({ data: [] as RiderProfileSnapshot[] })
+	]);
+
+	const bikesById = new Map((setupBikes ?? []).map((b) => [b.id, b as BikeSnapshot]));
+	const profilesById = new Map(
+		(setupProfiles ?? []).map((p) => [p.id, p as RiderProfileSnapshot])
+	);
+
+	// Resolve tyre ids to readable labels for the setup-changed banner —
+	// showing "Tyres: 3 → 7" would mean nothing to a rider.
+	const tireIds = [
+		...new Set(
+			(setupBikes ?? []).flatMap((b) => [b.front_tire_id, b.rear_tire_id]).filter((v): v is number => v !== null)
+		)
+	];
+	const { data: tireLibraryRows } =
+		tireIds.length > 0
+			? await supabase.from('tire_library').select('id, brand, model, size').in('id', tireIds)
+			: { data: [] as { id: number; brand: string; model: string; size: string }[] };
+	const tireLabelById = new Map(
+		(tireLibraryRows ?? []).map((t) => [t.id, `${t.brand} ${t.model} (${t.size})`])
+	);
+
+	// recentSessions is newest-first; setup-change detection needs oldest-first.
+	const chronologicalSessions = [...(recentSessions ?? [])].reverse();
+	const setupSessions: SetupSession[] = chronologicalSessions.map((s) => {
+		const summary = sessionSummaries.find((ss) => ss.id === s.id);
+		return {
+			sessionId: s.id,
+			date: s.timestamp,
+			bikeId: s.bike_id,
+			riderProfileId: s.rider_profile_id,
+			bestReactionTimeSec: summary?.best_reaction_ms != null ? summary.best_reaction_ms / 1000 : null,
+			avgSpeedKmh: summary?.avg_peak_speed_ms != null ? summary.avg_peak_speed_ms * 3.6 : null,
+			// True session-level intelligence (repeatability/quality) isn't
+			// computed server-side (see allTimePBs comment above, same
+			// limitation) — use reaction_cv, inverted so higher = better, as
+			// the consistency proxy instead.
+			consistencyScore: summary?.reaction_cv != null ? 100 - summary.reaction_cv : null,
+			sessionQuality: null
+		};
+	});
+
+	const setupChangeReport = analyseSetupChange(setupSessions, bikesById, profilesById);
 
 	// Flatten stats-eligible runs only for cross-run analysis
 	const allRunsData = (allRecentRuns ?? [])
@@ -496,6 +576,8 @@ export const load: LayoutServerLoad = async ({ locals: { supabase }, parent, par
 		sessionStats,
 		sessionNotes: sessionNotes ?? [],
 		previousSessionSummary, // For comparison modal
+		setupChangeReport,
+		tireLabelById: Object.fromEntries(tireLabelById),
 		// Pass rider + bike data for analytics
 		riderWeight:
 			session.rider_profiles &&

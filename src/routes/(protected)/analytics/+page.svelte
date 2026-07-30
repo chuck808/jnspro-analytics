@@ -20,7 +20,10 @@
 	} from '$lib/components/analytics';
 	import RawPerformanceTrendsSection from '$lib/components/analytics/RawPerformanceTrendsSection.svelte';
 	import { analyseSessionIntelligence } from '$lib/performance-engine';
-	import { analyseCrossSessionIntelligence } from '$lib/performance-engine/crossSession';
+	import {
+		analyseCrossSessionIntelligence,
+		buildSessionPerformanceSummary
+	} from '$lib/performance-engine/crossSession';
 	import { applyTruthRulesToReport } from '$lib/performance-engine/crossSession/truthRules';
 	import { rateSessionMetrics } from '$lib/performance-engine/thresholds';
 	import { buildProgressReport, buildProgressChartSeries } from '$lib/report-engine';
@@ -115,35 +118,28 @@
 	let sessionIntelligenceSummaries = $derived.by(() => {
 		return data.sessions.map((s) => {
 			const sessionReport = allSessionReports.find((r) => r && r.sessionId === s.id);
-			const intelligence = sessionReport?.intelligence;
+			const intelligence = sessionReport?.intelligence ?? null;
 
-			return {
-				sessionId: s.id,
-				date: s.timestamp,
-				runCount: s.run_count,
-
-				// Use real v7.2 session intelligence outputs
-				sessionQuality: intelligence?.sessionQuality ?? null,
-				repeatabilityScore: intelligence?.repeatability.overall ?? null,
-				bestVsAvgGapPercent: intelligence?.bestVsAvg?.gapPercent ?? null,
-				dropOffRun: intelligence?.dropOff?.dropOffRun ?? null,
-				optimalSetLength: intelligence?.setLength.optimal ?? null,
-
-				// Performance metrics
-				bestSpeedKmh: s.best_peak_speed_ms ? s.best_peak_speed_ms * 3.6 : null,
-				avgSpeedKmh: s.avg_peak_speed_ms ? s.avg_peak_speed_ms * 3.6 : null,
-				bestReactionTimeSec: s.best_reaction_ms ? s.best_reaction_ms / 1000 : null,
-				avgReactionTimeSec: s.avg_reaction_ms ? s.avg_reaction_ms / 1000 : null,
-				peakG: s.best_max_g,
-				avgPeakG: s.avg_max_g,
-
-				// Context fields — passed to the contextual patterns analyser.
-				// These are interpretive only and do not affect core numeric trends.
-				weatherCondition: (s as any).weather_conditions ?? null,
-				trackSurface: (s as any).track_surface ?? null,
-				sessionFocus: (s as any).session_focus ?? null,
-				rideFeel: (s as any).ride_feel ?? null
-			};
+			return buildSessionPerformanceSummary(
+				{
+					sessionId: s.id,
+					date: s.timestamp,
+					runCount: s.run_count,
+					bestReactionMs: s.best_reaction_ms,
+					avgReactionMs: s.avg_reaction_ms,
+					bestPeakSpeedMs: s.best_peak_speed_ms,
+					avgPeakSpeedMs: s.avg_peak_speed_ms,
+					bestMaxG: s.best_max_g,
+					avgMaxG: s.avg_max_g,
+					weatherCondition: (s as any).weather_conditions ?? null,
+					trackSurface: (s as any).track_surface ?? null,
+					sessionFocus: (s as any).session_focus ?? null,
+					rideFeel: (s as any).ride_feel ?? null,
+					bikeId: (s as any).bike_id ?? null,
+					riderProfileId: (s as any).rider_profile_id ?? null
+				},
+				intelligence
+			);
 		});
 	});
 

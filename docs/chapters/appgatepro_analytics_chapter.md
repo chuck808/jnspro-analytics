@@ -105,7 +105,7 @@ One rough session. Three in a row is a pattern; one is just a Tuesday. Short-ter
 
 This page is pattern recognition applied to sensor data, and it's only as good as the training data feeding it. It works well when you're training reasonably consistently and your session structure doesn't swing wildly week to week. It works poorly when sessions are sporadic or your setup keeps changing.
 
-It also can't predict a technique breakthrough, an illness, an equipment change, or a bad-weather week — it only describes what's already happened and the direction it's currently pointing. What it can tell you is what your data shows right now. What it can't tell you is *why*, or exactly what to change. That conversation is what your coach is for — this page just gives the two of you better information to have it with.
+It also can't predict a technique breakthrough, an illness, or a bad-weather week — it only describes what's already happened and the direction it's currently pointing. (Equipment and biometric changes are handled separately: see the **Setup changed** banner on the session Overview page, which specifically detects and compares before/after an equipment or biometric change — but that comparison is only as good as how promptly you keep your profile updated.) What it can tell you is what your data shows right now. What it can't tell you is *why*, or exactly what to change. That conversation is what your coach is for — this page just gives the two of you better information to have it with.
 
 ---
 
