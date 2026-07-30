@@ -13,6 +13,30 @@
 	let coachSaving = $state(false);
 	let coachAppSaving = $state(false);
 
+	// Editable form fields — bind:-backed local state, synced from `data` via
+	// $effect. Previously these fields used one-way `value=`/`checked=`
+	// bindings, which Svelte 5 silently reset back to their loaded default
+	// whenever any onsubmit handler on the page flipped a $state variable —
+	// discarding the user's edit before the browser read the form. Same bug
+	// class fixed on the profile page; see that file's script block for the
+	// full root-cause explanation.
+	let accountEmail = $state('');
+	let notificationPrefs = $state({ email_alerts: false, progress_reports: false });
+	let showDecimal = $state(false);
+	let coachClub = $state('');
+	let coachQualificationDetails = $state('');
+
+	$effect(() => {
+		accountEmail = data.profile?.email ?? '';
+		notificationPrefs = {
+			email_alerts: data.preferences?.email_alerts ?? false,
+			progress_reports: data.preferences?.progress_reports ?? false
+		};
+		showDecimal = data.preferences?.show_decimal ?? false;
+		coachClub = data.profile?.club ?? '';
+		coachQualificationDetails = data.latestCoachApplication?.qualification_details ?? '';
+	});
+
 	function successFor(key: string) {
 		return (form as any)?.[key] === true;
 	}
@@ -154,7 +178,7 @@
 						name="email"
 						type="email"
 						required
-						value={data.profile?.email ?? ''}
+						bind:value={accountEmail}
 						class="input-field w-full"
 					/>
 					<p class="mt-1 text-xs text-[#6b5f4d]">Changing your email will require verification</p>
@@ -235,7 +259,7 @@
 			class="space-y-4"
 		>
 			<div class="space-y-3">
-				{#each [{ id: 'email_alerts', name: 'email_alerts', label: 'Email Alerts', desc: 'Receive emails about important updates and features', checked: data.preferences?.email_alerts ?? false }, { id: 'progress_reports', name: 'progress_reports', label: 'Progress Reports', desc: 'Weekly or monthly summaries of your performance data', checked: data.preferences?.progress_reports ?? false }] as pref}
+				{#each [{ id: 'email_alerts', name: 'email_alerts' as const, label: 'Email Alerts', desc: 'Receive emails about important updates and features' }, { id: 'progress_reports', name: 'progress_reports' as const, label: 'Progress Reports', desc: 'Weekly or monthly summaries of your performance data' }] as pref}
 					<div
 						class="flex min-h-[44px] items-start gap-3 rounded-lg border border-[#221c18] bg-[#0a0809] p-4"
 					>
@@ -244,7 +268,7 @@
 							id={pref.id}
 							name={pref.name}
 							value="true"
-							checked={pref.checked}
+							bind:checked={notificationPrefs[pref.name]}
 							class="mt-0.5 accent-[#f5a623]"
 						/>
 						<div class="flex-1">
@@ -295,7 +319,7 @@
 					id="show_decimal"
 					name="show_decimal"
 					value="true"
-					checked={data.preferences?.show_decimal ?? false}
+					bind:checked={showDecimal}
 					class="mt-0.5 accent-[#f5a623]"
 				/>
 				<div class="flex-1">
@@ -651,7 +675,7 @@
 					id="coachClub"
 					name="club"
 					type="text"
-					value={data.profile?.club ?? ''}
+					bind:value={coachClub}
 					class="w-full rounded-lg border border-[#221c18] bg-[#0a0809] px-4 py-2.5 text-sm
                            text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
                            focus:ring-1 focus:ring-[#f5a623] focus:outline-none"
@@ -669,7 +693,7 @@
 					id="coachQualificationDetails"
 					name="qualificationDetails"
 					rows="3"
-					value={data.latestCoachApplication?.qualification_details ?? ''}
+					bind:value={coachQualificationDetails}
 					class="w-full rounded-lg border border-[#221c18] bg-[#0a0809] px-4 py-2.5 text-sm
                            text-[#f0ece4] placeholder-[#4a4038] transition-colors focus:border-[#f5a623]
                            focus:ring-1 focus:ring-[#f5a623] focus:outline-none"

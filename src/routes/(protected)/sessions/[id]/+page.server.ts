@@ -60,8 +60,8 @@ export const actions: Actions = {
 	/**
 	 * Update session context (weather, surface, focus)
 	 */
-	updateSessionContext: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
+	updateSessionContext: async ({ request, locals: { supabase, session } }) => {
+		// Auth check — session is set by authGuard in hooks.server.ts
 		if (!session) {
 			return fail(401, { error: 'Not authenticated' });
 		}

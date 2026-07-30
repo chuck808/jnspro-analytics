@@ -311,9 +311,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 };
 
 export const actions: Actions = {
-	createGoal: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { createError: 'Not authenticated' });
+	createGoal: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { createError: 'Not authenticated' });
 
 		const form = await request.formData();
 		const metric = form.get('metric') as string;
@@ -333,7 +332,7 @@ export const actions: Actions = {
 		}
 
 		const { error } = await supabase.from('training_goals').insert({
-			user_id: session.user.id,
+			user_id: user.id,
 			metric,
 			target_value,
 			start_value,
@@ -346,9 +345,8 @@ export const actions: Actions = {
 		return { createSuccess: true };
 	},
 
-	deleteGoal: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { deleteError: 'Not authenticated' });
+	deleteGoal: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { deleteError: 'Not authenticated' });
 
 		const form = await request.formData();
 		const goalId = form.get('goal_id') as string;
@@ -357,15 +355,14 @@ export const actions: Actions = {
 			.from('training_goals')
 			.delete()
 			.eq('id', goalId)
-			.eq('user_id', session.user.id);
+			.eq('user_id', user.id);
 
 		if (error) return fail(500, { deleteError: error.message });
 		return { deleteSuccess: true };
 	},
 
-	completeGoal: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401);
+	completeGoal: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
 
 		const form = await request.formData();
 		const goalId = form.get('goal_id') as string;
@@ -374,15 +371,14 @@ export const actions: Actions = {
 			.from('training_goals')
 			.update({ completed_at: new Date().toISOString() })
 			.eq('id', goalId)
-			.eq('user_id', session.user.id);
+			.eq('user_id', user.id);
 
 		if (error) return fail(500, { completeError: error.message });
 		return { completeSuccess: true };
 	},
 
-	applySuggestion: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { adjustError: 'Not authenticated' });
+	applySuggestion: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { adjustError: 'Not authenticated' });
 
 		const form = await request.formData();
 		const goalId = form.get('goal_id') as string;
@@ -426,7 +422,7 @@ export const actions: Actions = {
 					.from('training_goals')
 					.delete()
 					.eq('id', goalId)
-					.eq('user_id', session.user.id);
+					.eq('user_id', user.id);
 
 				if (deleteError) return fail(500, { adjustError: deleteError.message });
 				return { adjustSuccess: true, message: 'Goal removed' };
@@ -441,7 +437,7 @@ export const actions: Actions = {
 			.from('training_goals')
 			.update(updateData)
 			.eq('id', goalId)
-			.eq('user_id', session.user.id);
+			.eq('user_id', user.id);
 
 		if (error) return fail(500, { adjustError: error.message });
 		return { adjustSuccess: true, message: 'Goal adjusted successfully!' };

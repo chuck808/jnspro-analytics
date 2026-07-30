@@ -84,6 +84,22 @@
 		((data.currentValues as any)?.[selectedMetric] as number | null) ?? null
 	);
 
+	// "Start value" input — bind:-backed (see profile page for why: one-way
+	// value={} bindings get silently reset by any onsubmit state flip
+	// elsewhere on the page). Re-synced whenever the selected metric changes,
+	// same as the original computed default did.
+	let startValue: number | '' = $state('');
+	$effect(() => {
+		startValue =
+			currentForMetric !== null
+				? Number(
+						(
+							(getMetric(selectedMetric) as any)?.fromDb?.(currentForMetric) ?? currentForMetric
+						).toFixed(3)
+					)
+				: '';
+	});
+
 	// Calculate overall stats
 	let overallStats = $derived(() => {
 		if (activeGoals.length === 0) return null;
@@ -765,12 +781,7 @@
 							type="number"
 							step="any"
 							required
-							value={currentForMetric !== null
-								? (
-										(getMetric(selectedMetric) as any)?.fromDb?.(currentForMetric) ??
-										currentForMetric
-									).toFixed(3)
-								: ''}
+							bind:value={startValue}
 							class="input-field w-full"
 							placeholder="e.g. 0.650"
 						/>

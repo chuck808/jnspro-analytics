@@ -68,9 +68,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 };
 
 export const actions: Actions = {
-	updateAccount: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { accountError: 'Not authenticated' });
+	updateAccount: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { accountError: 'Not authenticated' });
 
 		const form = await request.formData();
 		const email = form.get('email') as string;
@@ -83,9 +82,8 @@ export const actions: Actions = {
 		return { accountSuccess: true };
 	},
 
-	updatePassword: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { passwordError: 'Not authenticated' });
+	updatePassword: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { passwordError: 'Not authenticated' });
 
 		const form = await request.formData();
 		const newPassword = form.get('newPassword') as string;
@@ -100,19 +98,18 @@ export const actions: Actions = {
 		return { passwordSuccess: true };
 	},
 
-	updateNotifications: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { notificationsError: 'Not authenticated' });
+	updateNotifications: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { notificationsError: 'Not authenticated' });
 
 		const form = await request.formData();
 
 		const { error } = await supabase
 			.from('user_preferences')
 			.update({
-				show_on_leaderboard: !!form.get('show_on_leaderboard'),
-				share_stats: !!form.get('share_stats')
-			} as any)
-			.eq('user_id', session.user.id);
+				email_alerts: !!form.get('email_alerts'),
+				progress_reports: !!form.get('progress_reports')
+			})
+			.eq('user_id', user.id);
 
 		if (error) {
 			// Columns may not exist yet — handle gracefully
@@ -122,9 +119,8 @@ export const actions: Actions = {
 		return { notificationsSuccess: true };
 	},
 
-	updatePreferences: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { preferencesError: 'Not authenticated' });
+	updatePreferences: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { preferencesError: 'Not authenticated' });
 
 		const form = await request.formData();
 
@@ -133,15 +129,14 @@ export const actions: Actions = {
 			.update({
 				show_decimal: form.get('show_decimal') === 'true'
 			})
-			.eq('user_id', session.user.id);
+			.eq('user_id', user.id);
 
 		if (error) return fail(500, { preferencesError: error.message });
 		return { preferencesSuccess: true };
 	},
 
-	updateLeaderboard: async ({ request, locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { leaderboardError: 'Not authenticated' });
+	updateLeaderboard: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401, { leaderboardError: 'Not authenticated' });
 
 		const form = await request.formData();
 		const showOnLeaderboard = form.get('show_on_leaderboard') === 'true';
@@ -165,7 +160,7 @@ export const actions: Actions = {
 				show_on_leaderboard: showOnLeaderboard,
 				leaderboard_display_name: finalDisplayName
 			} as any)
-			.eq('user_id', session.user.id);
+			.eq('user_id', user.id);
 
 		if (error) {
 			console.warn('updateLeaderboard error:', error.message);
@@ -174,9 +169,8 @@ export const actions: Actions = {
 		return { leaderboardSuccess: true };
 	},
 
-	deleteAccount: async ({ locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { deleteError: 'Not authenticated' });
+	deleteAccount: async ({ locals: { supabase, user } }) => {
+		if (!user) return fail(401, { deleteError: 'Not authenticated' });
 
 		// Soft delete — mark profile as deleted
 		// Requires deleted_at column on profiles table:
@@ -184,7 +178,7 @@ export const actions: Actions = {
 		const { error } = await supabase
 			.from('profiles')
 			.update({ deleted_at: new Date().toISOString() })
-			.eq('id', session.user.id);
+			.eq('id', user.id);
 
 		if (error) {
 			// Column may not exist yet — fall back to sign out only
@@ -195,9 +189,8 @@ export const actions: Actions = {
 		throw redirect(303, '/');
 	},
 
-	generateDeviceToken: async ({ locals: { supabase, getSession } }) => {
-		const session = await getSession();
-		if (!session) return fail(401, { deviceError: 'Not authenticated' });
+	generateDeviceToken: async ({ locals: { supabase, user } }) => {
+		if (!user) return fail(401, { deviceError: 'Not authenticated' });
 
 		// Generate a secure device secret
 		const device_secret = crypto.randomUUID() + '-' + crypto.randomUUID();
@@ -206,7 +199,7 @@ export const actions: Actions = {
 		const { data: device, error } = await supabase
 			.from('devices')
 			.insert({
-				user_id: session.user.id,
+				user_id: user.id,
 				device_name: `AppGatePro-${Date.now()}`,
 				device_secret
 			})
