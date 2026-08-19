@@ -10,13 +10,6 @@
 	<div class="mx-auto max-w-4xl space-y-12 px-6 py-12">
 		<!-- Header -->
 		<div class="text-center">
-			<div class="mb-6 flex justify-center">
-				<img
-					src="/logo-icon-dark.svg"
-					alt="JNS Pro Systems Logo"
-					class="h-24 w-24 object-contain"
-				/>
-			</div>
 			<h1 class="mb-3 text-4xl font-bold text-[#f5a623]">About AppGatePro Analytics</h1>
 			<p class="mx-auto max-w-2xl text-xl text-[#9a8f7a]">
 				Preserving the Story Behind Every Session
@@ -159,17 +152,6 @@
 			>
 				Get in Touch
 			</a>
-		</div>
-
-		<!-- Footer Links -->
-		<div class="border-t border-[#221c18] pt-6 text-center">
-			<div class="flex justify-center gap-6 text-sm">
-				<a href="/" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Home</a>
-				<a href="/contact" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Contact</a>
-				<a href="/privacy" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Privacy</a>
-				<a href="/terms" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Terms</a>
-			</div>
-			<p class="mt-4 text-xs text-[#6b5f4d]">© 2026 JNS Pro Systems. All rights reserved.</p>
 		</div>
 	</div>
 </div>

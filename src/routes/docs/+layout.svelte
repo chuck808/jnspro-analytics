@@ -3,7 +3,7 @@
 	import { chapters } from '$lib/docs/contents';
 	import { P, A } from 'flowbite-svelte';
 
-	let { children } = $props();
+	let { data, children } = $props();
 
 	let currentSlug = $derived($page.params.chapter ?? '');
 	let sidebarOpen = $state(false);
@@ -66,7 +66,13 @@
 		</div>
 	</a>
 
-	<a href="/dashboard" class="back-to-app">
+	<nav class="docs-site-links">
+		<a href="/" class="docs-site-link">Home</a>
+		<a href="/about" class="docs-site-link">About</a>
+		<a href="/contact" class="docs-site-link">Contact</a>
+	</nav>
+
+	<a href={data.claims ? '/dashboard' : '/'} class="back-to-app">
 		<svg
 			width="14"
 			height="14"
@@ -166,6 +172,23 @@
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		line-height: 1;
+	}
+
+	.docs-site-links {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		margin: 0 auto;
+	}
+	.docs-site-link {
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: var(--theme-text-subtle);
+		text-decoration: none;
+		transition: color 0.15s;
+	}
+	.docs-site-link:hover {
+		color: var(--color-jns-amber);
 	}
 
 	.back-to-app {
@@ -327,6 +350,9 @@
 		}
 		.menu-toggle {
 			display: flex;
+		}
+		.docs-site-links {
+			display: none;
 		}
 	}
 </style>

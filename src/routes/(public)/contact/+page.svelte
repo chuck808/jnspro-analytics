@@ -269,16 +269,5 @@
 				{/if}
 			</div>
 		</div>
-
-		<!-- Footer -->
-		<div class="border-t border-[#221c18] pt-6 text-center">
-			<div class="flex justify-center gap-6 text-sm">
-				<a href="/" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Home</a>
-				<a href="/about" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">About</a>
-				<a href="/privacy" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Privacy</a>
-				<a href="/terms" class="text-[#9a8f7a] transition-colors hover:text-[#f5a623]">Terms</a>
-			</div>
-			<p class="mt-4 text-xs text-[#6b5f4d]">© 2026 JNS Pro Systems. All rights reserved.</p>
-		</div>
 	</div>
 </div>
