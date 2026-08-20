@@ -2,7 +2,7 @@
 	import { getContext } from 'svelte';
 	import DeepDiveRunDiagnostics from '$lib/components/session/DeepDiveRunDiagnostics.svelte';
 
-	let { data, children }: { data: any; children: any } = $props();
+	let { children }: { children: any } = $props();
 	const ctx: any = getContext('session');
 
 	let selectedRun = $derived(ctx.selectedRun);
