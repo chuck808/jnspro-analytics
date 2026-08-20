@@ -194,11 +194,22 @@ Sessions is now a **trustworthy chronological training record**, not a second an
 
 A Svelte PageData widening issue in `sortDir` was fixed at the server contract by explicitly typing it as `'asc' | 'desc'`.
 
-### Phase 5 — Single-session Overview — NEXT
+### Phase 5 — Single-session Overview — IN PROGRESS
 
 Goal: answer **"what happened in this session?"** before asking the rider to study analytics.
 
-Constraints:
+Current hierarchy work:
+
+- `SessionHero` leads with **What happened?**, three useful anchors, context/conditions, a genuine achievement when detected, and the run-by-run visual story;
+- no-valid-speed sessions omit speed rather than rendering a meaningless blank metric;
+- warm-up/excluded runs remain outside the eligible hero evidence;
+- lower Performance Summary now surfaces one primary strength and one primary focus, with overflow deferred to Analysis;
+- the duplicate six-card session-stat grid has been removed from Overview;
+- the second `CrossRunProgression` block has been removed from Overview because it repeated the hero's run-by-run story;
+- the lower page now reads: **what it means -> what changed (goals/setup) -> what to carry forward -> evidence exclusions -> Explore the runs**;
+- Analysis remains the destination for dense run comparisons, technique scores, phase breakdowns and detailed charts.
+
+Constraints retained:
 
 - preserve the existing Overview / Analysis / Deep Dive layering;
 - do not delete deeper analytics simply because the Overview becomes simpler;
@@ -208,7 +219,9 @@ Constraints:
 - avoid turning Overview into another metric wall;
 - retain pathways to the deeper analytical material.
 
-Start here on the next implementation pass.
+Test-fixture note: synthetic DB sessions without `chart_data` can make physics-derived hero values such as peak speed disappear because `analyseRun()` returns `physics: null`; real device-ingested sessions carry the raw trace. See `docs/notes/session-overview-test-fixtures.md`.
+
+Next exact starting point after this slice passes checks: verify ordinary/PB/no-speed/exclusion/mobile rendering again, then decide whether the current first-time `SessionSetupStrip` prominence and goal/setup cards need any final Overview-level copy/spacing polish before marking Phase 5 complete.
 
 ## Remaining renovation phases
 
