@@ -11,8 +11,9 @@
 - Phase 3 — Rider Home: DONE
 - Phase 4 — Sessions index: DONE
 - Phase 5 — Single-session Overview: DONE
-- **Phase 6 — Session Analysis: DONE**
-- **Phase 7 — Session Deep Dive: IN PROGRESS**
+- Phase 6 — Session Analysis: DONE
+- **Phase 7 — Session Deep Dive: DONE**
+- **Phase 8 — Progress / longitudinal analytics: NEXT**
 
 ## Phase 5 sign-off
 
@@ -32,8 +33,6 @@ Signed-off hierarchy:
 10. explicit eligibility/exclusion context when runs are excluded;
 11. **Explore the runs** hand-off into Analysis.
 
-The old duplicate six-card metric wall and duplicate `CrossRunProgression` block were removed from Overview. Underlying analytics were not deleted.
-
 ## Phase 6 sign-off
 
 Session Analysis now has a distinct middle-layer job: **understand the selected run and how it differs, without becoming a catalogue of every diagnostic the system can calculate.**
@@ -51,17 +50,52 @@ Signed-off hierarchy:
 
 The Overview-style `TrainingInsightsPanel`, repeated chart-adjacent insight callouts, jerk trace, detailed phase analysis, acceleration splits, detailed six-dimension technique block and coach diagnostics no longer clutter Analysis.
 
-Expert capability was **preserved**, not removed. Jerk, phases, splits, detailed technique and coach diagnostics are grouped in `src/lib/components/session/DeepDiveRunDiagnostics.svelte` and currently surfaced under Deep Dive.
+Expert capability was preserved rather than removed.
 
-Independent live verification used a real five-run device-ingested session and confirmed:
+## Phase 7 sign-off
 
-- run switching/tagging works on desktop and mobile;
-- valid-speed and no-valid-speed behaviour is correct;
-- impulse/power renders when mass inputs are available;
-- optional video remains non-blocking;
-- Analysis contains no relocated expert material;
-- every relocated expert block renders with real non-trivial data in Deep Dive;
-- `svelte-check`, TypeScript and Vitest remained green with 109 tests.
+Session Deep Dive now has a coherent expert-layer job:
+
+> **What does the underlying evidence show, how was it derived, and where should I investigate further?**
+
+Signed-off hierarchy:
+
+1. Deep Dive orientation;
+2. evidence quality / provenance first;
+3. selected-run raw G-force evidence;
+4. early-force stability;
+5. expert diagnostics — jerk, detailed phases, acceleration splits, detailed technique and Coach Insights;
+6. rider-level benchmark context;
+7. **What to investigate next** — weaknesses and prioritised recommendations;
+8. supporting actions — notes, previous-session comparison and report generation.
+
+The hierarchy is intentionally **evidence -> derivation -> interpretation -> action**.
+
+Phase 7 structural decisions now landed:
+
+- calibration/data-quality and missing-mass warnings appear before derived interpretation;
+- the old Deep Dive headline `RunComparison` has been removed because Analysis owns headline run comparison;
+- `DeepDiveRunDiagnostics` is integrated directly into the Deep Dive page rather than appended through a transitional nested layout;
+- the temporary `detail/+layout.svelte` has been removed;
+- raw drill-down, stability, jerk, phases, acceleration splits, six-dimension technique and coach diagnostics remain available;
+- Performance Targets is contextual benchmark evidence rather than the page opener;
+- Areas for Improvement and Recommendations share one expert follow-up section;
+- Notes and Report remain late supporting actions;
+- Compare to Previous Session remains reachable at the bottom for now, with an explicit Phase 8 decision still pending on its long-term home.
+
+Independent live verification confirmed:
+
+- `svelte-check`, TypeScript and Vitest all green with 109 tests;
+- real multi-run device data renders the full expert hierarchy;
+- Deep Dive no longer contains the duplicate headline run comparison;
+- Analysis still owns `Compare Multiple Runs`;
+- missing-mass evidence-quality warning renders first and links correctly to Profile;
+- single-run sessions still render all per-run expert diagnostics;
+- mobile layout is clean at 390 px;
+- Notes, previous-session comparison and Report remain reachable;
+- no expert capability disappeared during the relocation.
+
+The specific `hasCalibrationWarning` state was not independently triggered in the live test, but its placement shares the same verified top-of-page evidence-quality branch as the missing-mass warning. Treat a future real-session calibration report as something to investigate directly rather than assuming the branch is broken.
 
 ## Non-obvious session-share invariant
 
@@ -75,55 +109,32 @@ Synthetic DB sessions without `chart_data` can make physics-derived hero values 
 
 ## Known test-data contamination
 
-The long-used test rider contains a handful of corrupted legacy May reaction values in the tens/hundreds of seconds. Longitudinal aggregations can therefore look absurd even when the feature logic is correct; this has surfaced in Home consistency and setup-change before/after comparison.
+The long-used test rider contains a handful of corrupted legacy May reaction values in the tens/hundreds of seconds. Longitudinal aggregations can therefore look absurd even when feature logic is correct; this has surfaced in Home consistency and setup-change before/after comparison.
 
 Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those rows before interpreting aggregate screenshots.
 
-## Phase 7 — inventory complete
+## Phase 8 — next exact starting point
 
-Full classification: `docs/notes/phase7-deep-dive-inventory.md`.
+Audit `/analytics` before rewriting it.
 
-Deep Dive should answer:
+Phase 8 should turn Progress into a coherent longitudinal workspace rather than a collection of charts. Inventory every section and classify it around these questions:
 
-> **What does the underlying evidence show, how was it derived, and where should I investigate further?**
+1. **Where am I now?** — recent form/current baseline without pretending one session is a trend;
+2. **Am I improving?** — longer-term reaction/speed/force progression using canonical eligible evidence;
+3. **How repeatable am I?** — consistency and stability over time;
+4. **What context matters?** — weather, track feel, bike/setup, session intent and other rider-entered context where evidence supports a useful comparison;
+5. **Is there fatigue/regression worth investigating?** — use the existing trend/fatigue engines proportionately rather than turning warnings into diagnoses;
+6. **Where do I drill down?** — session links and deeper analytical evidence.
 
-Current expert material includes raw G-force drill-down, early-force stability, jerk, detailed phases, acceleration splits, six-dimension technique benchmarking, coach-style diagnostics, calibration/provenance warnings, performance targets, weaknesses/recommendations, notes, previous-session comparison and report generation.
+Specific Phase 8 decisions to revisit during the audit:
 
-Key Phase 7 decisions from the audit:
+- whether Deep Dive's generic **Compare to Previous Session** belongs in Progress and, if so, how to preserve that capability without duplicating other longitudinal comparisons;
+- how recent-direction, long-term progression, consistency/fatigue and context should be separated visually;
+- which current charts genuinely answer different questions and which are duplicates;
+- how to protect longitudinal surfaces from excluded runs and known contaminated test data;
+- how much interpretation belongs on the first Progress screen versus deeper reveals.
 
-- keep raw drill-down, stability, jerk, phases, splits, detailed technique and coach diagnostics;
-- put evidence-quality/calibration warnings **before** derived technical interpretation;
-- simplify Performance Targets into benchmark context rather than making it the page opening;
-- consolidate Areas for Improvement + Recommendations into one expert follow-up job;
-- keep Session Notes and report generation as late supporting actions;
-- remove the current Deep Dive `RunComparison` headline-metric table because Analysis now owns that job;
-- do not treat the generic previous-session comparison modal as core expert evidence; its longer-term destination belongs with Phase 8 Progress/longitudinal work.
-
-## Phase 7 — proposed hierarchy
-
-1. Deep Dive orientation;
-2. evidence quality / provenance first;
-3. selected-run raw evidence;
-4. force-application detail — jerk and early-force stability;
-5. phase and acceleration detail;
-6. detailed technique decomposition and rider-level benchmarks;
-7. expert diagnostics / prioritised follow-up;
-8. notes and report actions.
-
-This is intentionally **evidence -> derivation -> interpretation -> action**.
-
-## Phase 7 — next exact starting point
-
-First structural code slice:
-
-1. fold `DeepDiveRunDiagnostics` into the intentional page hierarchy instead of appending it after the route through the transitional `detail/+layout.svelte`;
-2. remove the duplicate headline `RunComparison` from Deep Dive;
-3. move evidence-quality warnings ahead of derived diagnostics;
-4. preserve every expert capability relocated during Phase 6;
-5. keep notes/report actions reachable at the bottom;
-6. account for the existing previous-session comparison before removing it from the technical story, with Phase 8 as its likely product destination.
-
-Verification focus: calibration warning, missing mass, real multi-run expert data, single-run session, 390 px mobile, notes/report access, and confirmation that no expert block disappears during relocation.
+Do not start by adding more charts. Start by identifying the rider questions and mapping existing data/components to them.
 
 ## Standing constraints
 
