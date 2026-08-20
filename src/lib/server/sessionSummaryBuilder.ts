@@ -2,26 +2,28 @@
  * Session Summary Builder
  *
  * Canonical computation of per-session aggregate metrics.
- * Used by both the session detail layout server and the analytics page server
- * so both surfaces always produce identical summary values from the same data.
+ * Used anywhere the product needs a trustworthy session-level summary so
+ * rider-facing surfaces do not invent their own eligibility or aggregation rules.
  *
  * ── INVARIANT ────────────────────────────────────────────────────────────────
  * This file is the single source of truth for per-session metric aggregation.
- * Both routes that consume session summaries MUST call buildSessionSummaries()
- * from here rather than computing metrics independently:
+ * Consumers MUST call buildSessionSummary()/buildSessionSummaries() rather than
+ * recomputing session-level values independently.
  *
+ * Current live consumers include:
+ *   - src/routes/(protected)/dashboard/+page.server.ts
  *   - src/routes/(protected)/analytics/+page.server.ts
+ *   - src/routes/(protected)/sessions/+page.server.ts
  *   - src/routes/(protected)/sessions/[id]/+layout.server.ts
  *
- * If you need a new aggregate metric on the analytics or session detail pages,
- * add it to SessionSummary and buildSessionSummary() here first. Do NOT
- * compute session-level aggregates client-side from raw run data — the
- * cross-session engine consumes these summaries and must receive consistent
- * values from both call sites.
+ * If you need a new aggregate metric, add it to SessionSummary and compute it
+ * here first. Do NOT compute session-level aggregates client-side from raw run
+ * data when the result is intended to represent canonical session evidence.
  * ─────────────────────────────────────────────────────────────────────────────
  *
- * Callers are responsible for passing data in the expected shape — the function
- * does no DB access and applies no tag filtering (filter before calling).
+ * Callers are responsible for passing data in the expected shape. The builder
+ * performs no DB access and applies canonical tag eligibility internally via
+ * shouldExcludeFromStats().
  */
 
 import { shouldExcludeFromStats } from '$lib/types/runs';
