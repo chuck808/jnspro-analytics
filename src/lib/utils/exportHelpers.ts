@@ -84,7 +84,7 @@ export function generateHealthReport(data: {
 			user_email: user.user_email,
 			risk_type: user.risk_type,
 			recommended_action:
-				user.risk_type === 'overtraining' ? 'Suggest rest days' : 'Monitor closely',
+				user.risk_type === 'high_session_frequency' ? 'Suggest rest days' : 'Monitor closely',
 			priority: user.sessions_count > 7 ? 'high' : 'medium'
 		}))
 	};
