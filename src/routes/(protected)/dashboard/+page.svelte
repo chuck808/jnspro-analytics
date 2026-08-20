@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import ReactionProgression from '$lib/components/dashboard/ReactionProgression.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -80,6 +81,9 @@
 		}
 		if (latestReactionChange !== null && latest.best_reaction_ms !== null) {
 			const amount = Math.abs(latestReactionChange);
+			if (amount <= 5) {
+				return `Best reaction was practically identical to your previous session — just ${amount.toFixed(0)} ms different.`;
+			}
 			return latestReactionChange < 0
 				? `Best reaction was ${amount.toFixed(0)} ms quicker than your previous session.`
 				: `Best reaction was ${amount.toFixed(0)} ms slower than your previous session — one session is context, not a trend.`;
@@ -203,6 +207,17 @@
 					{/if}
 				</div>
 			</div>
+		</section>
+
+		<section class="themed-card">
+			<div class="mb-5 flex items-end justify-between gap-4">
+				<div>
+					<p class="text-xs font-semibold tracking-[0.16em] text-[var(--theme-text-subtle)] uppercase">Recent direction</p>
+					<h3 class="section-title mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">Reaction over recent sessions</h3>
+				</div>
+				<a href="/analytics" class="text-sm font-semibold text-[var(--theme-text-secondary)] hover:text-[#f5a623]">Explore progress →</a>
+			</div>
+			<ReactionProgression sessions={data.recentSessions} />
 		</section>
 
 		<section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
