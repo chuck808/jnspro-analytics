@@ -82,20 +82,40 @@ Move to Deep Dive:
 Duplicates/boundaries to resolve:
 
 - Analysis `TrainingInsightsPanel` repeats the Overview session narrative and should be removed or radically scoped;
-- Analysis currently shows both compact and detailed technique scoring;
+- Analysis previously showed both compact and detailed technique scoring;
 - Analysis `RunComparisonSelector` and Deep Dive `RunComparison` need distinct jobs rather than becoming two comparison dashboards.
 
-## Phase 6 — next exact starting point
+## Phase 6 — first structural slice implemented
 
-Implement the hierarchy without changing calculations:
+Analysis now follows the first-pass hierarchy without changing the underlying calculations:
 
 1. choose / compare runs;
 2. selected run at a glance;
-3. how the run unfolded — primary traces, with video optional;
-4. how force was delivered — reliable impulse/power;
-5. what this run suggests — consolidated interpretation;
-6. technique summary;
-7. clear hand-off to Deep Dive for jerk, phases, splits, detailed technique, diagnostics and raw data.
+3. primary G-force and valid speed/acceleration traces;
+4. reliable impulse/power force-delivery evidence;
+5. consolidated run-specific interpretation;
+6. compact technique summary;
+7. explicit hand-off to Deep Dive.
+
+The Overview-style session-level `TrainingInsightsPanel`, chart-adjacent repeated insight callouts, duplicate detailed technique block, jerk chart, phase table, acceleration splits and coach diagnostics no longer clutter Analysis.
+
+Those expert blocks were **not deleted**. They are grouped in `src/lib/components/session/DeepDiveRunDiagnostics.svelte` and surfaced under the Deep Dive route through `detail/+layout.svelte`. Phase 7 can reorder and restyle that expert layer without reintroducing them into Analysis.
+
+Video remains optional supplementary evidence: Analysis is complete without a video attachment, and when a run has video the existing synchronised component remains available alongside the sensor evidence.
+
+## Phase 6 — next exact starting point
+
+Before further code changes, verify the new Analysis/Deep Dive boundary live:
+
+- multi-run selection and tag editing;
+- no-video and video-attached runs;
+- valid-speed and invalid-speed runs;
+- impulse/power present vs unavailable;
+- compact technique summary;
+- mobile layout;
+- Deep Dive still exposes jerk, detailed phases, acceleration splits, detailed technique and coach diagnostics when their source data exists.
+
+If that is clean, the next Phase 6 decision is whether `RunComparisonSelector` itself should be simplified into a question-led comparison entry, and whether the consolidated run insights need prioritisation beyond the current first-three presentation.
 
 Preserve these constraints:
 
