@@ -125,6 +125,7 @@
 					y: {
 						ticks: { color: themeTick, font: { size: isMobile ? 9 : 10 } },
 						title: { display: !isMobile, text: 'Power (W)', color: themeTick }
+					}
 				}
 			}
 		});
