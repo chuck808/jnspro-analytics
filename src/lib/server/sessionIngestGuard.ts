@@ -32,18 +32,32 @@ export function isUniqueViolation(error: { code?: string | null } | null | undef
 }
 
 /**
- * Remove an incomplete session after a failed ingest. A failed rollback is
- * surfaced rather than ignored because leaving the checksum row behind would
- * make a later retry look like a successfully imported duplicate.
+ * Remove an incomplete session after a failed ingest.
+ *
+ * If the delete itself fails, quarantine the partial row by archiving it and
+ * clearing its checksum. That keeps the failed evidence available for diagnosis
+ * while releasing the idempotency key so the same source file can be retried.
  */
 export async function rollbackIncompleteSession(
 	supabase: SupabaseClient,
 	sessionId: string
 ): Promise<void> {
-	const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
-	if (error) {
+	const { error: deleteError } = await supabase.from('sessions').delete().eq('id', sessionId);
+	if (!deleteError) return;
+
+	const { error: quarantineError } = await supabase
+		.from('sessions')
+		.update({ archived: true, file_checksum: null })
+		.eq('id', sessionId);
+
+	if (quarantineError) {
 		throw new Error(
-			`Failed to roll back incomplete session ${sessionId}: ${error.message} (${error.code ?? 'unknown'})`
+			`Failed to roll back incomplete session ${sessionId}: delete failed (${deleteError.code ?? 'unknown'}: ${deleteError.message}); quarantine failed (${quarantineError.code ?? 'unknown'}: ${quarantineError.message})`
 		);
 	}
+
+	console.error(
+		`Incomplete session ${sessionId} could not be deleted and was quarantined for retry:`,
+		deleteError
+	);
 }
