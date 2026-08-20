@@ -2,10 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { buildGoalEvidenceProjections } from '$lib/server/goalEvidenceProjection';
 
 /**
- * Rebuild the persisted current_value for all of a rider's goals from canonical
- * eligible evidence. The richer milestone history remains derived at read time;
- * this stored summary exists for limited projections such as coach views that do
- * not have permission to read the rider's raw sessions.
+ * Rebuild the persisted current_value for a rider's active goals from canonical
+ * eligible evidence. Completed goals are intentionally frozen at completion;
+ * their stored current_value is part of the historical record shown to limited
+ * projections such as coach views that cannot read the rider's raw sessions.
  */
 export async function reconcileGoalCurrentValues(
 	admin: SupabaseClient,
@@ -14,7 +14,8 @@ export async function reconcileGoalCurrentValues(
 	const { data: goals, error: goalsError } = await admin
 		.from('training_goals')
 		.select('id, metric, start_value, current_value, created_at, distance_m')
-		.eq('user_id', userId);
+		.eq('user_id', userId)
+		.is('completed_at', null);
 
 	if (goalsError) {
 		throw new Error(`Failed to load goals for reconciliation: ${goalsError.message}`);
@@ -41,7 +42,8 @@ export async function reconcileGoalCurrentValues(
 			.from('training_goals')
 			.update({ current_value: projected, updated_at: new Date().toISOString() })
 			.eq('id', goal.id)
-			.eq('user_id', userId);
+			.eq('user_id', userId)
+			.is('completed_at', null);
 
 		if (updateError) {
 			throw new Error(`Failed to reconcile goal ${goal.id}: ${updateError.message}`);
