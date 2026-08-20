@@ -52,25 +52,25 @@ export function projectGoalEvidenceFromSessions(
 			if (session.timestamp < goal.created_at) continue;
 
 			let eligibleRuns = (session.runs ?? []).filter(
-				(run) => !shouldExcludeFromStats(run.tags as any)
+				(run: any) => !shouldExcludeFromStats(run.tags as any)
 			);
 
 			// Elapsed-time goals can be distance-specific. Only compare like-for-like
 			// when a distance was supplied with the goal.
 			if (goal.metric === 'elapsedTime' && goal.distance_m != null) {
 				eligibleRuns = eligibleRuns.filter(
-					(run) => run.distance_m != null && Math.abs(run.distance_m - goal.distance_m!) < 0.01
+					(run: any) => run.distance_m != null && Math.abs(run.distance_m - goal.distance_m!) < 0.01
 				);
 			}
 
-			const metricRuns = eligibleRuns.flatMap((run) => {
+			const metricRuns = eligibleRuns.flatMap((run: any) => {
 				const gates = Array.isArray(run.gate_runs)
 					? run.gate_runs
 					: run.gate_runs
 						? [run.gate_runs]
 						: [];
 
-				return gates.map((gate) => ({
+				return gates.map((gate: any) => ({
 					reaction_time_ms: gate.reaction_time_ms ?? null,
 					max_g: gate.max_g ?? null,
 					peak_speed_ms: gate.peak_speed_ms ?? null,
