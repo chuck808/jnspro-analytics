@@ -6,14 +6,21 @@ import type { SDCardFile } from '$lib/services/ingest';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import { DEVICE_INGEST_SECRET } from '$env/static/private';
 
+async function calculateFileChecksum(data: unknown): Promise<string> {
+	const jsonString = JSON.stringify(data);
+	const encoder = new TextEncoder();
+	const dataBuffer = encoder.encode(jsonString);
+	const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const POST: RequestHandler = async ({ request }) => {
-	// Authenticate via shared secret
 	const authHeader = request.headers.get('x-device-ingest-secret');
 	if (!authHeader || authHeader !== DEVICE_INGEST_SECRET) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	// Parse body
 	let body: { userId: string; fileData: unknown };
 	try {
 		body = await request.json();
@@ -26,21 +33,41 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'Missing userId or fileData' }, { status: 400 });
 	}
 
-	// Validate
 	const validation = validateSDFile(fileData);
 	if (!validation.valid) {
 		return json(
-			{
-				success: false,
-				errors: validation.errors,
-				warnings: validation.warnings
-			},
+			{ success: false, errors: validation.errors, warnings: validation.warnings },
 			{ status: 422 }
 		);
 	}
 
-	// Use admin client — bypasses RLS for device inserts, consistent with rest of codebase
 	const supabase = createSupabaseAdminClient();
+	const fileChecksum = await calculateFileChecksum(fileData);
+
+	// Both Wi-Fi and manual SD uploads use sessions.file_checksum. Treat a repeated
+	// device upload as a successful no-op so storage retries are also idempotent.
+	const { data: existingSession, error: duplicateCheckError } = await supabase
+		.from('sessions')
+		.select('id')
+		.eq('user_id', userId)
+		.eq('file_checksum', fileChecksum)
+		.maybeSingle();
+
+	if (duplicateCheckError) {
+		console.error('Device ingest duplicate check error:', duplicateCheckError);
+		throw error(500, 'Failed to check existing session');
+	}
+
+	if (existingSession) {
+		return json({
+			success: true,
+			duplicate: true,
+			session_id: existingSession.id,
+			runs_imported: 0,
+			timeseries_count: 0,
+			timeseries_failed: 0
+		});
+	}
 
 	const sdFile = fileData as SDCardFile;
 	const ingestData = transformSDFile(sdFile);
@@ -69,12 +96,35 @@ export const POST: RequestHandler = async ({ request }) => {
 				bike_id: bikeId,
 				rider_profile_id: riderProfileId,
 				notes: '',
-				archived: false
+				archived: false,
+				file_checksum: fileChecksum
 			})
 			.select('id')
 			.single();
 
 		if (sessionError || !sessionRecord) {
+			// A concurrent upload can win after our pre-check. Resolve the unique
+			// constraint race to the already-created session instead of duplicating it.
+			if (sessionError?.code === '23505') {
+				const { data: concurrentSession } = await supabase
+					.from('sessions')
+					.select('id')
+					.eq('user_id', userId)
+					.eq('file_checksum', fileChecksum)
+					.maybeSingle();
+
+				if (concurrentSession) {
+					return json({
+						success: true,
+						duplicate: true,
+						session_id: concurrentSession.id,
+						runs_imported: 0,
+						timeseries_count: 0,
+						timeseries_failed: 0
+					});
+				}
+			}
+
 			console.error('Session insert error:', sessionError);
 			throw error(500, 'Failed to create session record');
 		}
@@ -83,75 +133,75 @@ export const POST: RequestHandler = async ({ request }) => {
 		let timeseriesCount = 0;
 		let timeseriesFailedCount = 0;
 
-		for (const run of ingestData.runs) {
-			const { data: runRecord, error: runError } = await supabase
-				.from('runs')
-				.insert({
-					session_id: sessionId,
-					run_number: run.run_number,
-					elapsed_time_ms: run.elapsed_time_ms,
-					distance_m: run.distance_m,
-					chart_data: run.chart_data
-				})
-				.select('id')
-				.single();
+		try {
+			for (const run of ingestData.runs) {
+				const { data: runRecord, error: runError } = await supabase
+					.from('runs')
+					.insert({
+						session_id: sessionId,
+						run_number: run.run_number,
+						elapsed_time_ms: run.elapsed_time_ms,
+						distance_m: run.distance_m,
+						chart_data: run.chart_data
+					})
+					.select('id')
+					.single();
 
-			if (runError || !runRecord) throw error(500, `Failed to insert run ${run.run_number}`);
+				if (runError || !runRecord) throw error(500, `Failed to insert run ${run.run_number}`);
+				const runId = runRecord.id;
 
-			const runId = runRecord.id;
-
-			// reaction_time_ms and the G fields are always present (required by ingest schema).
-			// speed_ms / peak_speed_ms are null when analytics_valid=false — store as null,
-			// not 0, so downstream queries can distinguish "unknown" from "zero speed".
-			const { error: gateError } = await supabase.from('gate_runs').insert({
-				run_id: runId,
-				reaction_time_ms: run.reaction_time_ms ?? 0,
-				max_g: run.max_g ?? 0,
-				avg_g: run.avg_g ?? 0,
-				speed_ms: run.speed_ms ?? null, // null when analytics invalid
-				peak_speed_ms: run.peak_speed_ms ?? null,
-				avg_speed_ms_calc: run.avg_speed_ms_calc ?? null,
-				time_to_peak_speed_ms: run.time_to_peak_speed_ms ?? null,
-				bias_correction_ms2: run.bias_correction_ms2 ?? null,
-				analytics_valid: run.analytics_valid ?? false,
-				max_pitch_deg: run.max_pitch_deg ?? null,
-				avg_pitch_deg: run.avg_pitch_deg ?? null,
-				pitch_at_peak_g_deg: run.pitch_at_peak_g_deg ?? null,
-				time_to_wheelie_ms: run.time_to_wheelie_ms ?? null,
-				wheelie_duration_ms: run.wheelie_duration_ms ?? null,
-				front_wheel_lifted: run.front_wheel_lifted ?? false
-			});
-
-			if (gateError) {
-				console.error(`Gate run ${run.run_number} full error:`, JSON.stringify(gateError, null, 2));
-				throw error(
-					500,
-					`Failed to insert gate run ${run.run_number}: ${gateError.message} code:${gateError.code} details:${gateError.details} hint:${gateError.hint}`
-				);
-			}
-
-			if (run.timeSeries) {
-				const { error: tsError } = await supabase.from('run_timeseries').insert({
+				const { error: gateError } = await supabase.from('gate_runs').insert({
 					run_id: runId,
-					sample_rate_hz: run.timeSeries.sample_rate_hz,
-					sample_count: run.timeSeries.sample_count,
-					g_force_data: run.timeSeries.g_force_data,
-					pitch_deg: run.timeSeries.pitch_deg,
-					roll_deg: run.timeSeries.roll_deg,
-					linear_accel_g: run.timeSeries.linear_accel_g,
-					raw_accel_g: run.timeSeries.raw_accel_g
+					reaction_time_ms: run.reaction_time_ms ?? 0,
+					max_g: run.max_g ?? 0,
+					avg_g: run.avg_g ?? 0,
+					speed_ms: run.speed_ms ?? null,
+					peak_speed_ms: run.peak_speed_ms ?? null,
+					avg_speed_ms_calc: run.avg_speed_ms_calc ?? null,
+					time_to_peak_speed_ms: run.time_to_peak_speed_ms ?? null,
+					bias_correction_ms2: run.bias_correction_ms2 ?? null,
+					analytics_valid: run.analytics_valid ?? false,
+					max_pitch_deg: run.max_pitch_deg ?? null,
+					avg_pitch_deg: run.avg_pitch_deg ?? null,
+					pitch_at_peak_g_deg: run.pitch_at_peak_g_deg ?? null,
+					time_to_wheelie_ms: run.time_to_wheelie_ms ?? null,
+					wheelie_duration_ms: run.wheelie_duration_ms ?? null,
+					front_wheel_lifted: run.front_wheel_lifted ?? false
 				});
-				if (tsError) {
-					timeseriesFailedCount++;
-					console.warn(`Timeseries failed run ${run.run_number}:`, tsError);
-				} else {
-					timeseriesCount++;
+
+				if (gateError) {
+					console.error(`Gate run ${run.run_number} full error:`, JSON.stringify(gateError, null, 2));
+					throw error(500, `Failed to insert gate run ${run.run_number}`);
+				}
+
+				if (run.timeSeries) {
+					const { error: tsError } = await supabase.from('run_timeseries').insert({
+						run_id: runId,
+						sample_rate_hz: run.timeSeries.sample_rate_hz,
+						sample_count: run.timeSeries.sample_count,
+						g_force_data: run.timeSeries.g_force_data,
+						pitch_deg: run.timeSeries.pitch_deg,
+						roll_deg: run.timeSeries.roll_deg,
+						linear_accel_g: run.timeSeries.linear_accel_g,
+						raw_accel_g: run.timeSeries.raw_accel_g
+					});
+					if (tsError) {
+						timeseriesFailedCount++;
+						console.warn(`Timeseries failed run ${run.run_number}:`, tsError);
+					} else {
+						timeseriesCount++;
+					}
 				}
 			}
+		} catch (runInsertError) {
+			console.error('[Device ingest] Run insertion failed, rolling back session:', runInsertError);
+			await supabase.from('sessions').delete().eq('id', sessionId);
+			throw runInsertError;
 		}
 
 		return json({
 			success: true,
+			duplicate: false,
 			session_id: sessionId,
 			runs_imported: ingestData.runs.length,
 			timeseries_count: timeseriesCount,
