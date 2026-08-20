@@ -139,35 +139,56 @@ export async function buildGoalEvidenceProjections(
 		goals[0].created_at
 	);
 
-	const { data: sessions, error } = await supabase
-		.from('sessions')
-		.select(
-			`
-			id,
-			timestamp,
-			runs(
-				elapsed_time_ms,
-				distance_m,
-				tags,
-				gate_runs(
-					reaction_time_ms,
-					max_g,
-					peak_speed_ms,
-					analytics_valid,
-					time_to_peak_speed_ms
+	const [sessionsResult, completionResult] = await Promise.all([
+		supabase
+			.from('sessions')
+			.select(
+				`
+				id,
+				timestamp,
+				runs(
+					elapsed_time_ms,
+					distance_m,
+					tags,
+					gate_runs(
+						reaction_time_ms,
+						max_g,
+						peak_speed_ms,
+						analytics_valid,
+						time_to_peak_speed_ms
+					)
 				)
+			`
 			)
-		`
-		)
-		.eq('user_id', userId)
-		.eq('archived', false)
-		.eq('session_type', 'gate')
-		.gte('timestamp', earliestGoal)
-		.order('timestamp', { ascending: true });
+			.eq('user_id', userId)
+			.eq('archived', false)
+			.eq('session_type', 'gate')
+			.gte('timestamp', earliestGoal)
+			.order('timestamp', { ascending: true }),
+		supabase
+			.from('training_goals')
+			.select('id, completed_at')
+			.eq('user_id', userId)
+			.in('id', goals.map((goal) => goal.id))
+	]);
 
-	if (error) {
-		throw new Error(`Failed to build goal evidence projection: ${error.message}`);
+	if (sessionsResult.error) {
+		throw new Error(`Failed to build goal evidence projection: ${sessionsResult.error.message}`);
+	}
+	if (completionResult.error) {
+		throw new Error(`Failed to load goal completion timestamps: ${completionResult.error.message}`);
 	}
 
-	return projectGoalEvidenceFromSessions(goals, (sessions ?? []) as GoalEvidenceSession[]);
+	const completionByGoal = new Map(
+		(completionResult.data ?? []).map((goal) => [goal.id, goal.completed_at as string | null])
+	);
+	const goalsWithCompletion = goals.map((goal) => ({
+		...goal,
+		completed_at: goal.completed_at ?? completionByGoal.get(goal.id) ?? null
+	}));
+
+	return projectGoalEvidenceFromSessions(
+		goalsWithCompletion,
+		(sessionsResult.data ?? []) as GoalEvidenceSession[]
+	);
 }
