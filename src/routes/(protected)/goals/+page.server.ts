@@ -383,7 +383,7 @@ export const actions: Actions = {
 			.eq('id', goalId)
 			.eq('user_id', user.id);
 
-		if (error) return fail(500, { deleteError: deleteError?.message ?? error.message });
+		if (error) return fail(500, { deleteError: error.message });
 		return { deleteSuccess: true };
 	},
 
