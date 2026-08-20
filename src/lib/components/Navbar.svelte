@@ -12,9 +12,13 @@
 		'/dashboard': 'Dashboard',
 		'/analytics': 'Analytics',
 		'/sessions': 'Sessions',
+		'/goals': 'Goals',
+		'/leaderboard': 'Leaderboard',
 		'/upload': 'Upload Session',
 		'/profile': 'Rider Profile',
 		'/settings': 'Settings',
+		'/help': 'Help',
+		'/coach': 'Coach',
 		'/admin': 'Admin',
 		'/admin/users': 'Users'
 	};
@@ -25,9 +29,11 @@
 				? 'Session Detail'
 				: $page.url.pathname.startsWith('/analytics/')
 					? 'Analytics'
-					: $page.url.pathname.startsWith('/admin/')
-						? 'Admin'
-						: 'AppGatePro')
+					: $page.url.pathname.startsWith('/coach/')
+						? 'Coach'
+						: $page.url.pathname.startsWith('/admin/')
+							? 'Admin'
+							: 'AppGatePro')
 	);
 
 	let firstName = $derived(user?.name?.split(' ')[0] ?? null);
@@ -40,8 +46,8 @@
 
 <nav
 	aria-label="Top navigation"
-	class="fixed top-0 right-0 left-0 z-30 flex h-25 items-center gap-4
-            border-b border-[#221c18] bg-[#0a0809] px-4 md:left-64"
+	class="fixed top-0 right-0 left-0 z-30 flex h-20 items-center gap-4
+            border-b border-[#221c18] bg-[#0a0809] px-4 md:left-64 md:px-6"
 >
 	<!-- Mobile menu toggle -->
 	<button
@@ -63,10 +69,10 @@
 	</button>
 
 	<!-- Compact logo (mobile only) -->
-	<ThemeLogo variant="compact" alt="AppGatePro" class="h-16 w-auto md:hidden" />
+	<ThemeLogo variant="compact" alt="AppGatePro" class="h-12 w-auto md:hidden" />
 
 	<!-- Page title -->
-	<h1 class="truncate text-xl font-semibold text-[#f0ece4]" id="page-title">{pageTitle}</h1>
+	<h1 class="page-title truncate text-2xl font-bold text-[#f0ece4]" id="page-title">{pageTitle}</h1>
 
 	<!-- Right side -->
 	<div class="ml-auto flex flex-shrink-0 items-center gap-2">
@@ -125,3 +131,10 @@
 		</a>
 	</div>
 </nav>
+
+<style>
+	.page-title {
+		font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+		letter-spacing: 0.01em;
+	}
+</style>
