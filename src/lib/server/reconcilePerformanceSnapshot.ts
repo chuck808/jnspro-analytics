@@ -6,12 +6,17 @@ import {
 	estimateExperienceLevel
 } from '$lib/services/benchmarking/peerComparison';
 import { getUCICategory } from '$lib/utils/uciCategories';
+import { reconcileGoalCurrentValues } from '$lib/server/reconcileGoalCurrentValues';
 
 /**
- * Rebuild the rider's persisted benchmarking snapshot from canonical session/run evidence.
+ * Rebuild rider-level persisted projections from canonical session/run evidence.
  *
- * This is intentionally transport-agnostic: manual upload, device/Wi-Fi ingest and later
- * eligibility changes should all converge here instead of relying on "the next upload".
+ * The historical name is retained for existing call sites, but this now keeps both
+ * the benchmarking snapshot and the limited persisted goal current_value projection
+ * in sync. Rich goal milestone history remains derived at read time.
+ *
+ * This is intentionally transport-agnostic: device/Wi-Fi ingest and later eligibility
+ * changes converge here instead of relying on "the next upload".
  */
 export async function reconcilePerformanceSnapshot(
 	admin: SupabaseClient,
@@ -113,4 +118,6 @@ export async function reconcilePerformanceSnapshot(
 		showOnLeaderboard: prefs?.show_on_leaderboard ?? false,
 		displayName: prefs?.leaderboard_display_name ?? null
 	});
+
+	await reconcileGoalCurrentValues(admin, userId);
 }
