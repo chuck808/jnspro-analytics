@@ -11,7 +11,7 @@
 - Phase 3 — Rider Home: DONE
 - Phase 4 — Sessions index: DONE
 - **Phase 5 — Single-session Overview: DONE**
-- **Phase 6 — Session Analysis: NEXT**
+- **Phase 6 — Session Analysis: IN PROGRESS**
 
 ## Phase 5 sign-off
 
@@ -53,11 +53,49 @@ The long-used test rider contains a handful of corrupted legacy May reaction val
 
 Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those known legacy rows before interpreting aggregate screenshots.
 
-## Phase 6 — exact starting point
+## Phase 6 — inventory complete
 
-Inspect `/sessions/[id]/analysis` and its component/data dependencies before changing presentation.
+The current `/sessions/[id]/analysis` page was audited section-by-section before redesign. Full classification is in `docs/notes/phase6-analysis-inventory.md`.
 
-Goal: make Analysis answer rider/coach questions and comparisons rather than present a chart catalogue.
+Analysis should answer: **why did this run/session behave that way, and how do the runs differ?**
+
+Keep / simplify in Analysis:
+
+- run selection and `RunTagSelector`;
+- multi-run comparison entry;
+- optional `RunVideoAttachment` as supplementary evidence;
+- concise selected-run metrics and data-quality/provenance cues;
+- primary G-force and valid speed/acceleration curves;
+- reliable impulse/power, but as secondary force-delivery evidence rather than another chart tier;
+- one understandable technique summary;
+- one consolidated run-specific interpretation block.
+
+Move to Deep Dive:
+
+- jerk / rate-of-change-of-acceleration trace;
+- detailed Drive / Transition / Velocity phase metrics;
+- acceleration-splits table;
+- detailed six-dimension technique benchmark;
+- `CoachDiagnosticsCard`;
+- raw/methodology-heavy material that complements the existing Deep Dive `DataDrillDown`, stability and technical comparison tools.
+
+Duplicates/boundaries to resolve:
+
+- Analysis `TrainingInsightsPanel` repeats the Overview session narrative and should be removed or radically scoped;
+- Analysis currently shows both compact and detailed technique scoring;
+- Analysis `RunComparisonSelector` and Deep Dive `RunComparison` need distinct jobs rather than becoming two comparison dashboards.
+
+## Phase 6 — next exact starting point
+
+Implement the hierarchy without changing calculations:
+
+1. choose / compare runs;
+2. selected run at a glance;
+3. how the run unfolded — primary traces, with video optional;
+4. how force was delivered — reliable impulse/power;
+5. what this run suggests — consolidated interpretation;
+6. technique summary;
+7. clear hand-off to Deep Dive for jerk, phases, splits, detailed technique, diagnostics and raw data.
 
 Preserve these constraints:
 
@@ -67,5 +105,3 @@ Preserve these constraints:
 - Keep canonical run eligibility and exclusion semantics intact.
 - Avoid duplicating answers already given cleanly in Overview.
 - Reserve methodology/provenance-heavy and trace-level expert material for Deep Dive where that separation improves comprehension.
-
-First task: inventory every section currently rendered in Analysis, identify its question/job, and mark it **keep here / simplify here / move to Deep Dive / duplicate** before rewriting the page.
