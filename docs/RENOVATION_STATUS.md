@@ -14,7 +14,7 @@
 - Phase 6 — Session Analysis: DONE
 - Phase 7 — Session Deep Dive: DONE
 - **Phase 8 — Progress / longitudinal analytics: DONE**
-- **Phase 9 — Goals: NEXT**
+- **Phase 9 — Goals: IN PROGRESS**
 
 ## Phase 5 sign-off
 
@@ -72,8 +72,6 @@ The hierarchy is intentionally **evidence -> derivation -> interpretation -> act
 
 Independent live verification confirmed the full hierarchy on real device data, clean mobile rendering, retained notes/report access, and green `svelte-check`, TypeScript and Vitest.
 
-The specific `hasCalibrationWarning` state was not independently triggered in the live test, but its placement shares the same verified top-of-page evidence-quality branch as the missing-mass warning. Treat a future real-session calibration report as something to investigate directly rather than assuming the branch is broken.
-
 ## Phase 8 sign-off
 
 Progress now has one coherent longitudinal job: **help the rider understand where they are in their history without mixing recorded evidence, derived evidence and speculative proxies.**
@@ -115,10 +113,10 @@ Independent verification after the final fixes:
 - W/kg absent: weight prompt shown correctly;
 - 0–2 sessions: baseline-building state and no premature Progress Report action;
 - 3–9 sessions: Progress Report appears at the intended 3-session threshold;
-- multi-bike history: identical motion traces with alternating 6.2 kg / 9.5 kg bikes produced different per-session physics power values (2420 W vs 2519 W), confirming historical bike linkage end-to-end;
+- multi-bike history: identical motion traces with alternating 6.2 kg / 9.5 kg bikes produced different per-session physics power values, confirming historical bike linkage end-to-end;
 - 390 px mobile: no horizontal overflow and charts remained intact;
 - Progress Report: summary, consistency/fatigue diagnostics and Send to Coach / Print / Export actions remained available;
-- deeper longitudinal evidence: Technique Score Trends, Strengths & Limiters Evolution and Session Data Quality remain available without duplicating the primary Progress hierarchy.
+- deeper longitudinal evidence remained available without duplicating the primary Progress hierarchy.
 
 Phase 8 is therefore signed off.
 
@@ -138,23 +136,35 @@ The long-used test rider contains a handful of corrupted legacy May reaction val
 
 Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those rows before interpreting aggregate screenshots.
 
+## Phase 9 — inventory complete
+
+Full inventory: `docs/notes/phase9-goals-inventory.md`.
+
+Goals should own **commitment and evidence-backed progress toward a chosen target**. Progress should continue to own current form, longitudinal direction, repeatability, fatigue/regression investigation and contextual trends.
+
+The audit found three blockers to fix before redesigning the cards:
+
+1. **Disconnected intelligence model:** the server builds `goalsWithIntelligence` with prediction/status/adaptation, but the live page renders `data.goals` and then tries to read those intelligence fields from it. The expensive intelligence layer is therefore calculated but normally disconnected from the goal cards. Collapse this to one canonical page goal model.
+2. **Training-health attribution:** the health-check loader flattens runs and reconstructs session attribution using `Math.floor(index / 10)`, implicitly assuming ten runs per session. It also supplies hard-coded `consistency: 0`. Fix the model input before surfacing strong recovery guidance.
+3. **Trust language:** rider-facing copy currently promises predictions can tell the rider **"exactly when"** a goal will be reached and uses diagnostic/medical language such as Injury Risk Detection, Injury Prevention and Rest Required. Reframe prediction as uncertain estimation and training-health output as non-diagnostic recovery/training-load signals.
+
+The active goal card also labels the canonical ratcheted evidence value as **Current**. Phase 9 should change this to **Best so far** so the UI matches the Release 1 semantic: best eligible evidence since goal creation, not latest form.
+
+A further product decision is required around completion: `completed_at` currently cannot distinguish **target achieved by evidence** from **rider manually closed the goal**. Do not present all completed goals as evidence-proven achievements unless that distinction is added or derived safely.
+
+`src/routes/(protected)/goals/page_enhanced.svelte` appears unreferenced and should be treated as a legacy/dead candidate, not as a second source of design truth.
+
 ## Phase 9 — next exact starting point
 
-Phase 9 is **Goals**.
+First implementation slice is correctness/trust, not visual polish:
 
-Start with an inventory before changing presentation. Trace the current Goals page against the evidence model already rebuilt in Release 1 and classify each surface as keep / simplify / duplicate / misleading / missing.
+1. unify `goals` / `goalsWithIntelligence` into one rendered goal collection;
+2. fix health-check run-to-session attribution and remove the hard-coded consistency input;
+3. rename **Current** to **Best so far**;
+4. replace prediction certainty and injury/diagnostic language with evidence-proportionate wording;
+5. only then restructure cards around **evidence -> interpretation -> prediction -> action**.
 
-Questions to resolve first:
-
-1. Does the rider understand that `current_value` means **best verified progress since goal creation**, not current form?
-2. Should rider-facing copy use **Best so far** instead of **Current value** wherever that improves clarity?
-3. Are active-goal progress, milestone history and completed-goal history all reading the same evidence model?
-4. Does the page explain why a goal can legitimately move backward after evidence is reclassified/excluded, while ordinary worse sessions do not make PB-style progress regress?
-5. Are prediction/adaptation features clearly distinguished from recorded or evidence-derived progress?
-6. Is the page useful to a young rider/parent first while preserving deeper detail for experienced riders/coaches?
-7. Are completed goals clearly frozen at `completed_at` in presentation as well as in the underlying reconciliation/projection model?
-
-Do not revisit the Release 1 goal truth model unless the audit finds an actual correctness contradiction.
+Verification focus: no goals, active/no-new-evidence, genuine improvement, excluded-evidence reversal, evidence-reached target, manual completion before target, completed-goal freeze, all supported metric types, prediction present/absent, <10 vs 10+ session health inputs, and 390 px mobile.
 
 ## Standing constraints
 
