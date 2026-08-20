@@ -4,6 +4,7 @@ import { predictGoalProgress } from '$lib/services/predictions';
 import { performHealthCheck } from '$lib/services/anomalyDetection';
 import { analyzeGoalAdaptation } from '$lib/services/goalAdaptation';
 import { shouldExcludeFromStats } from '$lib/types/runs';
+import { buildGoalEvidenceProjections } from '$lib/server/goalEvidenceProjection';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
 	const { profile } = await parent();
@@ -16,7 +17,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			goalsWithIntelligence: []
 		};
 
-	// Load goals with milestones
+	// Load goals with persisted milestones retained as a fallback while the
+	// evidence-derived projection is rolled out.
 	const { data: goals } = await supabase
 		.from('training_goals')
 		.select(
@@ -38,9 +40,28 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		.eq('user_id', profile.id)
 		.order('created_at', { ascending: false });
 
-	// Load session data to compute current values.
-	// tags is included so warmup and excluded runs can be filtered out —
-	// a warmup run with a fast reaction time shouldn't count as a personal best.
+	// Rebuild goal truth from canonical eligible evidence. Unlike the legacy
+	// append-only milestone table, this projection naturally reverses when a run
+	// is later classified as warm-up/testing/competition/excluded.
+	let goalEvidence: Awaited<ReturnType<typeof buildGoalEvidenceProjections>> = {};
+	try {
+		goalEvidence = await buildGoalEvidenceProjections(
+			supabase,
+			profile.id,
+			(goals ?? []).map((goal) => ({
+				id: goal.id,
+				metric: goal.metric,
+				start_value: goal.start_value,
+				created_at: goal.created_at,
+				distance_m: goal.distance_m
+			}))
+		);
+	} catch (projectionError) {
+		console.warn('[Goals] Evidence projection failed, using persisted fallback:', projectionError);
+	}
+
+	// Load recent session data for health/current-summary UI. Goal current values
+	// and prediction milestones come from the full evidence projection above.
 	const { data: sessions } = await supabase
 		.from('sessions')
 		.select(
@@ -137,11 +158,16 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		currentValues['endurance'] = (sessions ?? [])[0]?.runs?.length ?? null;
 	}
 
-	// Enrich goals with computed current values
-	const enrichedGoals = (goals ?? []).map((goal) => ({
-		...goal,
-		computed_current: (currentValues[goal.metric] ?? goal.current_value) as number | null
-	}));
+	// Enrich goals with evidence-derived current values and milestones. Persisted
+	// values remain a fallback only if projection failed or no projection exists.
+	const enrichedGoals = (goals ?? []).map((goal) => {
+		const projection = goalEvidence[goal.id];
+		return {
+			...goal,
+			goal_milestones: projection?.milestones ?? goal.goal_milestones,
+			computed_current: (projection?.currentValue ?? goal.current_value) as number | null
+		};
+	});
 
 	// PHASE 5: Health check (needs to be before goal intelligence for shouldRest flag)
 	// Gated behind 10 sessions — below that, the fatigue and injury risk models have
@@ -357,7 +383,7 @@ export const actions: Actions = {
 			.eq('id', goalId)
 			.eq('user_id', user.id);
 
-		if (error) return fail(500, { deleteError: error.message });
+		if (error) return fail(500, { deleteError: deleteError?.message ?? error.message });
 		return { deleteSuccess: true };
 	},
 
