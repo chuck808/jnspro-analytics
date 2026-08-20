@@ -27,7 +27,12 @@ export const load: PageServerLoad = async () => {
 		)
 		.order('created_at', { ascending: false });
 
-	// Fetch gate sessions only (not archived) for overtraining detection.
+	// Preserve the UI/export contract without trusting the legacy DB column.
+	const goalRows = (goals ?? []).map((goal) => ({
+		...goal,
+		completed: Boolean(goal.completed_at)
+	}));
+
 	const { data: sessions } = await admin
 		.from('sessions')
 		.select('id, user_id, timestamp, archived')
@@ -35,10 +40,9 @@ export const load: PageServerLoad = async () => {
 		.eq('archived', false)
 		.order('timestamp', { ascending: false });
 
-	// Calculate goal statistics using the canonical completion timestamp.
-	const activeGoals = goals?.filter((g) => !g.completed_at) || [];
-	const completedGoals = goals?.filter((g) => Boolean(g.completed_at)) || [];
-	const usersWithGoals = new Set(goals?.map((g) => g.user_id) || []).size;
+	const activeGoals = goalRows.filter((g) => !g.completed_at);
+	const completedGoals = goalRows.filter((g) => Boolean(g.completed_at));
+	const usersWithGoals = new Set(goalRows.map((g) => g.user_id)).size;
 
 	const sessionsByUser = (sessions || []).reduce<Record<string, any[]>>((acc, s) => {
 		if (!acc[s.user_id]) acc[s.user_id] = [];
@@ -111,7 +115,7 @@ export const load: PageServerLoad = async () => {
 
 	const modelStats = null;
 
-	const totalGoals = (goals || []).length;
+	const totalGoals = goalRows.length;
 	const completionRate = totalGoals > 0 ? (completedGoals.length / totalGoals) * 100 : 0;
 
 	// Completion duration is measured to the actual completion event, not the
@@ -130,7 +134,7 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		stats: {
-			totalGoals: goals?.length || 0,
+			totalGoals,
 			activeGoals: activeGoals.length,
 			completedGoals: completedGoals.length,
 			usersWithGoals,
@@ -141,6 +145,6 @@ export const load: PageServerLoad = async () => {
 		usersAtRisk: usersAtRisk.slice(0, 10),
 		recentGoalActivity: recentGoalActivity.slice(0, 20),
 		modelStats,
-		goals: goals || []
+		goals: goalRows
 	};
 };
