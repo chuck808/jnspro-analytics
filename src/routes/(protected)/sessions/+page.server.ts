@@ -1,6 +1,8 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 import { buildSessionSummary } from '$lib/server/sessionSummaryBuilder';
+import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { reconcilePerformanceSnapshot } from '$lib/server/reconcilePerformanceSnapshot';
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }) => {
 	const { profile } = await parent();
@@ -125,6 +127,12 @@ export const actions: Actions = {
 		if (error) {
 			console.error('Delete session error:', error);
 			return fail(500, { message: 'Failed to delete session' });
+		}
+
+		try {
+			await reconcilePerformanceSnapshot(createSupabaseAdminClient(), user.id);
+		} catch (reconcileError) {
+			console.warn('[Session delete] Derived-state reconciliation failed:', reconcileError);
 		}
 
 		return { success: true };
