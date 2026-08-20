@@ -7,6 +7,8 @@
 
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
+import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { reconcilePerformanceSnapshot } from '$lib/server/reconcilePerformanceSnapshot';
 
 export const actions: Actions = {
 	/**
@@ -52,6 +54,14 @@ export const actions: Actions = {
 		if (error) {
 			console.error('Error updating run tags:', error);
 			return fail(500, { error: 'Failed to update run tags' });
+		}
+
+		// A tag change can alter PBs, percentile cohorts and leaderboard values immediately.
+		// Rebuild the persisted benchmarking projection instead of waiting for another upload.
+		try {
+			await reconcilePerformanceSnapshot(createSupabaseAdminClient(), session.user.id);
+		} catch (reconcileError) {
+			console.warn('[Run tags] Performance snapshot reconciliation failed:', reconcileError);
 		}
 
 		return { success: true, runId, tags };
