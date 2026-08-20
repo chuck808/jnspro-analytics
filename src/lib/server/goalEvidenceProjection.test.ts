@@ -112,4 +112,37 @@ describe('projectGoalEvidenceFromSessions', () => {
 		expect(projection.milestones).toHaveLength(1);
 		expect(projection.milestones[0].value).toBe(298);
 	});
+
+	it('freezes completed goals at completion and ignores later evidence', () => {
+		const goal = [
+			{
+				id: 'g5',
+				metric: 'reactionTime',
+				start_value: 320,
+				created_at: createdAt,
+				completed_at: '2026-01-03T12:00:00.000Z'
+			}
+		];
+		const sessions = [
+			{
+				id: 's1',
+				timestamp: '2026-01-02T00:00:00.000Z',
+				runs: [run({ gate_runs: gate({ reaction_time_ms: 300 }) })]
+			},
+			{
+				id: 's2',
+				timestamp: '2026-01-03T10:00:00.000Z',
+				runs: [run({ gate_runs: gate({ reaction_time_ms: 280 }) })]
+			},
+			{
+				id: 's3',
+				timestamp: '2026-01-04T00:00:00.000Z',
+				runs: [run({ gate_runs: gate({ reaction_time_ms: 200 }) })]
+			}
+		];
+
+		const projection = projectGoalEvidenceFromSessions(goal, sessions).g5;
+		expect(projection.currentValue).toBe(280);
+		expect(projection.milestones.map((milestone) => milestone.value)).not.toContain(200);
+	});
 });
