@@ -8,6 +8,7 @@ export interface GoalProjectionInput {
 	metric: string;
 	start_value: number | null;
 	created_at: string;
+	completed_at?: string | null;
 	distance_m?: number | null;
 }
 
@@ -50,6 +51,7 @@ export function projectGoalEvidenceFromSessions(
 
 		for (const session of orderedSessions) {
 			if (session.timestamp < goal.created_at) continue;
+			if (goal.completed_at && session.timestamp > goal.completed_at) break;
 
 			let eligibleRuns = (session.runs ?? []).filter(
 				(run: any) => !shouldExcludeFromStats(run.tags as any)
@@ -122,6 +124,8 @@ export function projectGoalEvidenceFromSessions(
  * The projection is intentionally derived at read time rather than mutating
  * goal_milestones. This makes a later run reclassification reversible: if a PB
  * becomes a warm-up/testing run, it simply disappears from the next projection.
+ * Completed goals are frozen at completed_at so later evidence cannot rewrite
+ * the historical state shown to riders, parents or coaches.
  */
 export async function buildGoalEvidenceProjections(
 	supabase: SupabaseClient,
