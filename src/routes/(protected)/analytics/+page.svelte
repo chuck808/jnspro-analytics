@@ -208,7 +208,7 @@
 	);
 
 	let diagnosticPatterns = $derived.by(() => {
-		const patterns = new Map<string, { issue: string; occurrences: number; lastSeen: string; tone: string }>();
+		const patterns = new Map<string, { issue: string; occurrences: number; lastSeen: string; tone: 'positive' | 'warning' | 'neutral' }>();
 		for (const session of (data as any).sessionAnalyses ?? []) {
 			for (const diagnostic of session.diagnostics ?? []) {
 				const existing = patterns.get(diagnostic.title);
