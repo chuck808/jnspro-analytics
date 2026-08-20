@@ -5,6 +5,10 @@ describe('buildProgressTrendEvidence', () => {
 	it('uses real engine technique, smoothness and power without inventing proxies', () => {
 		const points = buildProgressTrendEvidence(
 			[
+				{ id: 's1', timestamp: '2026-08-01T10:00:00Z' },
+				{ id: 's2', timestamp: '2026-08-02T10:00:00Z' }
+			],
+			[
 				{
 					sessionId: 's1',
 					timestamp: '2026-08-01T10:00:00Z',
@@ -12,10 +16,6 @@ describe('buildProgressTrendEvidence', () => {
 					analysis: {
 						selectedRun: { physics: { power: { averageW: 612, peakW: 941 } } }
 					}
-				},
-				{
-					sessionId: 's2',
-					timestamp: '2026-08-02T10:00:00Z'
 				}
 			],
 			[
@@ -47,7 +47,8 @@ describe('buildProgressTrendEvidence', () => {
 
 	it('aggregates data quality across the whole session rather than the first run', () => {
 		const [point] = buildProgressTrendEvidence(
-			[{ sessionId: 's1', timestamp: '2026-08-01T10:00:00Z' }],
+			[{ id: 's1', timestamp: '2026-08-01T10:00:00Z' }],
+			[],
 			[
 				{ session_id: 's1', bias_correction_ms2: 0.1, analytics_valid: true },
 				{ session_id: 's1', bias_correction_ms2: 0.9, analytics_valid: false },
@@ -57,5 +58,22 @@ describe('buildProgressTrendEvidence', () => {
 
 		expect(point.dataQualityBias).toBeCloseTo(0.5);
 		expect(point.dataQualityValid).toBe(false);
+	});
+
+	it('keeps data-quality evidence for sessions without full engine analysis', () => {
+		const [point] = buildProgressTrendEvidence(
+			[{ id: 's1', timestamp: '2026-08-01T10:00:00Z' }],
+			[],
+			[{ session_id: 's1', bias_correction_ms2: 0.3, analytics_valid: true }]
+		);
+
+		expect(point).toMatchObject({
+			techniqueOverall: null,
+			smoothness: null,
+			powerAverageW: null,
+			powerPeakW: null,
+			dataQualityBias: 0.3,
+			dataQualityValid: true
+		});
 	});
 });
