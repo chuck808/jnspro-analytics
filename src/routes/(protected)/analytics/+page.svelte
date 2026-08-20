@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
 	import ExportButton from '$lib/components/ExportButton.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import { TrainingInsightsPanel } from '$lib/components/performance-insights';
@@ -30,335 +29,13 @@
 	import { ReportPreview } from '$lib/components/reports';
 	import type { GeneratedReport, ReportDetailLevel } from '$lib/report-engine/types';
 	import type { ProgressChartSessionPoint } from '$lib/report-engine/progressCharts';
+	import { buildProgressTrendEvidence } from '$lib/analytics/progressTrendEvidence';
 
 	let { data }: { data: PageData } = $props();
 
 	let isMobile = $state(false);
-	let scrolled = $state(false);
-	let activeTab = $state<'overview' | 'trends' | 'insights'>('overview');
 	let helpKey = $state('');
 	let helpOpen = $state(false);
-	function openHelp(key: string) {
-		helpKey = key;
-		helpOpen = true;
-	}
-
-	onMount(() => {
-		isMobile = window.innerWidth < 640;
-		const handleResize = () => {
-			isMobile = window.innerWidth < 640;
-		};
-		const handleScroll = () => {
-			scrolled = window.scrollY > 200;
-		};
-
-		window.addEventListener('resize', handleResize);
-		window.addEventListener('scroll', handleScroll);
-
-		// Handle URL focus parameter for deep-linking to specific charts
-		const focus = $page.url.searchParams.get('focus');
-		if (focus) {
-			setTimeout(() => {
-				const element = document.getElementById(`${focus}-chart`);
-				if (element) {
-					element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-				}
-			}, 300);
-		}
-
-		return () => {
-			window.removeEventListener('resize', handleResize);
-			window.removeEventListener('scroll', handleScroll);
-		};
-	});
-
-	const THRESHOLDS = $derived([
-		{ count: 1, label: 'Session summaries', unlocked: true },
-		{ count: 2, label: 'Session comparison', unlocked: data.sessionCount >= 2 },
-		{ count: 3, label: 'Trend charts', unlocked: data.sessionCount >= 3 },
-		{ count: 3, label: 'Consistency scoring', unlocked: data.sessionCount >= 3 },
-		{ count: 10, label: 'Full rolling analytics', unlocked: data.sessionCount >= 10 },
-		{ count: 20, label: 'Statistical analysis', unlocked: data.sessionCount >= 20 }
-	]);
-
-	// ── Performance Engine Integration ──
-	// Compute session intelligence for ALL sessions
-	let allSessionReports = $derived.by(() => {
-		return data.sessions
-			.map((session) => {
-				const runs = data.allRuns
-					.filter((r) => r.session_id === session.id)
-					.map((r) => ({
-						reactionMs: r.reaction_time_ms,
-						peakSpeed: r.peak_speed_ms ? r.peak_speed_ms * 3.6 : null,
-						maxG: r.max_g
-					}));
-
-				if (runs.length === 0) return null;
-
-				const intelligence = analyseSessionIntelligence(runs);
-				return {
-					sessionId: session.id,
-					intelligence
-				};
-			})
-			.filter(Boolean);
-	});
-
-	// Latest session intelligence report (v7.2)
-	let latestSessionReport = $derived.by(() => {
-		if (allSessionReports.length === 0) return null;
-		const lastReport = allSessionReports[allSessionReports.length - 1];
-		return lastReport ? lastReport.intelligence : null;
-	});
-
-	// Per-session summaries — shared by crossSessionReport (below) and the
-	// Progress Report chart wiring (progressChartPoints), so this computation
-	// only happens once.
-	let sessionIntelligenceSummaries = $derived.by(() => {
-		return data.sessions.map((s) => {
-			const sessionReport = allSessionReports.find((r) => r && r.sessionId === s.id);
-			const intelligence = sessionReport?.intelligence ?? null;
-
-			return buildSessionPerformanceSummary(
-				{
-					sessionId: s.id,
-					date: s.timestamp,
-					runCount: s.run_count,
-					bestReactionMs: s.best_reaction_ms,
-					avgReactionMs: s.avg_reaction_ms,
-					bestPeakSpeedMs: s.best_peak_speed_ms,
-					avgPeakSpeedMs: s.avg_peak_speed_ms,
-					bestMaxG: s.best_max_g,
-					avgMaxG: s.avg_max_g,
-					weatherCondition: (s as any).weather_conditions ?? null,
-					trackSurface: (s as any).track_surface ?? null,
-					sessionFocus: (s as any).session_focus ?? null,
-					rideFeel: (s as any).ride_feel ?? null,
-					bikeId: (s as any).bike_id ?? null,
-					riderProfileId: (s as any).rider_profile_id ?? null
-				},
-				intelligence
-			);
-		});
-	});
-
-	// Transform session summaries for cross-session intelligence (v8.1 + v8.2)
-	let crossSessionReport = $derived.by(() => {
-		if (data.sessionCount < 3) return null;
-		const rawReport = analyseCrossSessionIntelligence(sessionIntelligenceSummaries);
-
-		// v8.2: Apply truth rules
-		return applyTruthRulesToReport(rawReport);
-	});
-
-	// Real per-session chart series for the Progress Report — reuses
-	// sessionIntelligenceSummaries (reaction/gap/set-length/drop-off) and adds
-	// technique/power/smoothness from sessionAnalyses (real analyseSession()
-	// output, not the placeholder techniqueData array used by the on-page
-	// trend components below) plus data-quality/wheelie from allRuns.
-	let progressChartPoints = $derived.by((): ProgressChartSessionPoint[] => {
-		return sessionIntelligenceSummaries.map((s, i) => {
-			const sessionRuns = (data.allRuns as any[]).filter((r) => r.session_id === s.sessionId);
-			const sessionAnalysis = (data as any).sessionAnalyses?.find(
-				(a: any) => a.sessionId === s.sessionId
-			);
-
-			const validBias = sessionRuns
-				.map((r) => r.bias_correction_ms2)
-				.filter((v): v is number => typeof v === 'number');
-			const wheelieCount = sessionRuns.filter((r) => r.front_wheel_lifted).length;
-
-			return {
-				sessionId: s.sessionId,
-				sessionIndex: i + 1,
-				date: s.date as string,
-				bestReactionTimeSec: s.bestReactionTimeSec,
-				avgReactionTimeSec: s.avgReactionTimeSec,
-				bestVsAvgGapPercent: s.bestVsAvgGapPercent,
-				optimalSetLength: s.optimalSetLength,
-				dropOffRun: s.dropOffRun,
-				runCount: s.runCount,
-				techniqueOverall: sessionAnalysis?.techniqueScores?.overall ?? null,
-				smoothness: sessionAnalysis?.techniqueScores?.smoothness ?? null,
-				powerAverageW: sessionAnalysis?.analysis?.selectedRun?.physics?.power?.averageW ?? null,
-				dataQualityBias:
-					validBias.length > 0 ? validBias.reduce((a, b) => a + b, 0) / validBias.length : null,
-				dataQualityValid:
-					sessionRuns.length > 0 ? sessionRuns.every((r) => r.analytics_valid) : null,
-				wheelieRatePercent:
-					sessionRuns.length > 0 ? (wheelieCount / sessionRuns.length) * 100 : null
-			};
-		});
-	});
-
-	// ── BMX Threshold Ratings ──
-	let latestSessionRatings = $derived.by(() => {
-		if (data.sessions.length === 0) return null;
-		const latest = data.sessions[data.sessions.length - 1];
-		const latestIntelligence = latestSessionReport;
-
-		return rateSessionMetrics(
-			{
-				reactionTimeMs: latest.best_reaction_ms,
-				peakSpeedKmh: latest.best_peak_speed_ms ? latest.best_peak_speed_ms * 3.6 : null,
-				peakG: latest.best_max_g,
-				repeatabilityScore: latestIntelligence?.repeatability.overall ?? null,
-				bestVsAvgGapPercent: latestIntelligence?.bestVsAvg?.gapPercent ?? null
-			},
-			'rider'
-		);
-	});
-
-	// Prepare data for Performance Patterns Section
-	let performancePatternsData = $derived.by(() => {
-		return data.sessions.map((s) => {
-			const sessionReport = allSessionReports.find((r) => r && r.sessionId === s.id);
-			const intelligence = sessionReport?.intelligence;
-
-			return {
-				id: s.id,
-				timestamp: s.timestamp,
-				bestVsAvgGapPercent: intelligence?.bestVsAvg?.gapPercent ?? null,
-				optimalSetLength: intelligence?.setLength.optimal ?? null,
-				dropOffRun: intelligence?.dropOff?.dropOffRun ?? null,
-				best_peak_speed_ms: s.best_peak_speed_ms,
-				reaction_cv: s.reaction_cv
-			};
-		});
-	});
-
-	// ── Performance Engine Trend Data ──
-	// Extract trend data from session intelligence reports
-	let techniqueData = $derived(
-		allSessionReports
-			.map((report, index) => {
-				if (!report) return null;
-				const session = data.sessions[index];
-				return {
-					sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
-						day: 'numeric',
-						month: 'short'
-					}),
-					sessionNumber: index + 1,
-					// Note: technique scores require full Performance Engine per-run analysis
-					// Using repeatability as a proxy for overall technique consistency
-					overall: report.intelligence.repeatability?.overall ?? null,
-					reaction: null, // Would need per-run technique analysis
-					explosiveness: null,
-					smoothness: null,
-					efficiency: null
-				};
-			})
-			.filter((d): d is NonNullable<typeof d> => d !== null)
-	);
-
-	let dataQualityData = $derived(
-		data.sessions.map((session, index) => {
-			const firstRun = data.allRuns.find((r) => r.session_id === session.id);
-			// Note: bias_correction_ms2 requires full run data from server
-			const biasCorrection = (firstRun as any)?.bias_correction_ms2 ?? null;
-			return {
-				sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short'
-				}),
-				sessionNumber: index + 1,
-				biasCorrection: biasCorrection,
-				qualityRating: (() => {
-					const bias = Math.abs(biasCorrection ?? 0);
-					if (bias < 0.5) return 'excellent';
-					if (bias < 1.0) return 'good';
-					if (bias < 2.0) return 'fair';
-					return 'calibrate';
-				})() as 'excellent' | 'good' | 'fair' | 'calibrate' | 'unknown',
-				analyticsValid: firstRun?.analytics_valid ?? false
-			};
-		})
-	);
-
-	let powerData = $derived(
-		data.sessions.map((session, index) => {
-			// Power requires rider weight + bike weight
-			const riderWeight =
-				data.profile && typeof data.profile === 'object' && 'weight_kg' in data.profile
-					? (data.profile.weight_kg as number | null)
-					: null;
-			const bikeWeight = data.bikes?.[0]?.weight_kg ?? null;
-			const hasWeight = ((riderWeight ?? 0) as number) + ((bikeWeight ?? 0) as number) > 0;
-			const totalMassKg = hasWeight
-				? ((riderWeight ?? 0) as number) + ((bikeWeight ?? 0) as number)
-				: null;
-
-			return {
-				sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short'
-				}),
-				sessionNumber: index + 1,
-				// Estimate peak power from max G
-				peakPowerW:
-					session.best_max_g && totalMassKg
-						? Math.round(session.best_max_g * 9.81 * totalMassKg)
-						: null,
-				avgPowerW:
-					session.avg_max_g && totalMassKg
-						? Math.round(session.avg_max_g * 9.81 * totalMassKg)
-						: null,
-				riderWeightKg: riderWeight as number | null
-			};
-		})
-	);
-
-	let smoothnessData = $derived(
-		data.sessions.map((session, index) => {
-			const report = allSessionReports.find((r) => r && r.sessionId === session.id);
-			return {
-				sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short'
-				}),
-				sessionNumber: index + 1,
-				// Using repeatability as proxy for smoothness (more repeatable = smoother technique)
-				smoothnessScore: report?.intelligence.repeatability?.overall ?? null,
-				meanJerk: null // Would need full physics analysis
-			};
-		})
-	);
-
-	let wheelieData = $derived(
-		data.sessions.map((session, index) => {
-			const sessionRuns = data.allRuns.filter((r) => r.session_id === session.id);
-			// Note: front_wheel_lifted not available in allRuns data structure
-			const wheelieRuns = sessionRuns.filter(
-				(r) => 'front_wheel_lifted' in r && r.front_wheel_lifted === true
-			);
-			const nonWheelieRuns = sessionRuns.filter(
-				(r) => !('front_wheel_lifted' in r) || r.front_wheel_lifted !== true
-			);
-
-			const avgReaction = (runs: typeof sessionRuns) => {
-				const valid = runs.filter((r) => r.reaction_time_ms !== null);
-				return valid.length > 0
-					? valid.reduce((sum, r) => sum + r.reaction_time_ms!, 0) / valid.length
-					: null;
-			};
-
-			return {
-				sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short'
-				}),
-				sessionNumber: index + 1,
-				wheelieRate: sessionRuns.length > 0 ? (wheelieRuns.length / sessionRuns.length) * 100 : 0,
-				avgReactionMs: avgReaction(sessionRuns),
-				avgReactionWithWheelieMs: wheelieRuns.length > 0 ? avgReaction(wheelieRuns) : null,
-				avgReactionWithoutWheelieMs: nonWheelieRuns.length > 0 ? avgReaction(nonWheelieRuns) : null
-			};
-		})
-	);
-
-	// ── Progress Report State ──
 	let progressReport: GeneratedReport | null = $state(null);
 	let generatingProgress = $state(false);
 	let showProgressReport = $state(false);
@@ -368,58 +45,241 @@
 	let progressIncludeDiag = $state(true);
 	let progressIncludeGoals = $state(false);
 
-	// ── Generate Progress Report Function ──
+	function openHelp(key: string) {
+		helpKey = key;
+		helpOpen = true;
+	}
+
+	onMount(() => {
+		isMobile = window.innerWidth < 640;
+		const handleResize = () => (isMobile = window.innerWidth < 640);
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	});
+
+	let allSessionReports = $derived.by(() =>
+		data.sessions
+			.map((session) => {
+				const runs = data.allRuns
+					.filter((r) => r.session_id === session.id)
+					.map((r) => ({
+						reactionMs: r.reaction_time_ms,
+						peakSpeed: r.peak_speed_ms ? r.peak_speed_ms * 3.6 : null,
+						maxG: r.max_g
+					}));
+				if (runs.length === 0) return null;
+				return { sessionId: session.id, intelligence: analyseSessionIntelligence(runs) };
+			})
+			.filter(Boolean)
+	);
+
+	let latestSessionReport = $derived.by(() => {
+		const report = allSessionReports[allSessionReports.length - 1];
+		return report ? report.intelligence : null;
+	});
+
+	let sessionIntelligenceSummaries = $derived.by(() =>
+		data.sessions.map((session) => {
+			const report = allSessionReports.find((item) => item?.sessionId === session.id);
+			return buildSessionPerformanceSummary(
+				{
+					sessionId: session.id,
+					date: session.timestamp,
+					runCount: session.run_count,
+					bestReactionMs: session.best_reaction_ms,
+					avgReactionMs: session.avg_reaction_ms,
+					bestPeakSpeedMs: session.best_peak_speed_ms,
+					avgPeakSpeedMs: session.avg_peak_speed_ms,
+					bestMaxG: session.best_max_g,
+					avgMaxG: session.avg_max_g,
+					weatherCondition: (session as any).weather_conditions ?? null,
+					trackSurface: (session as any).track_surface ?? null,
+					sessionFocus: (session as any).session_focus ?? null,
+					rideFeel: (session as any).ride_feel ?? null,
+					bikeId: (session as any).bike_id ?? null,
+					riderProfileId: (session as any).rider_profile_id ?? null
+				},
+				report?.intelligence ?? null
+			);
+		})
+	);
+
+	let crossSessionReport = $derived.by(() => {
+		if (data.sessionCount < 3) return null;
+		return applyTruthRulesToReport(analyseCrossSessionIntelligence(sessionIntelligenceSummaries));
+	});
+
+	let latestSessionRatings = $derived.by(() => {
+		if (data.sessions.length === 0) return null;
+		const latest = data.sessions[data.sessions.length - 1];
+		return rateSessionMetrics(
+			{
+				reactionTimeMs: latest.best_reaction_ms,
+				peakSpeedKmh: latest.best_peak_speed_ms ? latest.best_peak_speed_ms * 3.6 : null,
+				peakG: latest.best_max_g,
+				repeatabilityScore: latestSessionReport?.repeatability.overall ?? null,
+				bestVsAvgGapPercent: latestSessionReport?.bestVsAvg?.gapPercent ?? null
+			},
+			'rider'
+		);
+	});
+
+	let performancePatternsData = $derived.by(() =>
+		data.sessions.map((session) => {
+			const report = allSessionReports.find((item) => item?.sessionId === session.id);
+			const intelligence = report?.intelligence;
+			return {
+				id: session.id,
+				timestamp: session.timestamp,
+				bestVsAvgGapPercent: intelligence?.bestVsAvg?.gapPercent ?? null,
+				optimalSetLength: intelligence?.setLength.optimal ?? null,
+				dropOffRun: intelligence?.dropOff?.dropOffRun ?? null,
+				best_peak_speed_ms: session.best_peak_speed_ms,
+				reaction_cv: session.reaction_cv
+			};
+		})
+	);
+
+	let trendEvidence = $derived.by(() =>
+		buildProgressTrendEvidence(
+			data.sessions.map((session) => ({ id: session.id, timestamp: session.timestamp })),
+			(data as any).sessionAnalyses ?? [],
+			data.allRuns
+		)
+	);
+
+	let hasTechniqueEvidence = $derived(trendEvidence.some((point) => point.techniqueOverall !== null));
+	let hasSmoothnessEvidence = $derived(trendEvidence.some((point) => point.smoothness !== null));
+	let hasPowerEvidence = $derived(
+		trendEvidence.some((point) => point.powerPeakW !== null || point.powerAverageW !== null)
+	);
+	let hasQualityEvidence = $derived(
+		trendEvidence.some((point) => point.dataQualityBias !== null || point.dataQualityValid !== null)
+	);
+
+	let wheelieData = $derived(
+		data.sessions.map((session, index) => {
+			const sessionRuns = data.allRuns.filter((r) => r.session_id === session.id);
+			const wheelieRuns = sessionRuns.filter((r) => r.front_wheel_lifted === true);
+			const nonWheelieRuns = sessionRuns.filter((r) => r.front_wheel_lifted !== true);
+			const avgReaction = (runs: typeof sessionRuns) => {
+				const valid = runs.filter((r) => r.reaction_time_ms !== null);
+				return valid.length
+					? valid.reduce((sum, run) => sum + run.reaction_time_ms!, 0) / valid.length
+					: null;
+			};
+			return {
+				sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
+					day: 'numeric',
+					month: 'short'
+				}),
+				sessionNumber: index + 1,
+				wheelieRate: sessionRuns.length ? (wheelieRuns.length / sessionRuns.length) * 100 : 0,
+				avgReactionMs: avgReaction(sessionRuns),
+				avgReactionWithWheelieMs: wheelieRuns.length ? avgReaction(wheelieRuns) : null,
+				avgReactionWithoutWheelieMs: nonWheelieRuns.length ? avgReaction(nonWheelieRuns) : null
+			};
+		})
+	);
+
+	let progressChartPoints = $derived.by((): ProgressChartSessionPoint[] =>
+		sessionIntelligenceSummaries.map((summary, index) => {
+			const evidence = trendEvidence.find((point) => point.sessionId === summary.sessionId);
+			const sessionRuns = data.allRuns.filter((run) => run.session_id === summary.sessionId);
+			const wheelieCount = sessionRuns.filter((run) => run.front_wheel_lifted).length;
+			return {
+				sessionId: summary.sessionId,
+				sessionIndex: index + 1,
+				date: summary.date as string,
+				bestReactionTimeSec: summary.bestReactionTimeSec,
+				avgReactionTimeSec: summary.avgReactionTimeSec,
+				bestVsAvgGapPercent: summary.bestVsAvgGapPercent,
+				optimalSetLength: summary.optimalSetLength,
+				dropOffRun: summary.dropOffRun,
+				runCount: summary.runCount,
+				techniqueOverall: evidence?.techniqueOverall ?? null,
+				smoothness: evidence?.smoothness ?? null,
+				powerAverageW: evidence?.powerAverageW ?? null,
+				dataQualityBias: evidence?.dataQualityBias ?? null,
+				dataQualityValid: evidence?.dataQualityValid ?? null,
+				wheelieRatePercent: sessionRuns.length ? (wheelieCount / sessionRuns.length) * 100 : null
+			};
+		})
+	);
+
+	let diagnosticPatterns = $derived.by(() => {
+		const patterns = new Map<string, { issue: string; occurrences: number; lastSeen: string; tone: string }>();
+		for (const session of (data as any).sessionAnalyses ?? []) {
+			for (const diagnostic of session.diagnostics ?? []) {
+				const existing = patterns.get(diagnostic.title);
+				if (existing) {
+					existing.occurrences += 1;
+					existing.lastSeen = session.timestamp;
+				} else {
+					patterns.set(diagnostic.title, {
+						issue: diagnostic.title,
+						occurrences: 1,
+						lastSeen: session.timestamp,
+						tone: diagnostic.tone
+					});
+				}
+			}
+		}
+		return Array.from(patterns.values())
+			.sort((a, b) => b.occurrences - a.occurrences)
+			.slice(0, 5);
+	});
+
+	let techniqueScoreData = $derived.by(() =>
+		((data as any).sessionAnalyses ?? []).map((session: any, index: number) => ({
+			sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
+				day: 'numeric',
+				month: 'short'
+			}),
+			sessionNumber: index + 1,
+			overall: session.techniqueScores?.overall ?? null,
+			launchQuality: session.insightPack?.scores?.launchQuality ?? null,
+			explosiveness: session.insightPack?.scores?.explosiveness ?? null,
+			speedCarry: session.insightPack?.scores?.speedCarry ?? null,
+			smoothness: session.insightPack?.scores?.smoothness ?? null,
+			impulseTiming: session.insightPack?.scores?.impulseTiming ?? null,
+			repeatability: session.insightPack?.scores?.repeatability ?? null
+		}))
+	);
+
+	let sessionInsights = $derived.by(() =>
+		((data as any).sessionAnalyses ?? []).map((session: any) => ({
+			sessionId: session.sessionId,
+			timestamp: session.timestamp,
+			strengths: session.insightPack?.strengths ?? [],
+			limiters: session.insightPack?.limiters ?? []
+		}))
+	);
+
 	async function generateProgressReport() {
 		generatingProgress = true;
 		try {
-			// 1. Trend percentages from data.trend
-			const reactionTrendPct = data.trend?.reaction ?? null;
-			const speedTrendPct = data.trend?.speed ?? null;
-
-			// 2. Recommendations from cross-session engine
-			const crossRecs = (crossSessionReport?.recommendations ?? [])
-				.filter((r: string) => r && r.trim().length > 10)
+			const recommendations = (crossSessionReport?.recommendations ?? [])
+				.filter((recommendation: string) => recommendation?.trim().length > 10)
 				.slice(0, 5)
-				.map((r: string, i: number) => ({
-					id: `progress-rec-${i}`,
-					title: r.split(':')[0]?.trim() ?? `Focus ${i + 1}`,
-					body: r,
-					priority: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low'
+				.map((recommendation: string, index: number) => ({
+					id: `progress-rec-${index}`,
+					title: recommendation.split(':')[0]?.trim() ?? `Focus ${index + 1}`,
+					body: recommendation,
+					priority: (index === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low'
 				}));
 
-			// 3. Personal bests
-			const personalBests = {
-				bestReactionMs: data.personalBests?.reaction_ms ?? null,
-				bestPeakSpeedKmh: data.personalBests?.peak_speed_ms
-					? data.personalBests.peak_speed_ms * 3.6
-					: null,
-				bestMaxG: data.personalBests?.max_g ?? null
-			};
-
-			// 4. Date range
-			const sessions = data.sessions ?? [];
+			const firstDate = data.sessions[0]?.timestamp;
+			const lastDate = data.sessions[data.sessions.length - 1]?.timestamp;
 			const dateRange =
-				sessions.length >= 2
-					? (() => {
-							const first = new Date(sessions[0].timestamp).toLocaleDateString('en-GB', {
-								day: 'numeric',
-								month: 'short'
-							});
-							const last = new Date(sessions[sessions.length - 1].timestamp).toLocaleDateString(
-								'en-GB',
-								{ day: 'numeric', month: 'short', year: 'numeric' }
-							);
-							return `${first} – ${last}`;
-						})()
+				firstDate && lastDate && data.sessions.length >= 2
+					? `${new Date(firstDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(lastDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
 					: undefined;
 
-			// 5. Goal context (if goals available in data)
 			const goalContext =
-				progressIncludeGoals && data.goalTargets && Object.keys(data.goalTargets).length > 0
+				progressIncludeGoals && data.goalTargets
 					? Object.entries(data.goalTargets).map(([metric, goal]: [string, any]) => {
-							const lowerIsBetter = ['reactionTime', 'elapsedTime', 'accelerationPhase'].includes(
-								metric
-							);
+							const lowerIsBetter = ['reactionTime', 'elapsedTime', 'accelerationPhase'].includes(metric);
 							const start = goal.start ?? goal.current;
 							const target = goal.target;
 							const current = goal.current;
@@ -441,126 +301,31 @@
 						})
 					: null;
 
-			// 6. Build input
 			const progressInput = {
-				riderName: data.profile?.name ?? data.profile?.display_name ?? undefined,
+				riderName: (data.profile as any)?.name ?? (data.profile as any)?.display_name ?? undefined,
 				sessionCount: data.sessionCount,
 				dateRange,
-				personalBests,
-
-				// Cross-session intelligence — the heart of this report
-				crossSessionReport: crossSessionReport
-					? {
-							status: crossSessionReport.status ?? 'ready',
-							sessionCount: crossSessionReport.sessionCount ?? data.sessionCount,
-							lookbackSessions: crossSessionReport.lookbackSessions ?? data.sessionCount,
-							headline: crossSessionReport.headline ?? '',
-							overallTrend: crossSessionReport.overallTrend ?? 'unknown',
-							confidence: crossSessionReport.confidence ?? 'moderate',
-							warnings: crossSessionReport.warnings ?? [],
-							recommendations: crossSessionReport.recommendations ?? [],
-
-							performance: {
-								reactionTrend: {
-									direction: crossSessionReport.performance?.reactionTrend?.direction ?? 'unknown',
-									change: crossSessionReport.performance?.reactionTrend?.change ?? null,
-									changePercent:
-										crossSessionReport.performance?.reactionTrend?.changePercent ?? null,
-									recent: crossSessionReport.performance?.reactionTrend?.recent ?? null,
-									historical: crossSessionReport.performance?.reactionTrend?.historical ?? null,
-									improving: crossSessionReport.performance?.reactionTrend?.improving ?? false
-								},
-								speedTrend: {
-									direction: crossSessionReport.performance?.speedTrend?.direction ?? 'unknown',
-									change: crossSessionReport.performance?.speedTrend?.change ?? null,
-									changePercent: crossSessionReport.performance?.speedTrend?.changePercent ?? null,
-									recent: crossSessionReport.performance?.speedTrend?.recent ?? null,
-									historical: crossSessionReport.performance?.speedTrend?.historical ?? null,
-									improving: crossSessionReport.performance?.speedTrend?.improving ?? false
-								},
-								peakGTrend: {
-									direction: crossSessionReport.performance?.peakGTrend?.direction ?? 'unknown',
-									change: crossSessionReport.performance?.peakGTrend?.change ?? null,
-									changePercent: crossSessionReport.performance?.peakGTrend?.changePercent ?? null,
-									recent: crossSessionReport.performance?.peakGTrend?.recent ?? null,
-									historical: crossSessionReport.performance?.peakGTrend?.historical ?? null,
-									improving: crossSessionReport.performance?.peakGTrend?.improving ?? false
-								}
-							},
-
-							consistency: {
-								repeatabilityTrend: {
-									direction:
-										crossSessionReport.consistency?.repeatabilityTrend?.direction ?? 'unknown',
-									change: crossSessionReport.consistency?.repeatabilityTrend?.change ?? null,
-									changePercent:
-										crossSessionReport.consistency?.repeatabilityTrend?.changePercent ?? null,
-									recent: crossSessionReport.consistency?.repeatabilityTrend?.recent ?? null,
-									historical:
-										crossSessionReport.consistency?.repeatabilityTrend?.historical ?? null,
-									improving: crossSessionReport.consistency?.repeatabilityTrend?.improving ?? false
-								},
-								bestVsAverageGapTrend: {
-									direction:
-										crossSessionReport.consistency?.bestVsAverageGapTrend?.direction ?? 'unknown',
-									change: crossSessionReport.consistency?.bestVsAverageGapTrend?.change ?? null,
-									changePercent:
-										crossSessionReport.consistency?.bestVsAverageGapTrend?.changePercent ?? null,
-									recent: crossSessionReport.consistency?.bestVsAverageGapTrend?.recent ?? null,
-									historical:
-										crossSessionReport.consistency?.bestVsAverageGapTrend?.historical ?? null,
-									improving:
-										crossSessionReport.consistency?.bestVsAverageGapTrend?.improving ?? false
-								}
-							},
-
-							fatigue: {
-								optimalSetLengthTrend: {
-									direction:
-										crossSessionReport.fatigue?.optimalSetLengthTrend?.direction ?? 'unknown',
-									change: crossSessionReport.fatigue?.optimalSetLengthTrend?.change ?? null,
-									changePercent:
-										crossSessionReport.fatigue?.optimalSetLengthTrend?.changePercent ?? null,
-									recent: crossSessionReport.fatigue?.optimalSetLengthTrend?.recent ?? null,
-									historical: crossSessionReport.fatigue?.optimalSetLengthTrend?.historical ?? null,
-									improving: crossSessionReport.fatigue?.optimalSetLengthTrend?.improving ?? false
-								},
-								dropOffTrend: {
-									direction: crossSessionReport.fatigue?.dropOffTrend?.direction ?? 'unknown',
-									change: crossSessionReport.fatigue?.dropOffTrend?.change ?? null,
-									changePercent: crossSessionReport.fatigue?.dropOffTrend?.changePercent ?? null,
-									recent: crossSessionReport.fatigue?.dropOffTrend?.recent ?? null,
-									historical: crossSessionReport.fatigue?.dropOffTrend?.historical ?? null,
-									improving: crossSessionReport.fatigue?.dropOffTrend?.improving ?? false
-								}
-							},
-
-							// Contextual patterns — pass through directly; shape is already correct
-							contextualPatterns: crossSessionReport.contextualPatterns ?? null
-						}
-					: undefined,
-
-				// Trend percentages from server
-				reactionTrendPercent: reactionTrendPct,
-				speedTrendPercent: speedTrendPct,
-
-				// Recommendations
-				recommendations: crossRecs,
-
-				// Goal context
+				personalBests: {
+					bestReactionMs: data.personalBests?.reaction_ms ?? null,
+					bestPeakSpeedKmh: data.personalBests?.peak_speed_ms
+						? data.personalBests.peak_speed_ms * 3.6
+						: null,
+					bestMaxG: data.personalBests?.max_g ?? null
+				},
+				crossSessionReport: crossSessionReport ?? undefined,
+				reactionTrendPercent: data.trend?.reaction ?? null,
+				speedTrendPercent: data.trend?.speed ?? null,
+				recommendations,
 				goalContext,
-
-				// Real per-session chart series — see progressChartPoints above.
 				charts: progressIncludeCharts ? buildProgressChartSeries(progressChartPoints) : []
 			};
 
-			progressReport = buildProgressReport(progressInput, {
+			progressReport = buildProgressReport(progressInput as any, {
 				detailLevel: progressDetailLevel,
 				includeCharts: progressIncludeCharts,
 				includeDiagnostics: progressIncludeDiag,
 				includeRecommendations: true
 			});
-
 			showProgressReport = true;
 			showProgressOptions = false;
 		} catch (error) {
@@ -570,186 +335,85 @@
 		}
 	}
 
-	function closeProgressReport() {
-		showProgressReport = false;
-	}
-
-	// Progress Report input never includes sessionNotes, so unlike the
-	// session-detail page's Session Report, there's no private-notes leak
-	// risk here — the already-generated report can be sent as-is.
 	async function sendProgressReportToCoach(linkId: string): Promise<boolean> {
 		if (!progressReport) return false;
 		try {
-			const res = await fetch('/api/coach/report-shares', {
+			const response = await fetch('/api/coach/report-shares', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ linkId, report: progressReport })
 			});
-			return res.ok;
-		} catch (err) {
-			console.error('Failed to send progress report to coach:', err);
+			return response.ok;
+		} catch (error) {
+			console.error('Failed to send progress report to coach:', error);
 			return false;
 		}
-	}
-
-	function navClass(tab: typeof activeTab) {
-		return tab === activeTab
-			? 'px-4 py-1.5 rounded-lg text-xs font-semibold themed-bg-accent themed-accent border border-[color:var(--accent)]/30'
-			: 'px-4 py-1.5 rounded-lg text-xs font-medium themed-text-secondary hover:themed-text-primary hover:bg-[color:var(--card-nested)] transition-colors';
 	}
 </script>
 
 <svelte:head>
-	<title>Analytics — AppGatePro</title>
+	<title>Progress — AppGatePro</title>
 </svelte:head>
 
-<div class="no-print space-y-6 pb-20">
-	<!-- ══════════════════════════════════════════════════════
-         HERO SECTION
-         ══════════════════════════════════════════════════════ -->
-	{#if data.sessionCount > 0}
-		<div class="themed-card rounded-xl p-6">
-			<div class="mb-4 flex flex-wrap items-start justify-between gap-4">
-				<div class="min-w-0 flex-1">
-					<div class="mb-2 flex items-center gap-2">
-						<span
-							class="themed-bg-accent themed-accent rounded border border-[color:var(--accent)]/20 px-2 py-0.5 text-xs font-semibold"
-						>
-							Performance Analytics
-						</span>
-						{#if crossSessionReport?.confidence}
-							<span class="themed-nested-card themed-text-secondary rounded px-2 py-0.5 text-xs">
-								{crossSessionReport.confidence} confidence
-							</span>
-						{/if}
-					</div>
-					<h2 class="themed-text-primary text-xl font-bold">
-						{#if crossSessionReport?.headline}
-							{crossSessionReport.headline}
-						{:else}
-							Your Training Journey
-						{/if}
-					</h2>
-					<p class="themed-text-secondary mt-1 text-sm">
-						{data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''} analysed
-						{#if data.sessions.length >= 2}
-							{@const firstDate = new Date(data.sessions[0].timestamp).toLocaleDateString('en-GB', {
-								day: 'numeric',
-								month: 'short'
-							})}
-							{@const lastDate = new Date(
-								data.sessions[data.sessions.length - 1].timestamp
-							).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-							· {firstDate} to {lastDate}
-						{/if}
-					</p>
-				</div>
-				<div class="flex items-center gap-2">
-					<ExportButton sessions={data.sessions} variant="secondary" />
-					<a
-						href="/sessions"
-						class="themed-text-secondary hover:themed-accent flex min-h-[44px] items-center gap-1 rounded px-2
-                              text-sm transition-colors focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--bg)] focus:outline-none"
-					>
-						<svg
-							class="h-4 w-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							aria-hidden="true"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M15 19l-7-7 7-7"
-							/>
-						</svg>
-						All sessions
-					</a>
-				</div>
-			</div>
-
-			{#if data.personalBests}
-				<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-					<div class="themed-nested-card rounded-lg p-4">
-						<p class="themed-text-subtle mb-1 text-xs">Best Reaction</p>
-						<p class="themed-accent text-xl font-bold">
-							{data.personalBests.reaction_ms
-								? (data.personalBests.reaction_ms / 1000).toFixed(3) + 's'
-								: '—'}
-						</p>
-					</div>
-					<div class="themed-nested-card rounded-lg p-4">
-						<p class="themed-text-subtle mb-1 text-xs">Top Speed</p>
-						<p class="themed-accent text-xl font-bold">
-							{data.personalBests.peak_speed_ms
-								? (data.personalBests.peak_speed_ms * 3.6).toFixed(1) + ' km/h'
-								: '—'}
-						</p>
-					</div>
-					<div class="themed-nested-card rounded-lg p-4">
-						<p class="themed-text-subtle mb-1 text-xs">Peak G-Force</p>
-						<p class="themed-accent text-xl font-bold">
-							{data.personalBests.max_g ? data.personalBests.max_g.toFixed(2) + 'G' : '—'}
-						</p>
-					</div>
-				</div>
-			{/if}
-		</div>
-	{/if}
-
-	{#if data.depth === 'none'}
-		<!-- Empty state -->
-		<div class="themed-card rounded-xl border-[color:var(--accent)]/20 p-12 text-center">
-			<div
-				class="themed-bg-accent mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
-			>
-				<svg class="themed-accent h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-					/>
-				</svg>
-			</div>
-			<h3 class="themed-text-primary mb-2 text-lg font-semibold">Analytics build as you train</h3>
-			<p class="themed-text-secondary mx-auto mb-6 max-w-md text-sm">
-				Upload your first session to start seeing performance data.
+<div class="no-print space-y-8 pb-12">
+	{#if data.sessionCount === 0}
+		<section class="themed-card rounded-xl p-10 text-center">
+			<h1 class="themed-text-primary text-2xl font-bold">Progress builds as you train</h1>
+			<p class="themed-text-secondary mx-auto mt-2 max-w-lg text-sm">
+				Upload your first session to begin a longitudinal training record. We will add trends only when there is enough evidence to support them.
 			</p>
-			<a
-				href="/upload"
-				class="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[color:var(--accent)] px-6
-                      py-3 text-sm font-semibold text-[color:var(--card)] transition-colors hover:bg-[color:var(--accent-hover)]
-                      focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--card)] focus:outline-none"
-			>
+			<a href="/upload" class="mt-6 inline-flex min-h-[44px] items-center rounded-lg bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--bg)]">
 				Upload first session
 			</a>
-		</div>
+		</section>
 	{:else}
-		<!-- Content based on active tab -->
-		{#if activeTab === 'overview'}
-			<!-- Unlock progress -->
-			<div class="themed-card rounded-xl p-5">
-				<p class="themed-text-subtle mb-3 text-xs font-semibold tracking-wider uppercase">
-					Analytics unlocked
-				</p>
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-					{#each THRESHOLDS as t}
-						<div class="flex items-center gap-2 text-xs">
-							<span class={t.unlocked ? 'text-[#3de8c8]' : 'themed-text-subtle'}
-								>{t.unlocked ? '✓' : `${t.count}+`}</span
-							>
-							<span class={t.unlocked ? 'themed-text-secondary' : 'themed-text-subtle'}
-								>{t.label}</span
-							>
-						</div>
-					{/each}
+		<section class="themed-card rounded-xl p-6">
+			<div class="flex flex-wrap items-start justify-between gap-5">
+				<div class="max-w-3xl">
+					<p class="themed-accent text-xs font-semibold tracking-[0.18em] uppercase">Progress</p>
+					<h1 class="themed-text-primary mt-2 text-2xl font-bold sm:text-3xl">
+						{crossSessionReport?.headline ?? 'Your training record is taking shape'}
+					</h1>
+					<p class="themed-text-secondary mt-2 text-sm leading-6">
+						{data.sessionCount} eligible session{data.sessionCount === 1 ? '' : 's'} in your longitudinal record. Recent form, longer-term progression, repeatability and context are kept separate so one session is not mistaken for a trend.
+					</p>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					<ExportButton sessions={data.sessions} variant="secondary" />
+					{#if data.sessionCount >= 3}
+						<button onclick={() => (showProgressOptions = true)} class="min-h-[44px] rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--bg)]">
+							Progress report
+						</button>
+					{/if}
 				</div>
 			</div>
 
-			<!-- 🥇 1. PERFORMANCE OVERVIEW (Decision Layer) -->
+			<div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+				<div class="themed-nested-card rounded-lg p-4">
+					<p class="themed-text-subtle text-xs">Sessions</p>
+					<p class="themed-text-primary mt-1 text-xl font-bold">{data.sessionCount}</p>
+				</div>
+				<div class="themed-nested-card rounded-lg p-4">
+					<p class="themed-text-subtle text-xs">Reaction PB</p>
+					<p class="themed-text-primary mt-1 text-xl font-bold">{data.personalBests?.reaction_ms ? `${(data.personalBests.reaction_ms / 1000).toFixed(3)}s` : '—'}</p>
+				</div>
+				<div class="themed-nested-card rounded-lg p-4">
+					<p class="themed-text-subtle text-xs">Top speed</p>
+					<p class="themed-text-primary mt-1 text-xl font-bold">{data.personalBests?.peak_speed_ms ? `${(data.personalBests.peak_speed_ms * 3.6).toFixed(1)} km/h` : '—'}</p>
+				</div>
+				<div class="themed-nested-card rounded-lg p-4">
+					<p class="themed-text-subtle text-xs">Peak G</p>
+					<p class="themed-text-primary mt-1 text-xl font-bold">{data.personalBests?.max_g ? `${data.personalBests.max_g.toFixed(2)}G` : '—'}</p>
+				</div>
+			</div>
+		</section>
+
+		<section class="space-y-4" aria-labelledby="where-now-heading">
+			<div>
+				<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">Where am I now?</p>
+				<h2 id="where-now-heading" class="themed-text-primary mt-1 text-xl font-bold">Recent form, in context</h2>
+				<p class="themed-text-secondary mt-1 max-w-3xl text-sm">A current snapshot, not a verdict on your direction of travel.</p>
+			</div>
 			<PerformanceOverview
 				sessionCount={data.sessionCount}
 				{crossSessionReport}
@@ -757,8 +421,71 @@
 				personalBests={data.personalBests}
 				{isMobile}
 			/>
+		</section>
 
-			<!-- 🧠 CROSS-SESSION PROGRESS ONLY (v8.1) -->
+		<section class="space-y-4" aria-labelledby="improving-heading">
+			<div>
+				<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">Am I improving?</p>
+				<h2 id="improving-heading" class="themed-text-primary mt-1 text-xl font-bold">Performance over time</h2>
+				<p class="themed-text-secondary mt-1 max-w-3xl text-sm">Recorded reaction, speed and force evidence first; derived technique and power are shown only where the engine has trustworthy evidence.</p>
+			</div>
+			{#if data.sessionCount >= 3}
+				<RawPerformanceTrendsSection
+					sessions={data.sessions}
+					trend={data.trend}
+					{isMobile}
+					onOpenHelp={openHelp}
+					goalTargets={data.goalTargets}
+				/>
+			{:else}
+				<div class="themed-card rounded-xl p-5 text-sm">
+					<p class="themed-text-primary font-semibold">A direction needs more evidence.</p>
+					<p class="themed-text-secondary mt-1">Complete {3 - data.sessionCount} more eligible session{3 - data.sessionCount === 1 ? '' : 's'} before Progress draws trend charts.</p>
+				</div>
+			{/if}
+
+			{#if hasPowerEvidence || hasTechniqueEvidence}
+				<div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+					{#if hasPowerEvidence}<PowerOutputTrend data={[]} {isMobile} />{/if}
+					{#if hasTechniqueEvidence}<TechniqueQualityTrend data={[]} {isMobile} />{/if}
+				</div>
+			{/if}
+		</section>
+
+		<section class="space-y-4" aria-labelledby="repeatable-heading">
+			<div>
+				<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">How repeatable am I?</p>
+				<h2 id="repeatable-heading" class="themed-text-primary mt-1 text-xl font-bold">Consistency and stability</h2>
+				<p class="themed-text-secondary mt-1 max-w-3xl text-sm">Best runs matter, but repeatable starts tell a different part of the training story.</p>
+			</div>
+			<PerformancePatternsSection sessions={performancePatternsData} {isMobile} onOpenHelp={openHelp} />
+			{#if hasSmoothnessEvidence}
+				<SmoothnessTrend data={[]} {isMobile} />
+			{/if}
+		</section>
+
+		<section class="space-y-4" aria-labelledby="context-heading">
+			<div>
+				<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">What context matters?</p>
+				<h2 id="context-heading" class="themed-text-primary mt-1 text-xl font-bold">Patterns around the riding</h2>
+				<p class="themed-text-secondary mt-1 max-w-3xl text-sm">Weather, track, setup, ride feel and other context are useful only when enough comparable sessions support the pattern.</p>
+			</div>
+			<CorrelationInsightsPanel
+				insights={data.correlationInsights ?? []}
+				minSessionsRequired={10}
+				currentSessionCount={data.sessionCount}
+			/>
+			{#if wheelieData.some((point) => point.wheelieRate > 0)}
+				<WheeliePatternAnalysis data={wheelieData} {isMobile} />
+			{/if}
+		</section>
+
+		<section class="space-y-4" aria-labelledby="investigate-heading">
+			<div>
+				<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">Is anything worth investigating?</p>
+				<h2 id="investigate-heading" class="themed-text-primary mt-1 text-xl font-bold">Fatigue, regression and recurring signals</h2>
+				<p class="themed-text-secondary mt-1 max-w-3xl text-sm">These are prompts to investigate, not diagnoses. The system weighs repeated evidence and confidence before making a suggestion.</p>
+			</div>
 			{#if crossSessionReport}
 				<TrainingInsightsPanel
 					sessionReport={null}
@@ -769,650 +496,86 @@
 					showTechniqueSection={false}
 					showProgressSection={true}
 				/>
-			{/if}
-		{:else if activeTab === 'trends'}
-			<!-- 📊 3. PERFORMANCE PATTERNS (Core Charts Section) -->
-			<PerformancePatternsSection
-				sessions={performancePatternsData}
-				{isMobile}
-				onOpenHelp={openHelp}
-			/>
-
-			<!-- 📈 4. RAW PERFORMANCE TRENDS (Data View) -->
-			{#if data.sessionCount >= 3}
-				<div class="space-y-5">
-					<div class="themed-card rounded-xl p-5">
-						<div class="mb-2 flex items-center justify-between">
-							<div>
-								<h2 class="themed-text-primary text-lg font-bold">Raw Performance Trends</h2>
-								<p class="themed-text-secondary mt-1 text-sm">Direct metrics over time</p>
-							</div>
-							<span
-								class="themed-nested-card themed-text-subtle rounded-full px-3 py-1.5 text-xs font-medium"
-							>
-								Data View
-							</span>
-						</div>
-					</div>
-
-					<RawPerformanceTrendsSection
-						sessions={data.sessions}
-						trend={data.trend}
-						{isMobile}
-						onOpenHelp={openHelp}
-						goalTargets={data.goalTargets}
-					/>
-				</div>
-
-				<!-- Goal Creation CTAs based on trends -->
-				{#if data.trend.reaction !== null || data.trend.speed !== null}
-					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-						{#if data.trend.reaction !== null && data.trend.reaction < 0 && !data.activeGoalMetrics.includes('reactionTime')}
-							<div class="rounded-xl border border-[#3de8c8]/30 bg-[#3de8c8]/10 p-4">
-								<div class="flex items-start gap-3">
-									<svg
-										class="mt-0.5 h-5 w-5 flex-shrink-0 text-[#3de8c8]"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-										/>
-									</svg>
-									<div class="flex-1">
-										<p class="mb-1 text-sm font-semibold text-[#3de8c8]">
-											📈 Reaction Time Improving
-										</p>
-										<p class="mb-2 text-xs text-[#9a8f7a]">
-											{Math.abs(data.trend.reaction).toFixed(1)}% faster — set a goal to stay
-											motivated!
-										</p>
-										<a
-											href="/goals"
-											class="inline-flex items-center gap-1 rounded text-xs font-medium text-[#3de8c8] transition-colors
-                                                  hover:text-[#f0ece4] focus:ring-2 focus:ring-[#3de8c8] focus:outline-none"
-										>
-											Create reaction time goal
-											<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M9 5l7 7-7 7"
-												/>
-											</svg>
-										</a>
-									</div>
-								</div>
-							</div>
-						{/if}
-
-						{#if data.trend.speed !== null && data.trend.speed > 0 && !data.activeGoalMetrics.includes('peakSpeed')}
-							<div class="rounded-xl border border-[#ff6b3d]/30 bg-[#ff6b3d]/10 p-4">
-								<div class="flex items-start gap-3">
-									<svg
-										class="mt-0.5 h-5 w-5 flex-shrink-0 text-[#ff6b3d]"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-										/>
-									</svg>
-									<div class="flex-1">
-										<p class="mb-1 text-sm font-semibold text-[#ff6b3d]">⚡ Speed Increasing</p>
-										<p class="mb-2 text-xs text-[#9a8f7a]">
-											+{data.trend.speed.toFixed(1)}% improvement — track your progress with a goal!
-										</p>
-										<a
-											href="/goals"
-											class="inline-flex items-center gap-1 rounded text-xs font-medium text-[#ff6b3d] transition-colors
-                                                  hover:text-[#f0ece4] focus:ring-2 focus:ring-[#ff6b3d] focus:outline-none"
-										>
-											Create speed goal
-											<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M9 5l7 7-7 7"
-												/>
-											</svg>
-										</a>
-									</div>
-								</div>
-							</div>
-						{/if}
-					</div>
-				{/if}
-			{/if}
-		{:else if activeTab === 'insights'}
-			<!-- ── 📊 PERFORMANCE ENGINE DEEP ANALYTICS (Phase 2 & 3) ── -->
-			{#if data.sessionCount >= 5}
-				<div class="space-y-5">
-					<div class="themed-card rounded-xl p-5">
-						<div class="mb-2 flex items-center justify-between">
-							<div>
-								<h2 class="themed-text-primary text-lg font-bold">Performance Engine Analytics</h2>
-								<p class="themed-text-secondary mt-1 text-sm">
-									Deep insights from comprehensive session analysis
-								</p>
-							</div>
-							<span
-								class="rounded-full bg-[#f5a623]/20 px-3 py-1.5 text-xs font-medium text-[#f5a623]"
-							>
-								🚀 Phase 2 & 3
-							</span>
-						</div>
-					</div>
-
-					<!-- Active components with real data -->
-					{#if techniqueData.length > 0 || smoothnessData.length > 0}
-						<div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-							{#if techniqueData.length > 0}
-								<TechniqueQualityTrend data={techniqueData} {isMobile} />
-							{/if}
-							{#if smoothnessData.length > 0}
-								<SmoothnessTrend data={smoothnessData} {isMobile} />
-							{/if}
-						</div>
-					{/if}
-
-					{#if powerData.length > 0 || dataQualityData.length > 0}
-						<div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-							{#if powerData.length > 0}
-								<PowerOutputTrend data={powerData} {isMobile} />
-							{/if}
-							{#if dataQualityData.length > 0}
-								<DataQualityTrend data={dataQualityData} {isMobile} />
-							{/if}
-						</div>
-					{/if}
-
-					{#if wheelieData.length > 0}
-						<WheeliePatternAnalysis data={wheelieData} {isMobile} />
-					{/if}
-
-					<!-- Phase 3: New Performance Engine Components -->
-					{#if (data as any).sessionAnalyses && (data as any).sessionAnalyses.length > 0}
-						<!-- Technique Score Trends (Task 3.2) -->
-						{#if (data as any).sessionAnalyses.some((s: any) => s.techniqueScores)}
-							{@const techniqueDataPhase3 = (data as any).sessionAnalyses.map(
-								(s: any, i: number) => ({
-									sessionDate: new Date(s.timestamp).toLocaleDateString('en-GB', {
-										day: 'numeric',
-										month: 'short'
-									}),
-									sessionNumber: i + 1,
-									overall: s.techniqueScores?.overall ?? null,
-									launchQuality: s.insightPack?.scores?.launchQuality ?? null,
-									explosiveness: s.insightPack?.scores?.explosiveness ?? null,
-									speedCarry: s.insightPack?.scores?.speedCarry ?? null,
-									smoothness: s.insightPack?.scores?.smoothness ?? null,
-									impulseTiming: s.insightPack?.scores?.impulseTiming ?? null,
-									repeatability: s.insightPack?.scores?.repeatability ?? null
-								})
-							)}
-							<TechniqueScoreTrends data={techniqueDataPhase3} {isMobile} />
-						{/if}
-
-						<!-- Diagnostic Patterns (Task 3.4) -->
-						{@const diagnosticPatterns = (() => {
-							const patterns = new Map();
-							(data as any).sessionAnalyses.forEach((s: any) => {
-								s.diagnostics?.forEach((d: any) => {
-									if (patterns.has(d.title)) {
-										patterns.get(d.title).occurrences++;
-										patterns.get(d.title).lastSeen = s.timestamp;
-									} else {
-										patterns.set(d.title, {
-											issue: d.title,
-											occurrences: 1,
-											lastSeen: s.timestamp,
-											tone: d.tone
-										});
-									}
-								});
-							});
-							return Array.from(patterns.values())
-								.sort((a, b) => b.occurrences - a.occurrences)
-								.slice(0, 5);
-						})()}
-						{#if diagnosticPatterns.length > 0}
-							<DiagnosticPatternsCard patterns={diagnosticPatterns} />
-						{/if}
-
-						<!-- Strengths/Limiters Evolution (Task 3.6) -->
-						{@const sessionInsights = (data as any).sessionAnalyses.map((s: any) => ({
-							sessionId: s.sessionId,
-							timestamp: s.timestamp,
-							strengths: s.insightPack?.strengths ?? [],
-							limiters: s.insightPack?.limiters ?? []
-						}))}
-						{#if sessionInsights.length >= 2}
-							<StrengthsLimitersEvolution {sessionInsights} />
-						{/if}
-					{/if}
-				</div>
 			{:else}
-				<div class="themed-card rounded-xl p-8 text-center">
-					<p class="themed-text-primary mb-1 text-sm font-medium">
-						{5 - data.sessionCount} more session{5 - data.sessionCount !== 1 ? 's' : ''} to unlock deep
-						insights
-					</p>
-					<p class="themed-text-subtle text-xs">Advanced analytics unlock at 5 sessions</p>
+				<div class="themed-card rounded-xl p-5 text-sm">
+					<p class="themed-text-secondary">At least three eligible sessions are needed before the cross-session engine looks for repeated signals.</p>
 				</div>
 			{/if}
+			{#if diagnosticPatterns.length > 0}<DiagnosticPatternsCard patterns={diagnosticPatterns} />{/if}
+		</section>
 
-			<!-- ── 🔍 CORRELATION INSIGHTS (Phase 3 Task 3.2) ── -->
-			<CorrelationInsightsPanel
-				insights={data.correlationInsights ?? []}
-				minSessionsRequired={10}
-				currentSessionCount={data.sessionCount}
-			/>
-		{/if}
-
-		<!-- Show unlock message for minimal depth -->
-		{#if data.depth === 'minimal'}
-			<div class="themed-card rounded-xl border-[#f5a623]/20 p-6 text-center">
-				<p class="mb-1 text-sm font-medium text-[#f5a623]">
-					{3 - data.sessionCount} more session{3 - data.sessionCount !== 1 ? 's' : ''} to unlock trends
-				</p>
-				<p class="themed-text-subtle text-xs">
-					Trend charts, consistency scoring and comparison unlock at 3 sessions
-				</p>
+		<details class="themed-card rounded-xl p-5">
+			<summary class="themed-text-primary cursor-pointer text-base font-semibold">More longitudinal evidence</summary>
+			<p class="themed-text-secondary mt-2 text-sm">For riders and coaches who want the deeper derived series without making them the first thing everyone sees.</p>
+			<div class="mt-5 space-y-5">
+				{#if techniqueScoreData.length > 0}<TechniqueScoreTrends data={techniqueScoreData} {isMobile} />{/if}
+				{#if sessionInsights.length >= 2}<StrengthsLimitersEvolution {sessionInsights} />{/if}
+				{#if hasQualityEvidence}<DataQualityTrend data={[]} {isMobile} />{/if}
 			</div>
-		{/if}
+		</details>
+
+		<section class="themed-card rounded-xl p-5">
+			<div class="flex flex-wrap items-center justify-between gap-4">
+				<div>
+					<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">Where do I drill down?</p>
+					<h2 class="themed-text-primary mt-1 text-lg font-bold">Follow the evidence back to the sessions</h2>
+					<p class="themed-text-secondary mt-1 text-sm">Progress explains the longitudinal story. Session Analysis and Deep Dive remain the place to inspect the run-level evidence behind it.</p>
+				</div>
+				<a href="/sessions" class="themed-accent inline-flex min-h-[44px] items-center rounded-lg border border-[color:var(--accent)]/30 px-4 py-2 text-sm font-semibold">Browse sessions</a>
+			</div>
+		</section>
 	{/if}
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     STICKY FOOTER WITH TABS AND REPORT BUTTON
-     ══════════════════════════════════════════════════════ -->
-{#if scrolled && data.sessionCount > 0}
-	<div
-		class="no-print fixed right-0 bottom-0 left-0 z-40 border-t border-[color:var(--border)] bg-[color:var(--card)]/95 shadow-lg backdrop-blur-sm"
-	>
-		<div class="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 lg:px-8">
-			<div class="flex items-center justify-between gap-4">
-				<!-- Tab navigation -->
-				<nav class="flex items-center gap-1" aria-label="Analytics sections">
-					<button onclick={() => (activeTab = 'overview')} class={navClass('overview')}
-						>Overview</button
-					>
-					<button onclick={() => (activeTab = 'trends')} class={navClass('trends')}>Trends</button>
-					<button onclick={() => (activeTab = 'insights')} class={navClass('insights')}
-						>Insights</button
-					>
-				</nav>
-
-				<!-- Analytics info (desktop) -->
-				<div class="themed-text-secondary hidden items-center gap-2 text-xs md:flex">
-					<span>{data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''}</span>
-					{#if data.sessions.length >= 2}
-						{@const firstDate = new Date(data.sessions[0].timestamp).toLocaleDateString('en-GB', {
-							day: 'numeric',
-							month: 'short'
-						})}
-						{@const lastDate = new Date(
-							data.sessions[data.sessions.length - 1].timestamp
-						).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-						<span>•</span>
-						<span>{firstDate} – {lastDate}</span>
-					{/if}
-				</div>
-
-				<!-- Generate Report button -->
-				{#if data.sessionCount >= 3}
-					<button
-						onclick={() => (showProgressOptions = true)}
-						class="flex items-center gap-2 rounded-lg bg-[color:var(--accent)] px-4 py-2
-                               text-sm font-semibold text-[color:var(--bg)] transition-colors hover:bg-[color:var(--accent-dark)]
-                               focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-[color:var(--card)] focus:outline-none"
-					>
-						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-							/>
-						</svg>
-						<span class="hidden sm:inline">Report</span>
-					</button>
-				{/if}
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- ── Report Options Modal ── -->
 {#if showProgressOptions}
-	<div
-		class="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
-		role="button"
-		tabindex="0"
-		onclick={(e) => e.target === e.currentTarget && (showProgressOptions = false)}
-		onkeydown={(e) =>
-			(e.key === 'Escape' || (e.key === 'Enter' && e.target === e.currentTarget)) &&
-			(showProgressOptions = false)}
-		aria-label="Close report options"
-	>
-		<div
-			class="my-8 w-full max-w-3xl"
-			role="dialog"
-			tabindex="-1"
-			aria-modal="true"
-			aria-labelledby="progress-report-options-title"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
-		>
-			<!-- Modal header -->
-			<div
-				class="themed-card flex items-center justify-between gap-4 rounded-t-xl border-b border-[color:var(--border)] px-5 py-4"
-			>
-				<div class="flex items-center gap-3">
-					<div class="themed-bg-accent flex h-8 w-8 items-center justify-center rounded-lg">
-						<svg
-							class="themed-accent h-4 w-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-							/>
-						</svg>
-					</div>
-					<div>
-						<h2 id="progress-report-options-title" class="themed-text-primary text-base font-bold">
-							Generate Progress Report
-						</h2>
-						<p class="themed-text-subtle text-xs">
-							{data.sessionCount} sessions · {crossSessionReport?.confidence ?? 'medium'} confidence
-						</p>
-					</div>
+	<div class="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4" role="presentation" onclick={(event) => event.target === event.currentTarget && (showProgressOptions = false)}>
+		<div class="themed-card my-8 w-full max-w-2xl rounded-xl p-5" role="dialog" aria-modal="true" aria-labelledby="progress-options-title">
+			<div class="flex items-start justify-between gap-4">
+				<div>
+					<h2 id="progress-options-title" class="themed-text-primary text-lg font-bold">Generate progress report</h2>
+					<p class="themed-text-secondary mt-1 text-sm">Choose how much of the longitudinal evidence to include.</p>
 				</div>
-				<button
-					onclick={() => (showProgressOptions = false)}
-					class="themed-text-subtle hover:themed-text-primary flex h-8 w-8 items-center justify-center
-                           rounded-lg transition-colors hover:bg-[color:var(--card-nested)]
-                           focus:ring-2 focus:ring-[color:var(--accent)] focus:outline-none"
-					aria-label="Close"
-				>
-					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"
-						/>
-					</svg>
-				</button>
+				<button class="themed-text-secondary min-h-[44px] px-2" onclick={() => (showProgressOptions = false)} aria-label="Close">Close</button>
 			</div>
 
-			<!-- Modal body -->
-			<div class="themed-card space-y-4 rounded-b-xl p-5">
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<!-- Options panel -->
-					<div class="space-y-5">
-						<!-- Detail level -->
-						<fieldset>
-							<legend class="themed-text-subtle mb-2 text-xs font-semibold tracking-wider uppercase"
-								>Audience</legend
-							>
-							<div class="space-y-1.5">
-								<label
-									class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-colors
-                                              {progressDetailLevel === 'simple'
-										? 'themed-bg-accent border border-[color:var(--accent)]/30'
-										: 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}"
-								>
-									<input
-										type="radio"
-										bind:group={progressDetailLevel}
-										value="simple"
-										class="mt-0.5 accent-[color:var(--accent)]"
-									/>
-									<div>
-										<p
-											class="text-sm font-medium {progressDetailLevel === 'simple'
-												? 'themed-accent'
-												: 'themed-text-primary'}"
-										>
-											Simple
-										</p>
-										<p class="themed-text-subtle text-xs">Rider or parent — plain language</p>
-									</div>
-								</label>
-								<label
-									class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-colors
-                                              {progressDetailLevel === 'standard'
-										? 'themed-bg-accent border border-[color:var(--accent)]/30'
-										: 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}"
-								>
-									<input
-										type="radio"
-										bind:group={progressDetailLevel}
-										value="standard"
-										class="mt-0.5 accent-[color:var(--accent)]"
-									/>
-									<div>
-										<p
-											class="text-sm font-medium {progressDetailLevel === 'standard'
-												? 'themed-accent'
-												: 'themed-text-primary'}"
-										>
-											Standard
-										</p>
-										<p class="themed-text-subtle text-xs">Club rider — some context</p>
-									</div>
-								</label>
-								<label
-									class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-colors
-                                              {progressDetailLevel === 'coach'
-										? 'themed-bg-accent border border-[color:var(--accent)]/30'
-										: 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}"
-								>
-									<input
-										type="radio"
-										bind:group={progressDetailLevel}
-										value="coach"
-										class="mt-0.5 accent-[color:var(--accent)]"
-									/>
-									<div>
-										<p
-											class="text-sm font-medium {progressDetailLevel === 'coach'
-												? 'themed-accent'
-												: 'themed-text-primary'}"
-										>
-											Coach
-										</p>
-										<p class="themed-text-subtle text-xs">Full coaching detail</p>
-									</div>
-								</label>
-								<label
-									class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-colors
-                                              {progressDetailLevel === 'technical'
-										? 'themed-bg-accent border border-[color:var(--accent)]/30'
-										: 'themed-nested-card border border-[color:var(--border)] hover:border-[color:var(--accent)]/20'}"
-								>
-									<input
-										type="radio"
-										bind:group={progressDetailLevel}
-										value="technical"
-										class="mt-0.5 accent-[color:var(--accent)]"
-									/>
-									<div>
-										<p
-											class="text-sm font-medium {progressDetailLevel === 'technical'
-												? 'themed-accent'
-												: 'themed-text-primary'}"
-										>
-											Technical
-										</p>
-										<p class="themed-text-subtle text-xs">All metrics and diagnostics</p>
-									</div>
-								</label>
-							</div>
-						</fieldset>
-
-						<!-- Options -->
-						<fieldset>
-							<legend class="themed-text-subtle mb-2 text-xs font-semibold tracking-wider uppercase"
-								>Include</legend
-							>
-							<div class="space-y-2">
-								<label class="group flex cursor-pointer items-center gap-3">
-									<input
-										type="checkbox"
-										bind:checked={progressIncludeCharts}
-										class="accent-[color:var(--accent)]"
-									/>
-									<div>
-										<p
-											class="themed-text-primary group-hover:themed-accent text-sm transition-colors"
-										>
-											Charts
-										</p>
-										<p class="themed-text-subtle text-xs">Visual evidence sections</p>
-									</div>
-								</label>
-								<label class="group flex cursor-pointer items-center gap-3">
-									<input
-										type="checkbox"
-										bind:checked={progressIncludeDiag}
-										class="accent-[color:var(--accent)]"
-									/>
-									<div>
-										<p
-											class="themed-text-primary group-hover:themed-accent text-sm transition-colors"
-										>
-											Data quality notes
-										</p>
-										<p class="themed-text-subtle text-xs">Sensor and calibration detail</p>
-									</div>
-								</label>
-								{#if data.goalTargets && Object.keys(data.goalTargets).length > 0}
-									<label class="group flex cursor-pointer items-center gap-3">
-										<input
-											type="checkbox"
-											bind:checked={progressIncludeGoals}
-											class="accent-[color:var(--accent)]"
-										/>
-										<div>
-											<p
-												class="themed-text-primary group-hover:themed-accent text-sm transition-colors"
-											>
-												Goal progress
-											</p>
-											<p class="themed-text-subtle text-xs">
-												Progress toward active training goals
-											</p>
-										</div>
-									</label>
-								{/if}
-							</div>
-						</fieldset>
-
-						<!-- Generate button -->
-						<button
-							onclick={() => {
-								showProgressOptions = false;
-								generateProgressReport();
-							}}
-							disabled={generatingProgress}
-							class="w-full rounded-xl bg-[color:var(--accent)] py-3 text-sm font-bold
-                                   text-[color:var(--bg)] transition-all hover:bg-[color:var(--accent-dark)]
-                                   focus:ring-2 focus:ring-[color:var(--accent)]
-                                   focus:ring-offset-2 focus:ring-offset-[color:var(--card)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							{generatingProgress ? 'Generating…' : 'Generate Report'}
-						</button>
+			<div class="mt-5 grid gap-5 md:grid-cols-2">
+				<fieldset>
+					<legend class="themed-text-subtle mb-2 text-xs font-semibold tracking-wider uppercase">Audience</legend>
+					<div class="space-y-2">
+						{#each [['simple', 'Simple — rider or parent'], ['standard', 'Standard — club rider'], ['coach', 'Coach — full coaching detail'], ['technical', 'Technical — all metrics']] as option}
+							<label class="themed-nested-card flex cursor-pointer items-center gap-3 rounded-lg p-3 text-sm">
+								<input type="radio" bind:group={progressDetailLevel} value={option[0]} />
+								<span class="themed-text-primary">{option[1]}</span>
+							</label>
+						{/each}
 					</div>
+				</fieldset>
 
-					<!-- What's included preview -->
-					<div class="themed-nested-card rounded-lg border border-[color:var(--border)] p-4">
-						<h4 class="themed-accent mb-3 text-xs font-semibold tracking-wider uppercase">
-							What's Included
-						</h4>
-						<ul class="themed-text-secondary space-y-2 text-xs">
-							<li class="flex items-start gap-2">
-								<span class="themed-accent">•</span>
-								<span>Progress headline with confidence level</span>
-							</li>
-							<li class="flex items-start gap-2">
-								<span class="themed-accent">•</span>
-								<span>Reaction time and speed trends across {data.sessionCount} sessions</span>
-							</li>
-							<li class="flex items-start gap-2">
-								<span class="themed-accent">•</span>
-								<span>Consistency and fatigue patterns over time</span>
-							</li>
-							<li class="flex items-start gap-2">
-								<span class="themed-accent">•</span>
-								<span>Forward-looking observations for next sessions</span>
-							</li>
-							{#if progressIncludeCharts}
-								<li class="flex items-start gap-2">
-									<span class="text-[#3de8c8]">•</span>
-									<span>Trend chart references</span>
-								</li>
-							{/if}
-							{#if progressIncludeGoals && data.goalTargets && Object.keys(data.goalTargets).length > 0}
-								<li class="flex items-start gap-2">
-									<span class="text-[#3de8c8]">•</span>
-									<span>Goal progress context</span>
-								</li>
-							{/if}
-						</ul>
-						<div class="mt-4 border-t border-[color:var(--border)] pt-4">
-							<p class="themed-text-subtle text-[10px]">
-								Progress reports cover trends across all sessions. For single-session detail, use
-								the Session Report on any session page.
-							</p>
-						</div>
+				<fieldset>
+					<legend class="themed-text-subtle mb-2 text-xs font-semibold tracking-wider uppercase">Include</legend>
+					<div class="space-y-3 text-sm">
+						<label class="flex items-center gap-3"><input type="checkbox" bind:checked={progressIncludeCharts} /><span class="themed-text-primary">Charts</span></label>
+						<label class="flex items-center gap-3"><input type="checkbox" bind:checked={progressIncludeDiag} /><span class="themed-text-primary">Data-quality notes</span></label>
+						{#if data.goalTargets && Object.keys(data.goalTargets).length > 0}
+							<label class="flex items-center gap-3"><input type="checkbox" bind:checked={progressIncludeGoals} /><span class="themed-text-primary">Goal context</span></label>
+						{/if}
 					</div>
-				</div>
+				</fieldset>
 			</div>
+
+			<button onclick={generateProgressReport} disabled={generatingProgress} class="mt-6 w-full rounded-lg bg-[color:var(--accent)] py-3 text-sm font-bold text-[color:var(--bg)] disabled:opacity-50">
+				{generatingProgress ? 'Generating…' : 'Generate report'}
+			</button>
 		</div>
 	</div>
 {/if}
 
-<!-- ── Report Preview Modal ── -->
 {#if showProgressReport && progressReport}
-	<div
-		class="report-modal-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
-		role="button"
-		tabindex="0"
-		onclick={(e) => e.target === e.currentTarget && closeProgressReport()}
-		onkeydown={(e) =>
-			(e.key === 'Escape' || (e.key === 'Enter' && e.target === e.currentTarget)) &&
-			closeProgressReport()}
-		aria-label="Close progress report"
-	>
-		<div
-			class="report-modal-dialog my-8 w-full max-w-5xl"
-			role="dialog"
-			tabindex="-1"
-			aria-modal="true"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
-		>
+	<div class="report-modal-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4" role="presentation" onclick={(event) => event.target === event.currentTarget && (showProgressReport = false)}>
+		<div class="report-modal-dialog my-8 w-full max-w-5xl" role="dialog" aria-modal="true">
 			<ReportPreview
 				report={progressReport}
-				onClose={closeProgressReport}
+				onClose={() => (showProgressReport = false)}
 				coachLinks={data.coachLinks ?? []}
 				onSendToCoach={sendProgressReportToCoach}
 			/>
@@ -1420,9 +583,9 @@
 	</div>
 {/if}
 
+<div class="no-print"><HelpPanel bind:open={helpOpen} {helpKey} /></div>
+
 <style>
-	/* See sessions/[id]/+layout.svelte for why this reset is needed — the
-	   modal's position:fixed + overflow-y-auto breaks print pagination. */
 	@media print {
 		.report-modal-backdrop {
 			position: static !important;
@@ -1440,7 +603,3 @@
 		}
 	}
 </style>
-
-<div class="no-print">
-	<HelpPanel bind:open={helpOpen} {helpKey} />
-</div>
