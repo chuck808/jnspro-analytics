@@ -1,423 +1,283 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+
 	let { data }: { data: PageData } = $props();
 
-	function fmtReaction(ms: number | null) {
-		return ms !== null ? (ms / 1000).toFixed(3) + 's' : '—';
-	}
-	function fmtSpeed(ms: number | null) {
-		return ms !== null ? (ms * 3.6).toFixed(1) : '—';
-	}
-	function fmtG(g: number | null) {
-		return g !== null ? g.toFixed(2) + 'G' : '—';
-	}
-	function fmtConsistency(cv: number | null | undefined) {
-		if (cv === null || cv === undefined) return { value: '—', label: 'No data', color: '#6b5f4d' };
-		if (cv < 2) return { value: cv.toFixed(1) + '%', label: 'Outstanding', color: '#3de8c8' };
-		if (cv < 5) return { value: cv.toFixed(1) + '%', label: 'Good', color: '#f5a623' };
-		return { value: cv.toFixed(1) + '%', label: 'Variable', color: '#ff4444' };
+	function fmtReaction(ms: number | null | undefined) {
+		return ms !== null && ms !== undefined ? `${(ms / 1000).toFixed(3)}s` : '—';
 	}
 
-	let consistencyData = $derived(fmtConsistency(data.consistency));
+	function fmtSpeed(ms: number | null | undefined) {
+		return ms !== null && ms !== undefined ? `${(ms * 3.6).toFixed(1)} km/h` : '—';
+	}
+
+	function fmtG(g: number | null | undefined) {
+		return g !== null && g !== undefined ? `${g.toFixed(2)}G` : '—';
+	}
+
+	function fmtDate(timestamp: string) {
+		return new Intl.DateTimeFormat('en-GB', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		}).format(new Date(timestamp));
+	}
+
+	function goalLabel(metric: string) {
+		return (
+			{
+				reactionTime: 'Reaction time',
+				maxG: 'Max G-force',
+				peakSpeed: 'Peak speed',
+				consistency: 'Consistency',
+				elapsedTime: 'Elapsed time',
+				accelerationPhase: 'Acceleration phase',
+				endurance: 'Gates per session'
+			} as Record<string, string>
+		)[metric] ?? metric;
+	}
+
+	function consistencyLabel(cv: number | null | undefined) {
+		if (cv === null || cv === undefined) return 'Not enough data yet';
+		if (cv < 2) return 'Very repeatable';
+		if (cv < 5) return 'Consistent';
+		return 'Variable';
+	}
+
+	let latest = $derived(data.recentSessions?.[0] ?? null);
+	let previous = $derived(data.recentSessions?.[1] ?? null);
+	let latestIsReactionPb = $derived(
+		latest?.best_reaction_ms !== null &&
+		latest?.best_reaction_ms !== undefined &&
+		data.personalBests.reaction_ms !== null &&
+		latest.best_reaction_ms === data.personalBests.reaction_ms
+	);
+	let latestReactionChange = $derived(
+		latest?.best_reaction_ms !== null &&
+		latest?.best_reaction_ms !== undefined &&
+		previous?.best_reaction_ms !== null &&
+		previous?.best_reaction_ms !== undefined
+			? latest.best_reaction_ms - previous.best_reaction_ms
+			: null
+	);
+	let primaryGoal = $derived(data.activeGoals?.[0] ?? null);
+
+	let headline = $derived.by(() => {
+		if (data.sessionCount === 0) return 'Your training record starts here';
+		if (latestIsReactionPb) return 'That last session moved the needle';
+		if (latestReactionChange !== null && latestReactionChange < -5) return 'Your latest reaction was sharper';
+		if (latestReactionChange !== null && latestReactionChange > 5) return 'Your latest reaction was a little slower';
+		return 'Your recent performance is holding steady';
+	});
+
+	let headlineDetail = $derived.by(() => {
+		if (data.sessionCount === 0) {
+			return 'Upload from SD card or let your AppGatePro device send a session over Wi-Fi. Your analytics build from there.';
+		}
+		if (!latest) return 'Your training history is ready to explore.';
+		if (latestIsReactionPb && latest.best_reaction_ms !== null) {
+			return `You recorded a new best reaction of ${fmtReaction(latest.best_reaction_ms)} in your latest session.`;
+		}
+		if (latestReactionChange !== null && latest.best_reaction_ms !== null) {
+			const amount = Math.abs(latestReactionChange);
+			return latestReactionChange < 0
+				? `Best reaction was ${amount.toFixed(0)} ms quicker than your previous session.`
+				: `Best reaction was ${amount.toFixed(0)} ms slower than your previous session — one session is context, not a trend.`;
+		}
+		return `Your latest session included ${latest.run_count} statistically eligible run${latest.run_count === 1 ? '' : 's'}.`;
+	});
 </script>
 
 <svelte:head>
-	<title>Dashboard — AppGatePro</title>
+	<title>Home — AppGatePro</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<!-- Welcome banner -->
-	<div class="themed-card">
-		<h2 class="themed-text-primary mb-1 text-xl font-bold">
-			Welcome back, {data.profile?.name?.split(' ')[0] ?? 'Rider'} 👋
-		</h2>
-		<p class="themed-text-secondary text-sm">
-			{#if data.sessionCount === 0}
-				Upload your first session to start tracking your BMX performance.
-			{:else if data.sessionCount === 1}
-				You've uploaded {data.sessionCount} session with {data.totalRuns} run{data.totalRuns !== 1
-					? 's'
-					: ''}.
-			{:else}
-				You've uploaded {data.sessionCount} sessions with {data.totalRuns} total runs.
-			{/if}
-		</p>
-	</div>
+<div class="mx-auto max-w-7xl space-y-8">
+	<section class="overflow-hidden rounded-2xl border border-[#f5a623]/15 bg-[var(--theme-surface)]">
+		<div class="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(260px,0.8fr)] lg:items-end">
+			<div>
+				<p class="mb-3 text-xs font-semibold tracking-[0.18em] text-[#f5a623] uppercase">What to notice</p>
+				<h2 class="hero-title max-w-3xl text-4xl leading-[0.98] font-bold text-[var(--theme-text-primary)] md:text-5xl">
+					{headline}
+				</h2>
+				<p class="mt-4 max-w-2xl text-base leading-relaxed text-[var(--theme-text-secondary)]">
+					{headlineDetail}
+				</p>
 
-	<!-- Quick stats -->
-	<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-		{#each [{ label: 'Total Sessions', value: data.sessionCount > 0 ? String(data.sessionCount) : '—', sub: data.sessionCount > 0 ? `${data.totalRuns} total runs` : 'Upload your first session', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' }, { label: 'Best Reaction', value: data.sessionCount > 0 ? fmtReaction(data.personalBests.reaction_ms) : '—', sub: data.sessionCount > 0 ? 'all time best' : 'No data yet', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }, { label: 'Peak Speed', value: data.sessionCount > 0 ? fmtSpeed(data.personalBests.peak_speed_ms) : '—', sub: data.sessionCount > 0 ? 'km/h · estimated' : 'No data yet', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' }, { label: 'Consistency', value: consistencyData.value, sub: consistencyData.label, icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }] as stat}
-			<div class="themed-card themed-card-hover">
-				<div class="mb-2 flex items-start justify-between">
-					<p class="themed-text-secondary text-xs tracking-wider uppercase">{stat.label}</p>
-					<svg
-						class="themed-text-subtle h-4 w-4"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-						aria-hidden="true"
+				<div class="mt-6 flex flex-wrap gap-3">
+					{#if latest}
+						<a
+							href={`/sessions/${latest.id}`}
+							class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#f5a623] px-4 py-2 text-sm font-bold text-[#0a0809] transition-colors hover:bg-[#c97e0a] focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg)] focus:outline-none"
+						>
+							Open latest session
+							<span aria-hidden="true">→</span>
+						</a>
+					{:else}
+						<a
+							href="/upload"
+							class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#f5a623] px-4 py-2 text-sm font-bold text-[#0a0809] transition-colors hover:bg-[#c97e0a] focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg)] focus:outline-none"
+						>
+							Upload first session
+							<span aria-hidden="true">→</span>
+						</a>
+					{/if}
+					<a
+						href="/analytics"
+						class="inline-flex min-h-11 items-center rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-secondary)] transition-colors hover:border-[#f5a623]/30 hover:text-[var(--theme-text-primary)] focus:ring-2 focus:ring-[#f5a623] focus:outline-none"
 					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={stat.icon} />
-					</svg>
+						Explore progress
+					</a>
 				</div>
-				<p class="themed-accent text-3xl font-bold">{stat.value}</p>
-				<p class="themed-text-subtle mt-1 text-xs">{stat.sub}</p>
-			</div>
-		{/each}
-	</div>
-
-	<!-- Active Goals -->
-	{#if data.activeGoals && data.activeGoals.length > 0}
-		<div class="themed-card">
-			<div class="mb-4 flex items-center justify-between">
-				<h3 class="themed-text-primary text-sm font-semibold">Active Goals</h3>
-				<a
-					href="/goals"
-					class="themed-text-secondary hover:themed-accent rounded text-xs
-                          transition-colors focus:ring-2 focus:ring-[#f5a623] focus:outline-none"
-				>
-					View all →
-				</a>
 			</div>
 
-			<div class="space-y-3">
-				{#each data.activeGoals as goal}
-					<div class="themed-nested-card">
-						<div class="mb-2 flex items-start justify-between">
-							<div class="flex-1">
-								<p class="themed-text-primary mb-1 text-sm font-medium">
-									{goal.metric === 'reactionTime'
-										? 'Reaction Time'
-										: goal.metric === 'maxG'
-											? 'Max G-Force'
-											: goal.metric === 'peakSpeed'
-												? 'Peak Speed'
-												: goal.metric === 'consistency'
-													? 'Consistency'
-													: goal.metric === 'elapsedTime'
-														? 'Elapsed Time'
-														: goal.metric === 'accelerationPhase'
-															? 'Acceleration Phase'
-															: goal.metric === 'endurance'
-																? 'Gates per Session'
-																: goal.metric}
-								</p>
-								<p class="themed-text-secondary text-xs">
-									Target: {goal.target_value?.toFixed(2) ?? '—'}
-									{#if goal.current_value !== null}
-										· Current: {goal.current_value.toFixed(2)}
+			{#if latest}
+				<div class="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)]/55 p-5">
+					<div class="flex items-start justify-between gap-4">
+						<div>
+							<p class="text-xs font-semibold tracking-wider text-[var(--theme-text-subtle)] uppercase">Latest session</p>
+							<p class="mt-1 text-sm font-semibold text-[var(--theme-text-primary)]">{fmtDate(latest.timestamp)}</p>
+						</div>
+						<span class="rounded-full bg-[#f5a623]/10 px-2.5 py-1 text-xs font-semibold text-[#f5a623]">
+							{latest.run_count} run{latest.run_count === 1 ? '' : 's'}
+						</span>
+					</div>
+					<div class="mt-6 grid grid-cols-2 gap-4">
+						<div>
+							<p class="text-xs text-[var(--theme-text-subtle)]">Best reaction</p>
+							<p class="mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">{fmtReaction(latest.best_reaction_ms)}</p>
+						</div>
+						<div>
+							<p class="text-xs text-[var(--theme-text-subtle)]">Consistency</p>
+							<p class="mt-1 text-sm font-semibold text-[var(--theme-text-primary)]">{consistencyLabel(latest.reaction_cv)}</p>
+							{#if latest.reaction_cv !== null}
+								<p class="mt-1 text-xs text-[var(--theme-text-subtle)]">CV {latest.reaction_cv?.toFixed(1)}%</p>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	{#if data.sessionCount > 0}
+		<section>
+			<div class="mb-4 flex items-end justify-between gap-4">
+				<div>
+					<p class="text-xs font-semibold tracking-[0.16em] text-[var(--theme-text-subtle)] uppercase">Your evidence</p>
+					<h3 class="section-title mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">A few useful anchors</h3>
+				</div>
+			</div>
+
+			<div class="grid gap-4 md:grid-cols-3">
+				<div class="themed-card">
+					<p class="text-xs font-semibold tracking-wider text-[var(--theme-text-subtle)] uppercase">Best reaction</p>
+					<p class="mt-3 text-4xl font-bold text-[#f5a623]">{fmtReaction(data.personalBests.reaction_ms)}</p>
+					<p class="mt-2 text-sm text-[var(--theme-text-secondary)]">Fastest statistically eligible reaction in your history.</p>
+				</div>
+
+				<div class="themed-card">
+					<p class="text-xs font-semibold tracking-wider text-[var(--theme-text-subtle)] uppercase">Consistency</p>
+					<p class="mt-3 text-2xl font-bold text-[var(--theme-text-primary)]">{consistencyLabel(data.consistency)}</p>
+					<p class="mt-2 text-sm text-[var(--theme-text-secondary)]">
+						{data.consistency !== null ? `Reaction CV ${data.consistency.toFixed(1)}% across eligible runs.` : 'More eligible runs are needed before this becomes meaningful.'}
+					</p>
+				</div>
+
+				<div class="themed-card">
+					{#if primaryGoal}
+						<div class="flex items-start justify-between gap-3">
+							<p class="text-xs font-semibold tracking-wider text-[var(--theme-text-subtle)] uppercase">Goal progress</p>
+							<span class="text-sm font-bold text-[#f5a623]">{primaryGoal.progress}%</span>
+						</div>
+						<p class="mt-3 text-xl font-bold text-[var(--theme-text-primary)]">{goalLabel(primaryGoal.metric)}</p>
+						<div class="mt-4 h-2 overflow-hidden rounded-full bg-[var(--theme-border)]">
+							<div class="h-full rounded-full bg-[#f5a623]" style={`width:${primaryGoal.progress}%`}></div>
+						</div>
+						<a href="/goals" class="mt-4 inline-block text-sm font-semibold text-[var(--theme-text-secondary)] hover:text-[#f5a623]">View goal →</a>
+					{:else}
+						<p class="text-xs font-semibold tracking-wider text-[var(--theme-text-subtle)] uppercase">Goals</p>
+						<p class="mt-3 text-xl font-bold text-[var(--theme-text-primary)]">Nothing set yet</p>
+						<p class="mt-2 text-sm text-[var(--theme-text-secondary)]">Create a target when there is something specific you want to chase.</p>
+						<a href="/goals" class="mt-4 inline-block text-sm font-semibold text-[#f5a623]">Set a goal →</a>
+					{/if}
+				</div>
+			</div>
+		</section>
+
+		<section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+			<div class="themed-card">
+				<div class="mb-5 flex items-center justify-between gap-4">
+					<div>
+						<p class="text-xs font-semibold tracking-[0.16em] text-[var(--theme-text-subtle)] uppercase">Recent training</p>
+						<h3 class="section-title mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">Your last sessions</h3>
+					</div>
+					<a href="/sessions" class="text-sm font-semibold text-[var(--theme-text-secondary)] hover:text-[#f5a623]">All sessions →</a>
+				</div>
+
+				<div class="divide-y divide-[var(--theme-border)]">
+					{#each data.recentSessions as session, index}
+						<a href={`/sessions/${session.id}`} class="group grid min-h-20 grid-cols-[1fr_auto] items-center gap-5 py-4 first:pt-0 last:pb-0">
+							<div class="min-w-0">
+								<div class="flex flex-wrap items-center gap-2">
+									<p class="font-semibold text-[var(--theme-text-primary)] group-hover:text-[#f5a623]">{index === 0 ? 'Latest session' : fmtDate(session.timestamp)}</p>
+									{#if index === 0 && latestIsReactionPb}
+										<span class="rounded-full bg-[#3de8c8]/10 px-2 py-0.5 text-xs font-semibold text-[#3de8c8]">Reaction PB</span>
+									{/if}
+								</div>
+								<p class="mt-1 text-sm text-[var(--theme-text-secondary)]">
+									{session.run_count} run{session.run_count === 1 ? '' : 's'} · best reaction {fmtReaction(session.best_reaction_ms)}
+									{#if session.has_valid_speed && session.best_peak_speed_ms !== null}
+										· peak {fmtSpeed(session.best_peak_speed_ms)}
 									{/if}
 								</p>
 							</div>
-							<div class="ml-3 flex-shrink-0 text-right">
-								{#if goal.isOverdue}
-									<span class="rounded bg-red-500/10 px-2 py-0.5 text-xs text-red-400">Overdue</span
-									>
-								{:else if goal.daysUntilDeadline <= 7}
-									<span class="themed-accent rounded bg-[#f5a623]/10 px-2 py-0.5 text-xs"
-										>{goal.daysUntilDeadline}d left</span
-									>
-								{:else}
-									<span class="themed-text-subtle text-xs">{goal.daysUntilDeadline} days</span>
-								{/if}
-							</div>
-						</div>
-
-						<div class="themed-progress-track h-2 w-full overflow-hidden rounded-full">
-							<div
-								class="h-full rounded-full transition-all duration-500"
-								style="width:{goal.progress}%; background:{goal.progress >= 75
-									? '#3de8c8'
-									: goal.progress >= 25
-										? '#f5a623'
-										: '#6b5f4d'}"
-							></div>
-						</div>
-						<p class="themed-text-subtle mt-1 text-xs">{goal.progress}% complete</p>
-					</div>
-				{/each}
+							<span class="text-lg text-[var(--theme-text-faint)] transition-transform group-hover:translate-x-1 group-hover:text-[#f5a623]">→</span>
+						</a>
+					{/each}
+				</div>
 			</div>
 
-			<a
-				href="/goals"
-				class="themed-nested-surface themed-border themed-text-secondary hover:themed-accent mt-4 flex min-h-[44px] items-center
-                      justify-center gap-2 rounded-lg
-                      p-3 text-sm transition-all hover:border-[#f5a623]/20 hover:bg-[var(--theme-surface-hover)]
-                      focus:ring-2 focus:ring-[#f5a623] focus:outline-none"
-			>
-				<svg
-					class="h-4 w-4"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-					aria-hidden="true"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 4v16m8-8H4"
-					/>
-				</svg>
-				Create New Goal
-			</a>
-		</div>
-	{/if}
-
-	{#if data.sessionCount === 0}
-		<!-- First time upload CTA -->
-		<div class="themed-card border-[#f5a623]/20 text-center">
-			<div
-				class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#f5a623]/10"
-			>
-				<svg class="themed-accent h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-					/>
-				</svg>
-			</div>
-			<h3 class="themed-text-primary mb-2 text-lg font-semibold">Upload your first session</h3>
-			<p class="themed-text-secondary mx-auto mb-6 max-w-sm text-sm">
-				Copy the JSON file from your AppGatePro SD card and upload it to start seeing your
-				analytics.
-			</p>
-			<a
-				href="/upload"
-				class="themed-bg-accent inline-flex min-h-[44px] items-center gap-2 rounded-lg px-6
-                      py-3 text-sm font-semibold transition-colors hover:bg-[#c97e0a]
-                      focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg)] focus:outline-none"
-			>
-				<svg
-					class="h-4 w-4"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-					aria-hidden="true"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-					/>
-				</svg>
-				Upload Session
-			</a>
-		</div>
-	{:else}
-		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-			<!-- Recent sessions -->
 			<div class="themed-card">
-				<div class="mb-4 flex items-center justify-between">
-					<h3 class="themed-text-primary text-sm font-semibold">Recent Sessions</h3>
-					<a
-						href="/sessions"
-						class="themed-text-secondary hover:themed-accent rounded text-xs
-                              transition-colors focus:ring-2 focus:ring-[#f5a623] focus:outline-none"
-					>
-						View all →
-					</a>
-				</div>
-
-				{#if data.recentSessions.length === 0}
-					<p class="themed-text-subtle py-8 text-center text-sm">No sessions yet</p>
-				{:else}
-					<div class="space-y-2">
-						{#each data.recentSessions as session}
-							<a
-								href="/sessions/{session.id}"
-								class="themed-nested-surface group flex min-h-[44px] items-center gap-4
-                                      rounded-lg p-3 transition-colors hover:bg-[var(--theme-surface-hover)]
-                                      focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2
-                                      focus:ring-offset-[var(--theme-surface)] focus:outline-none"
-							>
-								<div class="w-10 flex-shrink-0 text-center">
-									<p class="themed-accent text-sm font-bold">
-										{new Date(session.timestamp).getDate()}
-									</p>
-									<p class="themed-text-subtle text-xs">
-										{new Date(session.timestamp).toLocaleDateString('en-GB', { month: 'short' })}
-									</p>
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="mb-0.5 flex items-center gap-2">
-										<p class="themed-text-primary text-sm font-medium">{session.run_count} runs</p>
-										{#if session.reaction_cv !== null && session.reaction_cv < 2}
-											<span class="rounded bg-[#3de8c8]/10 px-1.5 py-0.5 text-xs text-[#3de8c8]"
-												>Consistent</span
-											>
-										{/if}
-									</div>
-									<p class="themed-text-subtle text-xs">
-										Best: {fmtReaction(session.best_reaction_ms)}
-										{#if session.has_valid_speed}
-											· {fmtSpeed(session.best_peak_speed_ms)}{/if}
-									</p>
-								</div>
-								<svg
-									class="themed-text-subtle group-hover:themed-accent h-4 w-4 flex-shrink-0 transition-colors"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									aria-hidden="true"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M9 5l7 7-7 7"
-									/>
-								</svg>
-							</a>
-						{/each}
+				<p class="text-xs font-semibold tracking-[0.16em] text-[var(--theme-text-subtle)] uppercase">Record</p>
+				<h3 class="section-title mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">The long view</h3>
+				<div class="mt-6 space-y-5">
+					<div class="flex items-end justify-between border-b border-[var(--theme-border)] pb-4">
+						<span class="text-sm text-[var(--theme-text-secondary)]">Sessions</span>
+						<strong class="text-2xl text-[var(--theme-text-primary)]">{data.sessionCount}</strong>
 					</div>
-				{/if}
-			</div>
-
-			<!-- Quick actions + personal bests -->
-			<div class="space-y-4">
-				<div class="themed-card">
-					<h3 class="themed-text-primary mb-3 text-sm font-semibold">Quick Actions</h3>
-					<div class="space-y-2">
-						{#each [{ href: '/upload', label: 'Upload Session', sub: 'Add more training data', amber: true, icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' }, { href: '/analytics', label: 'View Analytics', sub: 'Trends, charts & insights', amber: false, icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }, { href: '/sessions', label: 'All Sessions', sub: `Browse all ${data.sessionCount} sessions`, amber: false, icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' }] as action}
-							<a
-								href={action.href}
-								class="group flex min-h-[44px] items-center gap-3 rounded-lg p-3 transition-all
-                                      focus:ring-2 focus:ring-[#f5a623] focus:outline-none
-                                      {action.amber
-									? 'border border-[#f5a623]/20 bg-[#f5a623]/10 hover:border-[#f5a623]/40 hover:bg-[#f5a623]/20'
-									: 'themed-nested-surface themed-border hover:border-[#f5a623]/20 hover:bg-[var(--theme-surface-hover)]'}"
-							>
-								<div
-									class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors
-                                            {action.amber
-										? 'bg-[#f5a623]/20 group-hover:bg-[#f5a623]/30'
-										: 'themed-progress-track'}"
-								>
-									<svg
-										class="h-5 w-5 {action.amber ? 'themed-accent' : 'themed-text-secondary'}"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-										aria-hidden="true"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d={action.icon}
-										/>
-									</svg>
-								</div>
-								<div class="flex-1">
-									<p class="themed-text-primary text-sm font-medium">{action.label}</p>
-									<p class="themed-text-secondary text-xs">{action.sub}</p>
-								</div>
-								<svg
-									class="h-4 w-4 flex-shrink-0 transition-colors
-                                            {action.amber
-										? 'themed-accent'
-										: 'themed-text-subtle group-hover:themed-accent'}"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									aria-hidden="true"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M9 5l7 7-7 7"
-									/>
-								</svg>
-							</a>
-						{/each}
+					<div class="flex items-end justify-between border-b border-[var(--theme-border)] pb-4">
+						<span class="text-sm text-[var(--theme-text-secondary)]">Recorded runs</span>
+						<strong class="text-2xl text-[var(--theme-text-primary)]">{data.totalRuns}</strong>
+					</div>
+					<div class="flex items-end justify-between border-b border-[var(--theme-border)] pb-4">
+						<span class="text-sm text-[var(--theme-text-secondary)]">Peak speed <span class="text-[var(--theme-text-faint)]">(estimated)</span></span>
+						<strong class="text-xl text-[var(--theme-text-primary)]">{fmtSpeed(data.personalBests.peak_speed_ms)}</strong>
+					</div>
+					<div class="flex items-end justify-between">
+						<span class="text-sm text-[var(--theme-text-secondary)]">Max G</span>
+						<strong class="text-xl text-[var(--theme-text-primary)]">{fmtG(data.personalBests.max_g)}</strong>
 					</div>
 				</div>
-
-				<!-- Personal bests -->
-				{#if data.personalBests.reaction_ms}
-					<div class="themed-card">
-						<h3 class="themed-text-primary mb-3 text-sm font-semibold">Personal Bests</h3>
-						<div class="space-y-2 text-sm">
-							<div class="flex items-center justify-between">
-								<span class="themed-text-secondary">Reaction</span>
-								<span class="themed-accent font-bold"
-									>{fmtReaction(data.personalBests.reaction_ms)}</span
-								>
-							</div>
-							{#if data.personalBests.peak_speed_ms}
-								<div class="flex items-center justify-between">
-									<span class="themed-text-secondary">Speed</span>
-									<span class="themed-accent font-bold"
-										>{fmtSpeed(data.personalBests.peak_speed_ms)} km/h</span
-									>
-								</div>
-							{/if}
-							{#if data.personalBests.max_g}
-								<div class="flex items-center justify-between">
-									<span class="themed-text-secondary">Max G</span>
-									<span class="themed-accent font-bold">{fmtG(data.personalBests.max_g)}</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-				{/if}
 			</div>
-		</div>
+		</section>
+	{:else}
+		<section class="themed-card py-12 text-center">
+			<div class="mx-auto max-w-xl">
+				<p class="text-xs font-semibold tracking-[0.16em] text-[#f5a623] uppercase">First session</p>
+				<h3 class="section-title mt-2 text-3xl font-bold text-[var(--theme-text-primary)]">Give AppGatePro something to learn from</h3>
+				<p class="mt-4 text-sm leading-relaxed text-[var(--theme-text-secondary)]">
+					Your sensor data is the core experience. Video is optional supplementary evidence when you choose to use it.
+				</p>
+				<a href="/upload" class="mt-6 inline-flex min-h-11 items-center rounded-lg bg-[#f5a623] px-5 py-2.5 text-sm font-bold text-[#0a0809] hover:bg-[#c97e0a]">Upload a session</a>
+			</div>
+		</section>
 	{/if}
 </div>
 
 <style>
-	/* Themed utility classes using CSS variables */
-	.themed-card {
-		background: var(--theme-surface);
-		border: 1px solid var(--theme-border);
-		border-radius: 0.75rem;
-		padding: 1.25rem;
-	}
-
-	.themed-card-hover:hover {
-		border-color: rgba(245, 166, 35, 0.2);
-		transition: border-color 0.2s;
-	}
-
-	.themed-nested-card {
-		background: var(--theme-bg);
-		border: 1px solid var(--theme-border);
-		border-radius: 0.5rem;
-		padding: 1rem;
-		transition: border-color 0.2s;
-	}
-
-	.themed-nested-card:hover {
-		border-color: rgba(245, 166, 35, 0.2);
-	}
-
-	.themed-nested-surface {
-		background: var(--theme-bg);
-	}
-
-	.themed-border {
-		border: 1px solid var(--theme-border);
-	}
-
-	.themed-text-primary {
-		color: var(--theme-text-primary);
-	}
-
-	.themed-text-secondary {
-		color: var(--theme-text-secondary);
-	}
-
-	.themed-text-subtle {
-		color: var(--theme-text-subtle);
-	}
-
-	.themed-progress-track {
-		background: var(--theme-border);
+	.hero-title,
+	.section-title {
+		font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
 	}
 </style>
