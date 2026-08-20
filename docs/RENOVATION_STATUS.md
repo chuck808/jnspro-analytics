@@ -10,12 +10,13 @@
 - Phase 2 — Workspace-aware navigation: DONE
 - Phase 3 — Rider Home: DONE
 - Phase 4 — Sessions index: DONE
-- **Phase 5 — Single-session Overview: DONE**
-- **Phase 6 — Session Analysis: IN PROGRESS**
+- Phase 5 — Single-session Overview: DONE
+- **Phase 6 — Session Analysis: DONE**
+- **Phase 7 — Session Deep Dive: IN PROGRESS**
 
 ## Phase 5 sign-off
 
-The single-session Overview is now intentionally the first analytical layer rather than a compressed copy of Analysis.
+The single-session Overview is intentionally the first analytical layer rather than a compressed copy of Analysis.
 
 Signed-off hierarchy:
 
@@ -31,17 +32,42 @@ Signed-off hierarchy:
 10. explicit eligibility/exclusion context when runs are excluded;
 11. **Explore the runs** hand-off into Analysis.
 
-The old duplicate six-card metric wall and duplicate `CrossRunProgression` block were removed from Overview. Their deeper analytical purpose belongs in Analysis; underlying analytics were not deleted.
+The old duplicate six-card metric wall and duplicate `CrossRunProgression` block were removed from Overview. Underlying analytics were not deleted.
 
-Verified live cases include ordinary sessions, PB/achievement sessions, no-valid-speed sessions, warm-up exclusion, goal progress, setup-change comparison, real `chart_data`, and mobile rendering. Static/unit baseline remained green with 109 Vitest tests.
+## Phase 6 sign-off
+
+Session Analysis now has a distinct middle-layer job: **understand the selected run and how it differs, without becoming a catalogue of every diagnostic the system can calculate.**
+
+Signed-off hierarchy:
+
+1. choose / compare runs;
+2. selected run at a glance;
+3. optional video as supplementary evidence;
+4. primary G-force and valid speed/acceleration traces;
+5. reliable impulse/power force-delivery evidence;
+6. consolidated run-specific interpretation;
+7. compact technique summary;
+8. explicit hand-off to Deep Dive.
+
+The Overview-style `TrainingInsightsPanel`, repeated chart-adjacent insight callouts, jerk trace, detailed phase analysis, acceleration splits, detailed six-dimension technique block and coach diagnostics no longer clutter Analysis.
+
+Expert capability was **preserved**, not removed. Jerk, phases, splits, detailed technique and coach diagnostics are grouped in `src/lib/components/session/DeepDiveRunDiagnostics.svelte` and currently surfaced under Deep Dive.
+
+Independent live verification used a real five-run device-ingested session and confirmed:
+
+- run switching/tagging works on desktop and mobile;
+- valid-speed and no-valid-speed behaviour is correct;
+- impulse/power renders when mass inputs are available;
+- optional video remains non-blocking;
+- Analysis contains no relocated expert material;
+- every relocated expert block renders with real non-trivial data in Deep Dive;
+- `svelte-check`, TypeScript and Vitest remained green with 109 tests.
 
 ## Non-obvious session-share invariant
 
 `SocialShareModal` must always bind to the **persisted** achievement (`persistedAchievement`), never the first-time setup live preview.
 
-The first-time `SessionSetupStrip` can preview how context/tag edits would change the hero achievement before the rider saves them. That preview is deliberately not shareable. Sharing is only enabled for evidence that has actually been persisted and can therefore be reproduced later.
-
-If editing `src/routes/(protected)/sessions/[id]/+page.svelte`, preserve this distinction even if the local explanatory comment is moved or rewritten.
+The first-time `SessionSetupStrip` can preview how context/tag edits would change the hero achievement before save. That preview is deliberately not shareable. Sharing is only enabled for evidence that has actually been persisted and can therefore be reproduced later.
 
 ## Test-fixture caveat
 
@@ -49,79 +75,61 @@ Synthetic DB sessions without `chart_data` can make physics-derived hero values 
 
 ## Known test-data contamination
 
-The long-used test rider contains a handful of corrupted legacy May reaction values (including values in the tens/hundreds of seconds). Aggregations over long history can therefore look absurd even when the feature logic is correct; this has already surfaced in Home consistency and setup-change before/after comparison.
+The long-used test rider contains a handful of corrupted legacy May reaction values in the tens/hundreds of seconds. Longitudinal aggregations can therefore look absurd even when the feature logic is correct; this has surfaced in Home consistency and setup-change before/after comparison.
 
-Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those known legacy rows before interpreting aggregate screenshots.
+Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those rows before interpreting aggregate screenshots.
 
-## Phase 6 — inventory complete
+## Phase 7 — inventory complete
 
-The current `/sessions/[id]/analysis` page was audited section-by-section before redesign. Full classification is in `docs/notes/phase6-analysis-inventory.md`.
+Full classification: `docs/notes/phase7-deep-dive-inventory.md`.
 
-Analysis should answer: **why did this run/session behave that way, and how do the runs differ?**
+Deep Dive should answer:
 
-Keep / simplify in Analysis:
+> **What does the underlying evidence show, how was it derived, and where should I investigate further?**
 
-- run selection and `RunTagSelector`;
-- multi-run comparison entry;
-- optional `RunVideoAttachment` as supplementary evidence;
-- concise selected-run metrics and data-quality/provenance cues;
-- primary G-force and valid speed/acceleration curves;
-- reliable impulse/power, but as secondary force-delivery evidence rather than another chart tier;
-- one understandable technique summary;
-- one consolidated run-specific interpretation block.
+Current expert material includes raw G-force drill-down, early-force stability, jerk, detailed phases, acceleration splits, six-dimension technique benchmarking, coach-style diagnostics, calibration/provenance warnings, performance targets, weaknesses/recommendations, notes, previous-session comparison and report generation.
 
-Move to Deep Dive:
+Key Phase 7 decisions from the audit:
 
-- jerk / rate-of-change-of-acceleration trace;
-- detailed Drive / Transition / Velocity phase metrics;
-- acceleration-splits table;
-- detailed six-dimension technique benchmark;
-- `CoachDiagnosticsCard`;
-- raw/methodology-heavy material that complements the existing Deep Dive `DataDrillDown`, stability and technical comparison tools.
+- keep raw drill-down, stability, jerk, phases, splits, detailed technique and coach diagnostics;
+- put evidence-quality/calibration warnings **before** derived technical interpretation;
+- simplify Performance Targets into benchmark context rather than making it the page opening;
+- consolidate Areas for Improvement + Recommendations into one expert follow-up job;
+- keep Session Notes and report generation as late supporting actions;
+- remove the current Deep Dive `RunComparison` headline-metric table because Analysis now owns that job;
+- do not treat the generic previous-session comparison modal as core expert evidence; its longer-term destination belongs with Phase 8 Progress/longitudinal work.
 
-Duplicates/boundaries to resolve:
+## Phase 7 — proposed hierarchy
 
-- Analysis `TrainingInsightsPanel` repeats the Overview session narrative and should be removed or radically scoped;
-- Analysis previously showed both compact and detailed technique scoring;
-- Analysis `RunComparisonSelector` and Deep Dive `RunComparison` need distinct jobs rather than becoming two comparison dashboards.
+1. Deep Dive orientation;
+2. evidence quality / provenance first;
+3. selected-run raw evidence;
+4. force-application detail — jerk and early-force stability;
+5. phase and acceleration detail;
+6. detailed technique decomposition and rider-level benchmarks;
+7. expert diagnostics / prioritised follow-up;
+8. notes and report actions.
 
-## Phase 6 — first structural slice implemented
+This is intentionally **evidence -> derivation -> interpretation -> action**.
 
-Analysis now follows the first-pass hierarchy without changing the underlying calculations:
+## Phase 7 — next exact starting point
 
-1. choose / compare runs;
-2. selected run at a glance;
-3. primary G-force and valid speed/acceleration traces;
-4. reliable impulse/power force-delivery evidence;
-5. consolidated run-specific interpretation;
-6. compact technique summary;
-7. explicit hand-off to Deep Dive.
+First structural code slice:
 
-The Overview-style session-level `TrainingInsightsPanel`, chart-adjacent repeated insight callouts, duplicate detailed technique block, jerk chart, phase table, acceleration splits and coach diagnostics no longer clutter Analysis.
+1. fold `DeepDiveRunDiagnostics` into the intentional page hierarchy instead of appending it after the route through the transitional `detail/+layout.svelte`;
+2. remove the duplicate headline `RunComparison` from Deep Dive;
+3. move evidence-quality warnings ahead of derived diagnostics;
+4. preserve every expert capability relocated during Phase 6;
+5. keep notes/report actions reachable at the bottom;
+6. account for the existing previous-session comparison before removing it from the technical story, with Phase 8 as its likely product destination.
 
-Those expert blocks were **not deleted**. They are grouped in `src/lib/components/session/DeepDiveRunDiagnostics.svelte` and surfaced under the Deep Dive route through `detail/+layout.svelte`. Phase 7 can reorder and restyle that expert layer without reintroducing them into Analysis.
+Verification focus: calibration warning, missing mass, real multi-run expert data, single-run session, 390 px mobile, notes/report access, and confirmation that no expert block disappears during relocation.
 
-Video remains optional supplementary evidence: Analysis is complete without a video attachment, and when a run has video the existing synchronised component remains available alongside the sensor evidence.
+## Standing constraints
 
-## Phase 6 — next exact starting point
-
-Before further code changes, verify the new Analysis/Deep Dive boundary live:
-
-- multi-run selection and tag editing;
-- no-video and video-attached runs;
-- valid-speed and invalid-speed runs;
-- impulse/power present vs unavailable;
-- compact technique summary;
-- mobile layout;
-- Deep Dive still exposes jerk, detailed phases, acceleration splits, detailed technique and coach diagnostics when their source data exists.
-
-If that is clean, the next Phase 6 decision is whether `RunComparisonSelector` itself should be simplified into a question-led comparison entry, and whether the consolidated run insights need prioritisation beyond the current first-three presentation.
-
-Preserve these constraints:
-
-- Analysis remains available to every rider; it is progressive disclosure, not role gating.
-- Do not remove a useful sensor chart merely because another visual or optional video can illustrate the same event.
-- Video remains supplementary and absent-first.
-- Keep canonical run eligibility and exclusion semantics intact.
-- Avoid duplicating answers already given cleanly in Overview.
-- Reserve methodology/provenance-heavy and trace-level expert material for Deep Dive where that separation improves comprehension.
+- Overview -> Analysis -> Deep Dive is progressive disclosure, never rider-type gating.
+- Video is optional supplementary evidence and must never replace required sensor analytics.
+- Keep canonical run eligibility/exclusion semantics intact.
+- Do not claim a trend from one session.
+- Do not silently delete useful analytical capability while reorganising presentation.
+- For Svelte changes, `svelte-check` is required; plain `tsc` is not enough.
