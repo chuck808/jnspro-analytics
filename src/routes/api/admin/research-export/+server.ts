@@ -22,6 +22,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import { requireAdmin } from '$lib/server/adminAuth';
+import { shouldExcludeFromStats } from '$lib/types/runs';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	await requireAdmin(locals.user?.id, locals.supabase);
@@ -340,8 +341,7 @@ async function runExport(
 		const rider = riderMap[session.user_id];
 		if (!rider) continue;
 
-		const tags: string[] = Array.isArray(run.tags) ? run.tags : [];
-		const isEligible = !tags.includes('warmup') && !tags.includes('exclude');
+		const isEligible = !shouldExcludeFromStats(run.tags as any);
 
 		const g = Array.isArray(run.gate_runs) ? run.gate_runs[0] : run.gate_runs;
 		const sessionDate = new Date(session.timestamp);
@@ -416,8 +416,7 @@ function buildSessionStats(runs: any[]): Record<
 		if (!map[run.session_id]) {
 			map[run.session_id] = { all: [], eligible: [] };
 		}
-		const tags: string[] = Array.isArray(run.tags) ? run.tags : [];
-		const isEligible = !tags.includes('warmup') && !tags.includes('exclude');
+		const isEligible = !shouldExcludeFromStats(run.tags as any);
 		const gates = Array.isArray(run.gate_runs)
 			? run.gate_runs
 			: run.gate_runs
