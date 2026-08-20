@@ -243,10 +243,19 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			});
 		}
 
-		const prediction =
+		const rawPrediction =
 			sessionDataPoints.length >= 2 && current !== null
 				? predictGoalProgress(sessionDataPoints, goal.target_value, current, lowerIsBetter)
 				: null;
+		const prediction = rawPrediction
+			? {
+					type: rawPrediction.type,
+					sessionsRemaining: rawPrediction.sessionsRemaining,
+					confidenceInterval: rawPrediction.confidenceInterval,
+					rSquared: rawPrediction.rSquared,
+					metadata: rawPrediction.metadata
+				}
+			: null;
 
 		let adaptiveAnalysis = null;
 		let progressStatus: 'way_ahead' | 'ahead' | 'on_track' | 'behind' | 'way_behind' | 'stalled' =
