@@ -4,16 +4,13 @@ import type { RequestHandler } from './$types';
 import { validateSDFile, transformSDFile } from '$lib/services/ingest';
 import type { SDCardFile } from '$lib/services/ingest';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import {
+	calculateSessionChecksum,
+	findSessionByChecksum,
+	isUniqueViolation,
+	rollbackIncompleteSession
+} from '$lib/server/sessionIngestGuard';
 import { DEVICE_INGEST_SECRET } from '$env/static/private';
-
-async function calculateFileChecksum(data: unknown): Promise<string> {
-	const jsonString = JSON.stringify(data);
-	const encoder = new TextEncoder();
-	const dataBuffer = encoder.encode(jsonString);
-	const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 export const POST: RequestHandler = async ({ request }) => {
 	const authHeader = request.headers.get('x-device-ingest-secret');
@@ -42,16 +39,15 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const supabase = createSupabaseAdminClient();
-	const fileChecksum = await calculateFileChecksum(fileData);
+	const fileChecksum = await calculateSessionChecksum(fileData);
 
 	// Both Wi-Fi and manual SD uploads use sessions.file_checksum. Treat a repeated
 	// device upload as a successful no-op so storage retries are also idempotent.
-	const { data: existingSession, error: duplicateCheckError } = await supabase
-		.from('sessions')
-		.select('id')
-		.eq('user_id', userId)
-		.eq('file_checksum', fileChecksum)
-		.maybeSingle();
+	const { data: existingSession, error: duplicateCheckError } = await findSessionByChecksum(
+		supabase,
+		userId,
+		fileChecksum
+	);
 
 	if (duplicateCheckError) {
 		console.error('Device ingest duplicate check error:', duplicateCheckError);
@@ -105,13 +101,16 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (sessionError || !sessionRecord) {
 			// A concurrent upload can win after our pre-check. Resolve the unique
 			// constraint race to the already-created session instead of duplicating it.
-			if (sessionError?.code === '23505') {
-				const { data: concurrentSession } = await supabase
-					.from('sessions')
-					.select('id')
-					.eq('user_id', userId)
-					.eq('file_checksum', fileChecksum)
-					.maybeSingle();
+			if (isUniqueViolation(sessionError)) {
+				const { data: concurrentSession, error: concurrentLookupError } = await findSessionByChecksum(
+					supabase,
+					userId,
+					fileChecksum
+				);
+
+				if (concurrentLookupError) {
+					console.error('Device ingest concurrent duplicate lookup error:', concurrentLookupError);
+				}
 
 				if (concurrentSession) {
 					return json({
@@ -195,7 +194,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 		} catch (runInsertError) {
 			console.error('[Device ingest] Run insertion failed, rolling back session:', runInsertError);
-			await supabase.from('sessions').delete().eq('id', sessionId);
+			await rollbackIncompleteSession(supabase, sessionId);
 			throw runInsertError;
 		}
 
