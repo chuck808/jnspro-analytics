@@ -62,6 +62,9 @@
 			: null
 	);
 	let primaryGoal = $derived(data.activeGoals?.[0] ?? null);
+	let hasReactionProgression = $derived(
+		(data.recentSessions ?? []).filter((session) => session.best_reaction_ms !== null).length >= 2
+	);
 
 	let headline = $derived.by(() => {
 		if (data.sessionCount === 0) return 'Your training record starts here';
@@ -209,16 +212,18 @@
 			</div>
 		</section>
 
-		<section class="themed-card">
-			<div class="mb-5 flex items-end justify-between gap-4">
-				<div>
-					<p class="text-xs font-semibold tracking-[0.16em] text-[var(--theme-text-subtle)] uppercase">Recent direction</p>
-					<h3 class="section-title mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">Reaction over recent sessions</h3>
+		{#if hasReactionProgression}
+			<section class="themed-card">
+				<div class="mb-5 flex items-end justify-between gap-4">
+					<div>
+						<p class="text-xs font-semibold tracking-[0.16em] text-[var(--theme-text-subtle)] uppercase">Recent direction</p>
+						<h3 class="section-title mt-1 text-2xl font-bold text-[var(--theme-text-primary)]">Reaction over recent sessions</h3>
+					</div>
+					<a href="/analytics" class="text-sm font-semibold text-[var(--theme-text-secondary)] hover:text-[#f5a623]">Explore progress →</a>
 				</div>
-				<a href="/analytics" class="text-sm font-semibold text-[var(--theme-text-secondary)] hover:text-[#f5a623]">Explore progress →</a>
-			</div>
-			<ReactionProgression sessions={data.recentSessions} />
-		</section>
+				<ReactionProgression sessions={data.recentSessions} />
+			</section>
+		{/if}
 
 		<section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
 			<div class="themed-card">
