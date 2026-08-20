@@ -20,7 +20,7 @@
 
 	let data = $derived.by((): PowerDataPoint[] => {
 		const pageData = $page.data as any;
-		const riderWeightKg = pageData.profile?.weight_kg ?? null;
+		const riderWeightKg = pageData.riderWeightKg ?? null;
 		return buildProgressTrendEvidence(
 			(pageData.sessions ?? []).map((session: any) => ({ id: session.id, timestamp: session.timestamp })),
 			pageData.sessionAnalyses ?? [],
@@ -125,7 +125,6 @@
 					y: {
 						ticks: { color: themeTick, font: { size: isMobile ? 9 : 10 } },
 						title: { display: !isMobile, text: 'Power (W)', color: themeTick }
-					}
 				}
 			}
 		});
