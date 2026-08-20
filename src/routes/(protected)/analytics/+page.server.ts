@@ -31,16 +31,27 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			activeGoalMetrics: [],
 			goalTargets: {},
 			bikes: [],
-			coachLinks: []
+			coachLinks: [],
+			riderWeightKg: null
 		};
 
-	// Load bikes for power calculation
 	const { data: bikes } = await supabase
 		.from('bikes')
 		.select('id, name, weight_kg')
 		.eq('user_id', profile.id);
+	const bikeById = new Map((bikes ?? []).map((bike) => [bike.id, bike]));
 
-	// Fetch sessions with context data for correlation analysis
+	// Biometrics are versioned separately from the identity profile. Keep all
+	// rider snapshots so historical physics uses the snapshot linked to the
+	// session rather than today's weight/rider level.
+	const { data: riderProfiles } = await supabase
+		.from('rider_profiles')
+		.select('id, weight_kg, rider_level, effective_from')
+		.eq('user_id', profile.id)
+		.order('effective_from', { ascending: true });
+	const riderProfileById = new Map((riderProfiles ?? []).map((row) => [row.id, row]));
+	const latestRiderProfile = riderProfiles?.[riderProfiles.length - 1] ?? null;
+
 	const { data: sessions, error } = await supabase
 		.from('sessions')
 		.select(
@@ -61,7 +72,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			trend: { reaction: null, speed: null },
 			activeGoalMetrics: [],
 			goalTargets: {},
-			coachLinks: []
+			coachLinks: [],
+			riderWeightKg: latestRiderProfile?.weight_kg ?? null
 		};
 	}
 
@@ -84,7 +96,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		coachName: coachNameById.get(l.coach_id) ?? 'Coach'
 	}));
 
-	// Fetch all runs for these sessions
 	const sessionIds = sessions.map((s) => s.id);
 	const { data: runs, error: runsError } = await supabase
 		.from('runs')
@@ -100,11 +111,12 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			personalBests: { reaction_ms: null, peak_speed_ms: null, max_g: null },
 			trend: { reaction: null, speed: null },
 			activeGoalMetrics: [],
-			goalTargets: {}
+			goalTargets: {},
+			coachLinks,
+			riderWeightKg: latestRiderProfile?.weight_kg ?? null
 		};
 	}
 
-	// Fetch all gate_runs for these runs
 	const runIds = (runs || []).map((r) => r.id);
 	const { data: gateRuns } = await supabase
 		.from('gate_runs')
@@ -113,7 +125,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		)
 		.in('run_id', runIds);
 
-	// Combine the data
 	const sessionsWithRuns = sessions.map((session) => ({
 		...session,
 		runs: (runs || [])
@@ -124,8 +135,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			}))
 	}));
 
-	// Flat list of stats-eligible runs across all sessions (for heatmap + correlation).
-	// Warmup and excluded runs are filtered out — they would skew trend data.
 	const allRuns = sessionsWithRuns.flatMap((session) =>
 		(session.runs ?? [])
 			.filter((run) => !shouldExcludeFromStats(run.tags as any))
@@ -143,10 +152,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			)
 	);
 
-	// Per-session summaries — built by the shared utility so both the analytics
-	// page and the session detail page produce identical values.
 	const sessionSummaries = buildSessionSummaries(sessionsWithRuns as any);
-
 	const sessionCount = sessionSummaries.length;
 
 	let depth: 'none' | 'minimal' | 'basic' | 'full' | 'advanced';
@@ -194,7 +200,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		}
 	}
 
-	// Fetch active goals to show "create goal" CTAs and chart overlays
 	const { data: goals } = await supabase
 		.from('training_goals')
 		.select('metric, target_value, start_value, current_value, deadline')
@@ -202,8 +207,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		.is('completed_at', null);
 
 	const activeGoalMetrics = new Set((goals ?? []).map((g) => g.metric));
-
-	// Format goals for chart overlays
 	const goalTargets = (goals ?? []).reduce(
 		(acc, goal) => {
 			acc[goal.metric] = {
@@ -217,13 +220,9 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		{} as Record<string, any>
 	);
 
-	// ── CORRELATION INSIGHTS (Phase 3 Task 3.2) ──
-	// Generate insights when sufficient data is available
 	const correlationData = prepareCorrelationData(sessionsWithRuns, sessionSummaries);
 	const correlationInsights = generateCorrelationInsights(correlationData, 10);
 
-	// ── PERFORMANCE ENGINE ANALYSIS (Phase 2) ──
-	// Analyze last 10 sessions for technique trends and diagnostics
 	interface SessionAnalysisResult {
 		sessionId: string;
 		timestamp: string;
@@ -236,10 +235,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 	let sessionAnalyses: SessionAnalysisResult[] = [];
 
 	if (sessionCount > 0) {
-		// Analyse all sessions up to 'full' depth (up to 19 sessions).
-		// At 'advanced' (20+), limit to the last 30 — approximately two full season
-		// blocks — which is the meaningful trend window for gate start development.
-		// Previously limited to 10 which truncated technique trends for active riders.
 		const analysisLimit = depth === 'advanced' ? 30 : sessionCount;
 		const sessionsToAnalyze = sessionsWithRuns.slice(-analysisLimit);
 
@@ -247,14 +242,9 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			.map((session) => {
 				const sessionRuns = session.runs || [];
 				const eligibleRuns = sessionRuns.filter((r: any) => !shouldExcludeFromStats(r.tags as any));
-
-				// Only analyze if we have chart_data on eligible runs
-				if (eligibleRuns.length === 0 || !eligibleRuns.some((r: any) => r.chart_data)) {
-					return null;
-				}
+				if (eligibleRuns.length === 0 || !eligibleRuns.some((r: any) => r.chart_data)) return null;
 
 				try {
-					// Build session object for Performance Engine using stats-eligible runs only
 					const sessionForAnalysis = {
 						id: session.id,
 						session_type: session.session_type,
@@ -268,25 +258,27 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 						}))
 					};
 
-					// Run full Performance Engine analysis
+					const sessionRiderProfile =
+						(session.rider_profile_id ? riderProfileById.get(session.rider_profile_id) : null) ??
+						latestRiderProfile;
+					const sessionBike = session.bike_id ? bikeById.get(session.bike_id) : null;
+					const riderLevel = sessionRiderProfile?.rider_level ?? 'rider';
+
 					const analysis = analyseSession(sessionForAnalysis as any, {
-						riderWeightKg: (profile as any).weight_kg,
-						bikeWeightKg: bikes?.[0]?.weight_kg,
-						riderLevel: (profile as any).rider_level,
+						riderWeightKg: sessionRiderProfile?.weight_kg ?? undefined,
+						bikeWeightKg: sessionBike?.weight_kg ?? undefined,
+						riderLevel: riderLevel as any,
 						sessionFocus: (session as any).session_focus ?? null,
 						rideFeel: (session as any).ride_feel ?? null,
 						weatherCondition: (session as any).weather_conditions ?? null,
 						trackSurface: (session as any).track_surface ?? null
 					});
 
-					// Extract technique scores from selected run
 					const techniqueScores = analysis.selectedRun?.technique ?? null;
-
-					// Generate coach diagnostics if we have a selected run
 					let diagnostics: CoachDiagnostic[] = [];
 					if (analysis.selectedRun) {
 						const scoreBreakdown = scoreRunTechnique(analysis.selectedRun, analysis, {
-							riderLevel: ((profile as any).rider_level as any) || 'rider'
+							riderLevel: riderLevel as any
 						});
 						diagnostics = buildCoachDiagnostics(analysis, scoreBreakdown, {
 							sessionFocus: (session as any).session_focus ?? null,
@@ -294,11 +286,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 						});
 					}
 
-					// Build insight pack
-					const insightPack = buildPerformanceInsightPack(
-						analysis,
-						((profile as any).rider_level as any) || 'rider'
-					);
+					const insightPack = buildPerformanceInsightPack(analysis, riderLevel as any);
 
 					return {
 						sessionId: session.id,
@@ -328,7 +316,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		goalTargets,
 		bikes: bikes ?? [],
 		coachLinks,
-		correlationInsights, // NEW: Pattern discovery insights
-		sessionAnalyses // NEW: Performance Engine analysis for last 10 sessions
+		correlationInsights,
+		sessionAnalyses,
+		riderWeightKg: latestRiderProfile?.weight_kg ?? null
 	};
 };
