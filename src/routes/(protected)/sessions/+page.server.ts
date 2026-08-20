@@ -4,6 +4,8 @@ import { buildSessionSummary } from '$lib/server/sessionSummaryBuilder';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import { reconcilePerformanceSnapshot } from '$lib/server/reconcilePerformanceSnapshot';
 
+type SortDirection = 'asc' | 'desc';
+
 export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }) => {
 	const { profile } = await parent();
 	if (!profile) {
@@ -23,7 +25,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	const perPage = [5, 10, 20, 50].includes(requestedPerPage) ? requestedPerPage : 10;
 	const dateFrom = url.searchParams.get('dateFrom') || null;
 	const dateTo = url.searchParams.get('dateTo') || null;
-	const sortDir = url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
+	const sortDir: SortDirection = url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
 
 	let query = supabase
 		.from('sessions')
