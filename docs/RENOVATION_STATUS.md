@@ -13,7 +13,7 @@
 - Phase 5 — Single-session Overview: DONE
 - Phase 6 — Session Analysis: DONE
 - **Phase 7 — Session Deep Dive: DONE**
-- **Phase 8 — Progress / longitudinal analytics: NEXT**
+- **Phase 8 — Progress / longitudinal analytics: IN PROGRESS**
 
 ## Phase 5 sign-off
 
@@ -71,29 +71,7 @@ Signed-off hierarchy:
 
 The hierarchy is intentionally **evidence -> derivation -> interpretation -> action**.
 
-Phase 7 structural decisions now landed:
-
-- calibration/data-quality and missing-mass warnings appear before derived interpretation;
-- the old Deep Dive headline `RunComparison` has been removed because Analysis owns headline run comparison;
-- `DeepDiveRunDiagnostics` is integrated directly into the Deep Dive page rather than appended through a transitional nested layout;
-- the temporary `detail/+layout.svelte` has been removed;
-- raw drill-down, stability, jerk, phases, acceleration splits, six-dimension technique and coach diagnostics remain available;
-- Performance Targets is contextual benchmark evidence rather than the page opener;
-- Areas for Improvement and Recommendations share one expert follow-up section;
-- Notes and Report remain late supporting actions;
-- Compare to Previous Session remains reachable at the bottom for now, with an explicit Phase 8 decision still pending on its long-term home.
-
-Independent live verification confirmed:
-
-- `svelte-check`, TypeScript and Vitest all green with 109 tests;
-- real multi-run device data renders the full expert hierarchy;
-- Deep Dive no longer contains the duplicate headline run comparison;
-- Analysis still owns `Compare Multiple Runs`;
-- missing-mass evidence-quality warning renders first and links correctly to Profile;
-- single-run sessions still render all per-run expert diagnostics;
-- mobile layout is clean at 390 px;
-- Notes, previous-session comparison and Report remain reachable;
-- no expert capability disappeared during the relocation.
+Independent live verification confirmed the full hierarchy on real device data, clean mobile rendering, retained notes/report access, and green `svelte-check`, TypeScript and 109 Vitest tests.
 
 The specific `hasCalibrationWarning` state was not independently triggered in the live test, but its placement shares the same verified top-of-page evidence-quality branch as the missing-mass warning. Treat a future real-session calibration report as something to investigate directly rather than assuming the branch is broken.
 
@@ -113,28 +91,59 @@ The long-used test rider contains a handful of corrupted legacy May reaction val
 
 Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those rows before interpreting aggregate screenshots.
 
+## Phase 8 — inventory complete
+
+Full classification: `docs/notes/phase8-progress-inventory.md`.
+
+Progress should answer six rider questions:
+
+1. **Where am I now?**
+2. **Am I improving?**
+3. **How repeatable am I?**
+4. **What context appears to matter?**
+5. **Is fatigue / regression worth investigating?**
+6. **Where should I drill down next?**
+
+The audit confirmed that `/analytics` currently contains several generations of longitudinal analytics at once: simple server trends, cross-session intelligence/truth rules, performance-pattern charts, raw trends, older proxy trend components, newer Performance Engine trends, correlations and report-engine series.
+
+### Phase 8 truth-model blockers found
+
+Before visual restructuring, close these seams:
+
+- **Pseudo-power:** the legacy `PowerOutputTrend` input calculates `max_g × 9.81 × mass` and labels the result watts. That quantity is force, not power. Real physics-derived power already exists in Performance Engine outputs and must be used instead or the trend omitted.
+- **Technique proxy:** legacy `TechniqueQualityTrend` is fed repeatability as a proxy for technique even though genuine technique scores are available later from `sessionAnalyses`.
+- **Smoothness proxy:** legacy `SmoothnessTrend` is also fed repeatability while `meanJerk` is null. Do not present repeatability as smoothness.
+- **Data quality inconsistency:** legacy `DataQualityTrend` represents a session using its first eligible run only, while newer code already aggregates bias/validity across all eligible runs.
+- **Competing longitudinal models:** establish one authoritative interpreted answer per rider question; secondary charts should support that answer rather than create parallel conclusions.
+
+These are correctness/trust issues, so Phase 8 follows the renovation rule: fix them before styling around them.
+
+## Phase 8 — proposed hierarchy
+
+1. Progress orientation — place the rider within their history and show evidence sufficiency;
+2. Recent direction — truth-ruled reaction/speed/consistency movement with confidence;
+3. Longer-term evidence — canonical raw trend charts and goal overlays;
+4. Repeatability / fatigue — consistency, set length and drop-off evidence;
+5. Technique development — genuine Performance Engine technique trends only;
+6. Context and patterns — weather/surface/ride feel/setup correlations with evidence counts;
+7. What to investigate next — recurring diagnostics / strengths-limiters / recommendations consolidated;
+8. Progress report / export — supporting action.
+
+The current three-tab `Overview / Trends / Insights` structure is considered implementation-history grouping rather than a settled product hierarchy and may change.
+
+Deep Dive's current **Compare to Previous Session** remains reachable until Phase 8 decides whether that capability belongs as a Progress drill-down or is redundant once the longitudinal workspace is coherent.
+
 ## Phase 8 — next exact starting point
 
-Audit `/analytics` before rewriting it.
+First runtime slice is truth-model cleanup, not visual redesign:
 
-Phase 8 should turn Progress into a coherent longitudinal workspace rather than a collection of charts. Inventory every section and classify it around these questions:
+1. remove or replace pseudo-power with genuine physics-derived power;
+2. remove repeatability-as-technique and repeatability-as-smoothness proxy series in favour of real engine outputs;
+3. unify data-quality trend inputs around session-level eligible-run aggregation;
+4. verify the headline longitudinal copy consumes one authoritative interpreted model;
+5. then restructure the page around the question-led hierarchy.
 
-1. **Where am I now?** — recent form/current baseline without pretending one session is a trend;
-2. **Am I improving?** — longer-term reaction/speed/force progression using canonical eligible evidence;
-3. **How repeatable am I?** — consistency and stability over time;
-4. **What context matters?** — weather, track feel, bike/setup, session intent and other rider-entered context where evidence supports a useful comparison;
-5. **Is there fatigue/regression worth investigating?** — use the existing trend/fatigue engines proportionately rather than turning warnings into diagnoses;
-6. **Where do I drill down?** — session links and deeper analytical evidence.
-
-Specific Phase 8 decisions to revisit during the audit:
-
-- whether Deep Dive's generic **Compare to Previous Session** belongs in Progress and, if so, how to preserve that capability without duplicating other longitudinal comparisons;
-- how recent-direction, long-term progression, consistency/fatigue and context should be separated visually;
-- which current charts genuinely answer different questions and which are duplicates;
-- how to protect longitudinal surfaces from excluded runs and known contaminated test data;
-- how much interpretation belongs on the first Progress screen versus deeper reveals.
-
-Do not start by adding more charts. Start by identifying the rider questions and mapping existing data/components to them.
+Verification focus after that slice: 0/1/2 sessions, 3–9 sessions, 10+ sessions, valid/invalid speed histories, mass/no-mass, genuine technique present/absent, context-rich/no-context, and 390 px mobile.
 
 ## Standing constraints
 
