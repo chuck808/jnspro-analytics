@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ params, locals, parent }) => {
 				.maybeSingle(),
 			locals.supabase
 				.from('training_goals')
-				.select('id, metric, target_value, start_value, current_value, deadline, completed')
+				.select('id, metric, target_value, start_value, current_value, deadline, completed_at')
 				.eq('user_id', link.rider_id)
 				.order('created_at', { ascending: false }),
 			locals.supabase
@@ -63,7 +63,11 @@ export const load: PageServerLoad = async ({ params, locals, parent }) => {
 		linkId: link.id,
 		rider: riderResult.data,
 		riderProfile: riderProfileResult.data,
-		goals: goalsResult.data ?? [],
+		// Keep the existing UI's boolean field while reading the live completed_at model.
+		goals: (goalsResult.data ?? []).map((goal) => ({
+			...goal,
+			completed: goal.completed_at !== null
+		})),
 		messages: messagesResult.data ?? [],
 		reportShares: sharesResult.data ?? [],
 		coachId
