@@ -12,8 +12,9 @@
 - Phase 4 — Sessions index: DONE
 - Phase 5 — Single-session Overview: DONE
 - Phase 6 — Session Analysis: DONE
-- **Phase 7 — Session Deep Dive: DONE**
-- **Phase 8 — Progress / longitudinal analytics: IN PROGRESS**
+- Phase 7 — Session Deep Dive: DONE
+- **Phase 8 — Progress / longitudinal analytics: DONE**
+- **Phase 9 — Goals: NEXT**
 
 ## Phase 5 sign-off
 
@@ -48,8 +49,6 @@ Signed-off hierarchy:
 7. compact technique summary;
 8. explicit hand-off to Deep Dive.
 
-The Overview-style `TrainingInsightsPanel`, repeated chart-adjacent insight callouts, jerk trace, detailed phase analysis, acceleration splits, detailed six-dimension technique block and coach diagnostics no longer clutter Analysis.
-
 Expert capability was preserved rather than removed.
 
 ## Phase 7 sign-off
@@ -71,9 +70,57 @@ Signed-off hierarchy:
 
 The hierarchy is intentionally **evidence -> derivation -> interpretation -> action**.
 
-Independent live verification confirmed the full hierarchy on real device data, clean mobile rendering, retained notes/report access, and green `svelte-check`, TypeScript and 109 Vitest tests.
+Independent live verification confirmed the full hierarchy on real device data, clean mobile rendering, retained notes/report access, and green `svelte-check`, TypeScript and Vitest.
 
 The specific `hasCalibrationWarning` state was not independently triggered in the live test, but its placement shares the same verified top-of-page evidence-quality branch as the missing-mass warning. Treat a future real-session calibration report as something to investigate directly rather than assuming the branch is broken.
+
+## Phase 8 sign-off
+
+Progress now has one coherent longitudinal job: **help the rider understand where they are in their history without mixing recorded evidence, derived evidence and speculative proxies.**
+
+Signed-off question-led hierarchy:
+
+1. **Where am I now?** — recent form in context;
+2. **Am I improving?** — longer-term recorded trends, goal overlays, and trustworthy engine-derived technique/power where available;
+3. **How repeatable am I?** — consistency, set length, drop-off and smoothness evidence;
+4. **What context matters?** — weather, track, setup, ride feel and other correlations only when evidence supports them;
+5. **Is anything worth investigating?** — fatigue/regression/recurring diagnostics framed as prompts, not diagnoses;
+6. **Where do I drill down?** — explicit hand-off to Sessions, Analysis and Deep Dive.
+
+The old `Overview / Trends / Insights` grouping has been removed. Deeper longitudinal series remain available through progressive disclosure rather than being deleted.
+
+### Phase 8 truth-model invariants
+
+- Technique trend uses genuine Performance Engine technique evidence only.
+- Smoothness trend uses genuine smoothness evidence only.
+- Power uses Performance Engine physics output (`averageW` / `peakW`); G-force × mass is never presented as watts.
+- Missing evidence remains missing rather than being replaced by a convenient proxy.
+- Data-quality bias is aggregated across eligible runs for the session.
+- Session validity represents the whole available eligible-run validity set.
+- Historical Performance Engine analysis resolves the bike linked to each session rather than applying one current/first bike to all history.
+- Historical rider mass/profile context resolves the session-linked `rider_profile_id`, with latest-profile fallback only for sessions that predate profile linkage.
+- Current W/kg context uses rider weight from `rider_profiles`, not the base `profiles` table.
+
+Shared truth-model adapter: `src/lib/analytics/progressTrendEvidence.ts`.
+
+### Phase 8 verification
+
+Independent verification after the final fixes:
+
+- `svelte-check`: 0 errors;
+- `tsc --noEmit`: clean;
+- Vitest: 112/112 passing;
+- 10+ session / advanced history: full hierarchy rendered correctly;
+- W/kg present: no false weight prompt;
+- W/kg absent: weight prompt shown correctly;
+- 0–2 sessions: baseline-building state and no premature Progress Report action;
+- 3–9 sessions: Progress Report appears at the intended 3-session threshold;
+- multi-bike history: identical motion traces with alternating 6.2 kg / 9.5 kg bikes produced different per-session physics power values (2420 W vs 2519 W), confirming historical bike linkage end-to-end;
+- 390 px mobile: no horizontal overflow and charts remained intact;
+- Progress Report: summary, consistency/fatigue diagnostics and Send to Coach / Print / Export actions remained available;
+- deeper longitudinal evidence: Technique Score Trends, Strengths & Limiters Evolution and Session Data Quality remain available without duplicating the primary Progress hierarchy.
+
+Phase 8 is therefore signed off.
 
 ## Non-obvious session-share invariant
 
@@ -91,59 +138,23 @@ The long-used test rider contains a handful of corrupted legacy May reaction val
 
 Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those rows before interpreting aggregate screenshots.
 
-## Phase 8 — inventory complete
+## Phase 9 — next exact starting point
 
-Full classification: `docs/notes/phase8-progress-inventory.md`.
+Phase 9 is **Goals**.
 
-Progress should answer six rider questions:
+Start with an inventory before changing presentation. Trace the current Goals page against the evidence model already rebuilt in Release 1 and classify each surface as keep / simplify / duplicate / misleading / missing.
 
-1. **Where am I now?**
-2. **Am I improving?**
-3. **How repeatable am I?**
-4. **What context appears to matter?**
-5. **Is fatigue / regression worth investigating?**
-6. **Where should I drill down next?**
+Questions to resolve first:
 
-The audit confirmed that `/analytics` currently contains several generations of longitudinal analytics at once: simple server trends, cross-session intelligence/truth rules, performance-pattern charts, raw trends, older proxy trend components, newer Performance Engine trends, correlations and report-engine series.
+1. Does the rider understand that `current_value` means **best verified progress since goal creation**, not current form?
+2. Should rider-facing copy use **Best so far** instead of **Current value** wherever that improves clarity?
+3. Are active-goal progress, milestone history and completed-goal history all reading the same evidence model?
+4. Does the page explain why a goal can legitimately move backward after evidence is reclassified/excluded, while ordinary worse sessions do not make PB-style progress regress?
+5. Are prediction/adaptation features clearly distinguished from recorded or evidence-derived progress?
+6. Is the page useful to a young rider/parent first while preserving deeper detail for experienced riders/coaches?
+7. Are completed goals clearly frozen at `completed_at` in presentation as well as in the underlying reconciliation/projection model?
 
-### Phase 8 truth-model blockers found
-
-Before visual restructuring, close these seams:
-
-- **Pseudo-power:** the legacy `PowerOutputTrend` input calculates `max_g × 9.81 × mass` and labels the result watts. That quantity is force, not power. Real physics-derived power already exists in Performance Engine outputs and must be used instead or the trend omitted.
-- **Technique proxy:** legacy `TechniqueQualityTrend` is fed repeatability as a proxy for technique even though genuine technique scores are available later from `sessionAnalyses`.
-- **Smoothness proxy:** legacy `SmoothnessTrend` is also fed repeatability while `meanJerk` is null. Do not present repeatability as smoothness.
-- **Data quality inconsistency:** legacy `DataQualityTrend` represents a session using its first eligible run only, while newer code already aggregates bias/validity across all eligible runs.
-- **Competing longitudinal models:** establish one authoritative interpreted answer per rider question; secondary charts should support that answer rather than create parallel conclusions.
-
-These are correctness/trust issues, so Phase 8 follows the renovation rule: fix them before styling around them.
-
-## Phase 8 — proposed hierarchy
-
-1. Progress orientation — place the rider within their history and show evidence sufficiency;
-2. Recent direction — truth-ruled reaction/speed/consistency movement with confidence;
-3. Longer-term evidence — canonical raw trend charts and goal overlays;
-4. Repeatability / fatigue — consistency, set length and drop-off evidence;
-5. Technique development — genuine Performance Engine technique trends only;
-6. Context and patterns — weather/surface/ride feel/setup correlations with evidence counts;
-7. What to investigate next — recurring diagnostics / strengths-limiters / recommendations consolidated;
-8. Progress report / export — supporting action.
-
-The current three-tab `Overview / Trends / Insights` structure is considered implementation-history grouping rather than a settled product hierarchy and may change.
-
-Deep Dive's current **Compare to Previous Session** remains reachable until Phase 8 decides whether that capability belongs as a Progress drill-down or is redundant once the longitudinal workspace is coherent.
-
-## Phase 8 — next exact starting point
-
-First runtime slice is truth-model cleanup, not visual redesign:
-
-1. remove or replace pseudo-power with genuine physics-derived power;
-2. remove repeatability-as-technique and repeatability-as-smoothness proxy series in favour of real engine outputs;
-3. unify data-quality trend inputs around session-level eligible-run aggregation;
-4. verify the headline longitudinal copy consumes one authoritative interpreted model;
-5. then restructure the page around the question-led hierarchy.
-
-Verification focus after that slice: 0/1/2 sessions, 3–9 sessions, 10+ sessions, valid/invalid speed histories, mass/no-mass, genuine technique present/absent, context-rich/no-context, and 390 px mobile.
+Do not revisit the Release 1 goal truth model unless the audit finds an actual correctness contradiction.
 
 ## Standing constraints
 
