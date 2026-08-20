@@ -7,18 +7,12 @@ import { processGoalImprovements, isSignificantImprovement } from '$lib/server/g
 import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
 import { upsertSnapshot } from '$lib/services/benchmarking';
 import { determineAgeGroup } from '$lib/services/benchmarking/peerComparison';
-
-/**
- * Calculate SHA-256 hash of file content for duplicate detection
- */
-async function calculateFileChecksum(data: unknown): Promise<string> {
-	const jsonString = JSON.stringify(data);
-	const encoder = new TextEncoder();
-	const dataBuffer = encoder.encode(jsonString);
-	const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+import {
+	calculateSessionChecksum,
+	findSessionByChecksum,
+	isUniqueViolation,
+	rollbackIncompleteSession
+} from '$lib/server/sessionIngestGuard';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	// Auth check
@@ -38,17 +32,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	// Calculate file checksum for duplicate detection
-	const fileChecksum = await calculateFileChecksum(rawData);
+	const fileChecksum = await calculateSessionChecksum(rawData);
 
 	// Check for duplicate upload
-	const { data: existingSession, error: duplicateCheckError } = await locals.supabase
-		.from('sessions')
-		.select('id, timestamp, session_type, runs(id)')
-		.eq('user_id', userId)
-		.eq('file_checksum', fileChecksum)
-		.maybeSingle();
+	const { data: existingSession, error: duplicateCheckError } = await findSessionByChecksum(
+		locals.supabase,
+		userId,
+		fileChecksum
+	);
 
-	if (!duplicateCheckError && existingSession) {
+	if (duplicateCheckError) {
+		console.error('Upload duplicate check error:', duplicateCheckError);
+		throw error(500, 'Failed to check existing session');
+	}
+
+	if (existingSession) {
 		// Duplicate found - return 409 Conflict with details
 		const runCount = Array.isArray(existingSession.runs) ? existingSession.runs.length : 0;
 		return json(
@@ -131,6 +129,46 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.single();
 
 		if (sessionError || !sessionRecord) {
+			// The unique index closes the race between the pre-check and insert.
+			// Resolve that race to the same clean 409 response as a normal duplicate.
+			if (isUniqueViolation(sessionError)) {
+				const { data: concurrentSession, error: concurrentLookupError } = await findSessionByChecksum(
+					locals.supabase,
+					userId,
+					fileChecksum
+				);
+
+				if (concurrentLookupError) {
+					console.error('Concurrent duplicate lookup error:', concurrentLookupError);
+				}
+
+				if (concurrentSession) {
+					const runCount = Array.isArray(concurrentSession.runs) ? concurrentSession.runs.length : 0;
+					return json(
+						{
+							success: false,
+							duplicate: true,
+							existing_session: {
+								id: concurrentSession.id,
+								timestamp: concurrentSession.timestamp,
+								session_type: concurrentSession.session_type,
+								run_count: runCount
+							},
+							message: `This file was already uploaded on ${new Date(
+								concurrentSession.timestamp
+							).toLocaleDateString('en-GB', {
+								day: 'numeric',
+								month: 'short',
+								year: 'numeric',
+								hour: '2-digit',
+								minute: '2-digit'
+							})}`
+						},
+						{ status: 409 }
+					);
+				}
+			}
+
 			console.error('Session insert error:', sessionError);
 			throw error(500, 'Failed to create session record');
 		}
@@ -216,9 +254,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				}
 			}
 		} catch (runInsertError) {
-			// Run insertion failed — delete the session to maintain atomicity
+			// Run insertion failed — remove/quarantine the session so its checksum
+			// cannot permanently block a retry of the same source file.
 			console.error('[Upload] Run insertion failed, rolling back session:', runInsertError);
-			await locals.supabase.from('sessions').delete().eq('id', sessionId);
+			await rollbackIncompleteSession(locals.supabase, sessionId);
 
 			// Re-throw the error to return failure to client
 			throw runInsertError;
@@ -357,7 +396,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []
 			);
 			const validGate = allGate.filter((g: any) => g.analytics_valid);
-
 			const reactions = allGate
 				.map((g: any) => g.reaction_time_ms)
 				.filter((v: any): v is number => v != null);
