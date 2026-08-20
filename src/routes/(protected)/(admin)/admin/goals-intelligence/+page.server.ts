@@ -6,7 +6,8 @@ const LOWER_IS_BETTER_METRICS = ['reactionTime', 'elapsedTime', 'accelerationPha
 export const load: PageServerLoad = async () => {
 	const admin = createSupabaseAdminClient();
 
-	// Fetch all goals with user data
+	// Fetch all goals with user data. completed_at is the canonical completion
+	// marker; the legacy completed boolean is no longer used by rider/coach flows.
 	const { data: goals } = await admin
 		.from('training_goals')
 		.select(
@@ -18,7 +19,6 @@ export const load: PageServerLoad = async () => {
 			start_value,
 			current_value,
 			deadline,
-			completed,
 			completed_at,
 			created_at,
 			updated_at,
@@ -28,7 +28,6 @@ export const load: PageServerLoad = async () => {
 		.order('created_at', { ascending: false });
 
 	// Fetch gate sessions only (not archived) for overtraining detection.
-	// Previously fetched all sessions regardless of type or archived status.
 	const { data: sessions } = await admin
 		.from('sessions')
 		.select('id, user_id, timestamp, archived')
@@ -36,12 +35,11 @@ export const load: PageServerLoad = async () => {
 		.eq('archived', false)
 		.order('timestamp', { ascending: false });
 
-	// Calculate goal statistics
-	const activeGoals = goals?.filter((g) => !g.completed) || [];
-	const completedGoals = goals?.filter((g) => g.completed) || [];
+	// Calculate goal statistics using the canonical completion timestamp.
+	const activeGoals = goals?.filter((g) => !g.completed_at) || [];
+	const completedGoals = goals?.filter((g) => Boolean(g.completed_at)) || [];
 	const usersWithGoals = new Set(goals?.map((g) => g.user_id) || []).size;
 
-	// Group sessions by user
 	const sessionsByUser = (sessions || []).reduce<Record<string, any[]>>((acc, s) => {
 		if (!acc[s.user_id]) acc[s.user_id] = [];
 		acc[s.user_id].push(s);
@@ -57,7 +55,6 @@ export const load: PageServerLoad = async () => {
 	const usersAtRisk: any[] = [];
 	const recentGoalActivity: any[] = [];
 
-	// Analyze recent goal activity (last 30 days)
 	const thirtyDaysAgo = new Date();
 	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -69,22 +66,19 @@ export const load: PageServerLoad = async () => {
 			(s) => new Date(s.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 		);
 
-		// Flag overtraining (>5 gate sessions in 7 days)
+		// This is a coarse operational flag, not an injury-risk diagnosis.
 		if (sessionsLast7Days.length > 5) {
 			healthWarnings.warning++;
 			usersAtRisk.push({
 				user_id: goal.user_id,
 				user_email: goal.profiles?.email || 'Unknown',
 				user_name: goal.profiles?.name || 'Unknown',
-				risk_type: 'overtraining',
+				risk_type: 'high_session_frequency',
 				sessions_count: sessionsLast7Days.length,
 				goal_metric: goal.metric
 			});
 		}
 
-		// Direction-aware progress calculation.
-		// For lower-is-better metrics (reaction time etc), progress means
-		// current_value going DOWN toward target.
 		const lowerIsBetter = LOWER_IS_BETTER_METRICS.includes(goal.metric);
 		const start = goal.start_value ?? 0;
 		const target = goal.target_value ?? 0;
@@ -115,21 +109,19 @@ export const load: PageServerLoad = async () => {
 		});
 	});
 
-	// Model stats — removed simulated values.
-	// Track actual model selections when predictions are generated.
 	const modelStats = null;
 
-	// Calculate completion rate
 	const totalGoals = (goals || []).length;
 	const completionRate = totalGoals > 0 ? (completedGoals.length / totalGoals) * 100 : 0;
 
-	// Average time to complete
-	const completedWithDates = completedGoals.filter((g) => g.created_at && g.updated_at);
+	// Completion duration is measured to the actual completion event, not the
+	// most recent generic row update.
+	const completedWithDates = completedGoals.filter((g) => g.created_at && g.completed_at);
 	const avgDaysToComplete =
 		completedWithDates.length > 0
 			? completedWithDates.reduce((sum, g) => {
 					const days = Math.floor(
-						(new Date(g.updated_at!).getTime() - new Date(g.created_at).getTime()) /
+						(new Date(g.completed_at!).getTime() - new Date(g.created_at).getTime()) /
 							(1000 * 60 * 60 * 24)
 					);
 					return sum + days;
