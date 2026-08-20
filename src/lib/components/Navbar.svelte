@@ -9,11 +9,11 @@
 	let { user }: { user?: Profile | null } = $props();
 
 	const titles: Record<string, string> = {
-		'/dashboard': 'Dashboard',
-		'/analytics': 'Analytics',
+		'/dashboard': 'Home',
+		'/analytics': 'Progress',
 		'/sessions': 'Sessions',
 		'/goals': 'Goals',
-		'/leaderboard': 'Leaderboard',
+		'/leaderboard': 'Compare',
 		'/upload': 'Upload Session',
 		'/profile': 'Rider Profile',
 		'/settings': 'Settings',
@@ -28,7 +28,7 @@
 			($page.url.pathname.startsWith('/sessions/')
 				? 'Session Detail'
 				: $page.url.pathname.startsWith('/analytics/')
-					? 'Analytics'
+					? 'Progress'
 					: $page.url.pathname.startsWith('/coach/')
 						? 'Coach'
 						: $page.url.pathname.startsWith('/admin/')
