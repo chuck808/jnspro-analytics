@@ -1,3 +1,8 @@
+export interface ProgressSessionRef {
+	id: string;
+	timestamp: string;
+}
+
 export interface ProgressSessionAnalysis {
 	sessionId: string;
 	timestamp: string;
@@ -40,13 +45,20 @@ export interface ProgressTrendEvidencePoint {
  * Performance Engine/session evidence. This deliberately does not invent
  * substitutes when a metric is unavailable: repeatability is not technique
  * or smoothness, and G × mass is force rather than power.
+ *
+ * The session list is the spine so data-quality evidence can still be shown
+ * for sessions that do not have a full Performance Engine analysis.
  */
 export function buildProgressTrendEvidence(
+	sessions: ProgressSessionRef[],
 	analyses: ProgressSessionAnalysis[],
 	runs: ProgressRunEvidence[]
 ): ProgressTrendEvidencePoint[] {
-	return analyses.map((session, index) => {
-		const sessionRuns = runs.filter((run) => run.session_id === session.sessionId);
+	const analysisBySession = new Map(analyses.map((analysis) => [analysis.sessionId, analysis]));
+
+	return sessions.map((session, index) => {
+		const analysis = analysisBySession.get(session.id);
+		const sessionRuns = runs.filter((run) => run.session_id === session.id);
 		const validBias = sessionRuns
 			.map((run) => run.bias_correction_ms2)
 			.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
@@ -55,17 +67,17 @@ export function buildProgressTrendEvidence(
 			.map((run) => run.analytics_valid)
 			.filter((value): value is boolean => typeof value === 'boolean');
 
-		const power = session.analysis?.selectedRun?.physics?.power;
+		const power = analysis?.analysis?.selectedRun?.physics?.power;
 
 		return {
-			sessionId: session.sessionId,
+			sessionId: session.id,
 			sessionDate: new Date(session.timestamp).toLocaleDateString('en-GB', {
 				day: 'numeric',
 				month: 'short'
 			}),
 			sessionNumber: index + 1,
-			techniqueOverall: finiteOrNull(session.techniqueScores?.overall),
-			smoothness: finiteOrNull(session.techniqueScores?.smoothness),
+			techniqueOverall: finiteOrNull(analysis?.techniqueScores?.overall),
+			smoothness: finiteOrNull(analysis?.techniqueScores?.smoothness),
 			powerAverageW: finiteOrNull(power?.averageW),
 			powerPeakW: finiteOrNull(power?.peakW),
 			dataQualityBias:
