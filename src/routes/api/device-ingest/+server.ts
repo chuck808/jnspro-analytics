@@ -4,6 +4,7 @@ import type { RequestHandler } from './$types';
 import { validateSDFile, transformSDFile } from '$lib/services/ingest';
 import type { SDCardFile } from '$lib/services/ingest';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { reconcilePerformanceSnapshot } from '$lib/server/reconcilePerformanceSnapshot';
 import {
 	calculateSessionChecksum,
 	findSessionByChecksum,
@@ -196,6 +197,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			console.error('[Device ingest] Run insertion failed, rolling back session:', runInsertError);
 			await rollbackIncompleteSession(supabase, sessionId);
 			throw runInsertError;
+		}
+
+		// Device/Wi-Fi ingest must update the same benchmarking projection as manual upload.
+		// Keep this non-fatal: the evidence is already safely stored and can be reconciled later.
+		try {
+			await reconcilePerformanceSnapshot(supabase, userId);
+		} catch (reconcileError) {
+			console.warn('[Device ingest] Performance snapshot reconciliation failed:', reconcileError);
 		}
 
 		return json({
