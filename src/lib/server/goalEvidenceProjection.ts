@@ -22,7 +22,7 @@ export interface GoalEvidenceProjection {
 	milestones: DerivedGoalMilestone[];
 }
 
-interface SessionRow {
+export interface GoalEvidenceSession {
 	id: string;
 	timestamp: string;
 	runs: any[];
@@ -36,55 +36,11 @@ function isImprovement(metric: string, candidate: number, current: number): bool
 	return lowerIsBetter(metric) ? candidate < current : candidate > current;
 }
 
-/**
- * Rebuild goal current values and milestones from canonical eligible evidence.
- *
- * The projection is intentionally derived at read time rather than mutating
- * goal_milestones. This makes a later run reclassification reversible: if a PB
- * becomes a warm-up/testing run, it simply disappears from the next projection.
- */
-export async function buildGoalEvidenceProjections(
-	supabase: SupabaseClient,
-	userId: string,
-	goals: GoalProjectionInput[]
-): Promise<Record<string, GoalEvidenceProjection>> {
-	if (goals.length === 0) return {};
-
-	const earliestGoal = goals.reduce((earliest, goal) =>
-		goal.created_at < earliest ? goal.created_at : earliest
-	, goals[0].created_at);
-
-	const { data: sessions, error } = await supabase
-		.from('sessions')
-		.select(
-			`
-			id,
-			timestamp,
-			runs(
-				elapsed_time_ms,
-				distance_m,
-				tags,
-				gate_runs(
-					reaction_time_ms,
-					max_g,
-					peak_speed_ms,
-					analytics_valid,
-					time_to_peak_speed_ms
-				)
-			)
-		`
-		)
-		.eq('user_id', userId)
-		.eq('archived', false)
-		.eq('session_type', 'gate')
-		.gte('timestamp', earliestGoal)
-		.order('timestamp', { ascending: true });
-
-	if (error) {
-		throw new Error(`Failed to build goal evidence projection: ${error.message}`);
-	}
-
-	const orderedSessions = (sessions ?? []) as SessionRow[];
+/** Pure projection used by the server loader and unit tests. */
+export function projectGoalEvidenceFromSessions(
+	goals: GoalProjectionInput[],
+	orderedSessions: GoalEvidenceSession[]
+): Record<string, GoalEvidenceProjection> {
 	const result: Record<string, GoalEvidenceProjection> = {};
 
 	for (const goal of goals) {
@@ -158,4 +114,56 @@ export async function buildGoalEvidenceProjections(
 	}
 
 	return result;
+}
+
+/**
+ * Rebuild goal current values and milestones from canonical eligible evidence.
+ *
+ * The projection is intentionally derived at read time rather than mutating
+ * goal_milestones. This makes a later run reclassification reversible: if a PB
+ * becomes a warm-up/testing run, it simply disappears from the next projection.
+ */
+export async function buildGoalEvidenceProjections(
+	supabase: SupabaseClient,
+	userId: string,
+	goals: GoalProjectionInput[]
+): Promise<Record<string, GoalEvidenceProjection>> {
+	if (goals.length === 0) return {};
+
+	const earliestGoal = goals.reduce(
+		(earliest, goal) => (goal.created_at < earliest ? goal.created_at : earliest),
+		goals[0].created_at
+	);
+
+	const { data: sessions, error } = await supabase
+		.from('sessions')
+		.select(
+			`
+			id,
+			timestamp,
+			runs(
+				elapsed_time_ms,
+				distance_m,
+				tags,
+				gate_runs(
+					reaction_time_ms,
+					max_g,
+					peak_speed_ms,
+					analytics_valid,
+					time_to_peak_speed_ms
+				)
+			)
+		`
+		)
+		.eq('user_id', userId)
+		.eq('archived', false)
+		.eq('session_type', 'gate')
+		.gte('timestamp', earliestGoal)
+		.order('timestamp', { ascending: true });
+
+	if (error) {
+		throw new Error(`Failed to build goal evidence projection: ${error.message}`);
+	}
+
+	return projectGoalEvidenceFromSessions(goals, (sessions ?? []) as GoalEvidenceSession[]);
 }
