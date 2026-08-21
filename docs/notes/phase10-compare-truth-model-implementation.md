@@ -19,6 +19,7 @@ These are deliberately labelled and calculated separately. Competitive rank is n
 - Competitive ranking requires at least 10 riders in the **actual selected cohort**, not 10 globally.
 - Competitive total is an exact cohort count, independent of the displayed top-100 rows.
 - A user's competitive rank outside the displayed top 100 is calculated by counting every strictly better rider in the selected cohort.
+- Competitive ranking uses competition-rank semantics for ties: equal values share a rank and the next rank skips the tied positions (`1, 1, 3`). This matches the cohort-wide "strictly better + 1" fallback used for riders outside the displayed top 100.
 - Age is the default competitive cohort. `experience_level` remains an optional filter and is explicitly labelled as a system-derived training-history classification, not a race/UCI category.
 - `ageGroup=all` is an explicit all-age browse mode; absence of an age parameter returns to the rider-relative default.
 - Invalid metric/age/experience query values are normalised instead of being cast blindly.
@@ -60,11 +61,12 @@ Then live-check:
 6. opted-out rider — peer benchmark available independently, leaderboard participation prompt shown;
 7. opted-in rider in a competitive cohort with <10 riders — no rank;
 8. opted-in rider in a competitive cohort with >=10 riders — rank/table shown;
-9. explicit all-age browse versus default rider-age cohort;
-10. experience filter on/off;
-11. stale `?period=week` / `?period=month` URLs — page must still state all-time and expose no fake period control;
-12. >100 displayed-rank boundary if practical — total and current-user rank must remain cohort-wide, not top-page counts;
-13. reaction / speed / max-G / consistency metric switching;
-14. 390 px mobile layout.
+9. tied competitive values — equal values must share rank (`1, 1, 3`), including consistency between displayed rows and the cohort-wide fallback path;
+10. explicit all-age browse versus default rider-age cohort;
+11. experience filter on/off;
+12. stale `?period=week` / `?period=month` URLs — page must still state all-time and expose no fake period control;
+13. >100 displayed-rank boundary if practical — total and current-user rank must remain cohort-wide, not top-page counts;
+14. reaction / speed / max-G / consistency metric switching;
+15. 390 px mobile layout.
 
 Vercel preview remains red for the previously confirmed configuration reason: preview deployments do not receive the static Supabase environment exports. The latest build log fails on missing `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` before reaching this route, so it is not a meaningful code gate for this branch.
