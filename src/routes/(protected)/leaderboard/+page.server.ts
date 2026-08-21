@@ -15,13 +15,11 @@ import {
 } from '$lib/services/benchmarking';
 import { calculateAge } from '$lib/utils/uciCategories';
 
-// Competitive ranking is deliberately a secondary, opt-in surface. A filtered
-// leaderboard needs enough riders in that actual cohort before rank language is shown.
 const MIN_LEADERBOARD_COHORT = 10;
 const LEADERBOARD_PAGE_SIZE = 100;
 
 const METRICS: LeaderboardMetric[] = ['reactionTime', 'peakSpeed', 'maxG', 'consistency'];
-const AGE_GROUPS: AgeGroup[] = ['13-17', '18-25', '26-35', '36-45', '46+'];
+const AGE_GROUPS: AgeGroup[] = ['under-13', '13-17', '18-25', '26-35', '36-45', '46+'];
 const EXPERIENCE_LEVELS: ExperienceLevel[] = ['beginner', 'intermediate', 'advanced', 'elite'];
 
 const BENCHMARK_METRIC: Record<
@@ -49,7 +47,8 @@ function validExperience(value: string | null): ExperienceLevel | undefined {
 }
 
 function ageGroupForAge(age: number | null): AgeGroup | 'unknown' {
-	if (age === null || age < 13) return 'unknown';
+	if (age === null) return 'unknown';
+	if (age < 13) return 'under-13';
 	if (age < 18) return '13-17';
 	if (age < 26) return '18-25';
 	if (age < 36) return '26-35';
@@ -68,8 +67,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	const admin = createSupabaseAdminClient();
 
 	const selectedMetric = validMetric(url.searchParams.get('metric'));
-	// Snapshots are all-time bests. Week/month used to change the label without
-	// changing the evidence, so those query values are intentionally ignored.
 	const selectedPeriod: TimePeriod = 'all_time';
 
 	const empty = {
@@ -119,9 +116,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		(snapshot?.experience_level as ExperienceLevel | null) ??
 		estimateExperienceLevel(snapshot?.session_count ?? 0, 50);
 
-	// Default competitive filtering is age-relative when that taxonomy is valid.
-	// `ageGroup=all` is an explicit opt-in to an all-age competition; deleting the
-	// query parameter returns to the rider-relative default.
 	const requestedAgeRaw = url.searchParams.get('ageGroup');
 	const requestedAge = validAgeGroup(requestedAgeRaw);
 	const explicitAllAge = requestedAgeRaw === 'all';
@@ -135,9 +129,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	const userOptedIn = prefs?.show_on_leaderboard ?? false;
 	const userDisplayName = prefs?.leaderboard_display_name ?? snapshot?.display_name ?? null;
 
-	// ── Population benchmark (primary comparison truth model) ─────────────────
-	// This uses performance_aggregates and its >=30-rider fallback rules. It is
-	// separate from the opt-in competitive leaderboard below.
 	let peerBenchmark: any = null;
 	const userValue = snapshotValue(snapshot, selectedMetric);
 
@@ -179,12 +170,8 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		}
 	}
 
-	// ── Competitive opt-in leaderboard (secondary comparison) ────────────────
 	let leaderboards: Record<string, LeaderboardResult> | null = null;
 	let competitiveCohortSize = 0;
-
-	// Do not default an under-13 rider into an all-age competition. They may
-	// deliberately browse all ages with `ageGroup=all`, but it is never assumed.
 	const canShowCompetitiveRanking =
 		riderAgeGroup !== 'unknown' || requestedAge !== undefined || explicitAllAge;
 
@@ -230,8 +217,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 			let userEntry = entries.find((entry) => entry.isCurrentUser) ?? null;
 			let userRank = userEntry?.rank ?? null;
 
-			// Rank remains correct beyond the displayed top 100: count every rider
-			// in the selected cohort with a strictly better value than the user.
 			if (userOptedIn && userValue !== null && userRank === null) {
 				let userRowQuery = admin
 					.from('leaderboard_view')
