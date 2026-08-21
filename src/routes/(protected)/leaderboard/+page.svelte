@@ -90,15 +90,8 @@
 				</p>
 			</div>
 			<div class="w-full sm:w-56">
-				<label for="benchmark-metric" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">
-					Metric
-				</label>
-				<select
-					id="benchmark-metric"
-					value={selectedMetric}
-					onchange={(e) => updateFilter('metric', e.currentTarget.value)}
-					class="input-field w-full"
-				>
+				<label for="benchmark-metric" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">Metric</label>
+				<select id="benchmark-metric" value={selectedMetric} onchange={(e) => updateFilter('metric', e.currentTarget.value)} class="input-field w-full">
 					<option value="reactionTime">Reaction Time</option>
 					<option value="peakSpeed">Peak Speed</option>
 					<option value="maxG">Max G-Force</option>
@@ -112,15 +105,11 @@
 			<div class="mt-6 grid gap-4 md:grid-cols-3">
 				<div class="rounded-lg border border-[#2a221d] bg-[#0a0809] p-4">
 					<p class="text-xs text-[#9a8f7a]">Your best eligible evidence</p>
-					<p class="mt-2 text-2xl font-bold text-[#f0ece4]">
-						{formatLeaderboardValue(peer.comparison.userValue, selectedMetric)}
-					</p>
+					<p class="mt-2 text-2xl font-bold text-[#f0ece4]">{formatLeaderboardValue(peer.comparison.userValue, selectedMetric)}</p>
 				</div>
 				<div class="rounded-lg border border-[#f5a623]/30 bg-[#f5a623]/5 p-4">
 					<p class="text-xs text-[#9a8f7a]">Approximate percentile</p>
-					<p class="mt-2 text-2xl font-bold text-[#f5a623]">
-						{Math.round(peer.comparison.userPercentile)}th
-					</p>
+					<p class="mt-2 text-2xl font-bold text-[#f5a623]">{Math.round(peer.comparison.userPercentile)}th</p>
 					<p class="mt-1 text-xs text-[#9a8f7a]">Higher percentile means stronger relative performance.</p>
 				</div>
 				<div class="rounded-lg border border-[#2a221d] bg-[#0a0809] p-4">
@@ -134,14 +123,10 @@
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<p class="text-xs text-[#9a8f7a]">Baseline median</p>
-						<p class="mt-1 text-lg font-semibold text-[#f0ece4]">
-							{formatLeaderboardValue(peer.benchmark.percentile_50, selectedMetric)}
-						</p>
+						<p class="mt-1 text-lg font-semibold text-[#f0ece4]">{formatLeaderboardValue(peer.benchmark.percentile_50, selectedMetric)}</p>
 					</div>
 					<div class="max-w-xl text-xs leading-relaxed text-[#9a8f7a]">
-						Requested cohort: {cohortLabel(peer.requestedCohort)}. If that group was too small, the
-						benchmark service broadened the cohort until it found a defensible sample; the resolved
-						population above is the one actually used.
+						Requested cohort: {cohortLabel(peer.requestedCohort)}. If that group was too small, the benchmark service broadened the cohort until it found a defensible sample; the resolved population above is the one actually used.
 					</div>
 				</div>
 			</div>
@@ -149,9 +134,7 @@
 			<div class="mt-6 rounded-lg border border-[#221c18] bg-[#0a0809] p-5">
 				<h3 class="text-sm font-semibold text-[#f0ece4]">No trustworthy peer percentile yet</h3>
 				<p class="mt-1 max-w-2xl text-sm text-[#9a8f7a]">
-					Either this metric has no eligible personal-best evidence yet, the available comparison
-					population is below the minimum sample, or your current age cannot be represented honestly
-					by the existing benchmark taxonomy. Under-13 riders are not silently grouped into 13–17.
+					Either this metric has no eligible personal-best evidence yet, the available comparison population is below the minimum sample, or your current age cannot be represented honestly by the existing benchmark taxonomy. Under-13 riders are not silently grouped into 13–17.
 				</p>
 			</div>
 		{/if}
@@ -161,25 +144,14 @@
 		<div>
 			<p class="text-xs font-semibold tracking-[0.16em] text-[#9a8f7a] uppercase">Optional competition</p>
 			<h2 class="mt-1 text-xl font-semibold text-[#f0ece4]">Opt-in leaderboard</h2>
-			<p class="mt-1 max-w-3xl text-sm text-[#9a8f7a]">
-				This is an all-time rank among opted-in riders in the selected cohort. It is not the same
-				thing as the population percentile above.
-			</p>
+			<p class="mt-1 max-w-3xl text-sm text-[#9a8f7a]">This is an all-time rank among opted-in riders in the selected cohort. It is not the same thing as the population percentile above.</p>
 		</div>
 
 		{#if !pageData.userOptedIn}
 			<div class="rounded-xl border border-[#f5a623]/30 bg-[#f5a623]/5 p-5">
 				<h3 class="text-base font-semibold text-[#f0ece4]">Participation is optional</h3>
-				<p class="mt-1 max-w-2xl text-sm text-[#9a8f7a]">
-					Opt in from Settings if you want your best evidence included under an anonymous display
-					name. Your peer benchmark above does not require public leaderboard participation.
-				</p>
-				<a
-					href="/settings"
-					class="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-[#f5a623] px-4 py-2.5 text-sm font-semibold text-[#0a0809] hover:bg-[#c97e0a]"
-				>
-					Leaderboard settings
-				</a>
+				<p class="mt-1 max-w-2xl text-sm text-[#9a8f7a]">Opt in from Settings if you want your best evidence included under an anonymous display name. Your peer benchmark above does not require public leaderboard participation.</p>
+				<a href="/settings" class="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-[#f5a623] px-4 py-2.5 text-sm font-semibold text-[#0a0809] hover:bg-[#c97e0a]">Leaderboard settings</a>
 			</div>
 		{/if}
 
@@ -187,12 +159,7 @@
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				<div>
 					<label for="metric" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">Metric</label>
-					<select
-						id="metric"
-						value={selectedMetric}
-						onchange={(e) => updateFilter('metric', e.currentTarget.value)}
-						class="input-field w-full"
-					>
+					<select id="metric" value={selectedMetric} onchange={(e) => updateFilter('metric', e.currentTarget.value)} class="input-field w-full">
 						<option value="reactionTime">Reaction Time</option>
 						<option value="peakSpeed">Peak Speed</option>
 						<option value="maxG">Max G-Force</option>
@@ -201,13 +168,8 @@
 				</div>
 				<div>
 					<label for="ageGroup" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">Age group</label>
-					<select
-						id="ageGroup"
-						value={pageData.selectedAgeGroup || ''}
-						onchange={(e) => updateFilter('ageGroup', e.currentTarget.value || undefined)}
-						class="input-field w-full"
-					>
-						<option value="">No age filter</option>
+					<select id="ageGroup" value={pageData.selectedAgeGroup || ''} onchange={(e) => updateFilter('ageGroup', e.currentTarget.value || 'all')} class="input-field w-full">
+						<option value="">All ages</option>
 						<option value="13-17">13–17</option>
 						<option value="18-25">18–25</option>
 						<option value="26-35">26–35</option>
@@ -217,12 +179,7 @@
 				</div>
 				<div>
 					<label for="experience" class="mb-1.5 block text-xs font-medium text-[#9a8f7a]">Experience filter</label>
-					<select
-						id="experience"
-						value={pageData.selectedExperience || ''}
-						onchange={(e) => updateFilter('experience', e.currentTarget.value || undefined)}
-						class="input-field w-full"
-					>
+					<select id="experience" value={pageData.selectedExperience || ''} onchange={(e) => updateFilter('experience', e.currentTarget.value || undefined)} class="input-field w-full">
 						<option value="">All experience levels</option>
 						<option value="beginner">Beginner</option>
 						<option value="intermediate">Intermediate</option>
@@ -231,10 +188,7 @@
 					</select>
 				</div>
 			</div>
-			<p class="mt-3 text-xs text-[#6b5f4d]">
-				Experience is currently a system-derived training-history classification, not a race licence
-				or UCI category. Age is therefore the default cohort filter; experience is optional.
-			</p>
+			<p class="mt-3 text-xs text-[#6b5f4d]">Experience is currently a system-derived training-history classification, not a race licence or UCI category. Age is therefore the default cohort filter; experience is optional.</p>
 		</div>
 
 		<div class="overflow-hidden rounded-xl border border-[#221c18] bg-[#131010]">
@@ -242,11 +196,7 @@
 				<div class="flex flex-wrap items-center justify-between gap-4">
 					<div>
 						<h3 class="text-lg font-semibold text-[#f0ece4]">{getMetricDisplayName(selectedMetric)}</h3>
-						<p class="mt-0.5 text-xs text-[#9a8f7a]">
-							All-time bests
-							{#if pageData.selectedAgeGroup} · ages {pageData.selectedAgeGroup}{/if}
-							{#if pageData.selectedExperience} · {pageData.selectedExperience}{/if}
-						</p>
+						<p class="mt-0.5 text-xs text-[#9a8f7a]">All-time bests{#if pageData.selectedAgeGroup} · ages {pageData.selectedAgeGroup}{/if}{#if pageData.selectedExperience} · {pageData.selectedExperience}{/if}</p>
 					</div>
 					<div class="text-right">
 						<p class="text-lg font-bold text-[#f5a623]">{pageData.competitiveCohortSize}</p>
@@ -263,12 +213,8 @@
 							<p class="text-xs text-[#9a8f7a]">{pageData.userDisplayName || 'Anonymous'}</p>
 						</div>
 						<div class="text-right">
-							<p class="text-xl font-bold text-[#f5a623]">
-								#{currentLeaderboard.userRank} of {currentLeaderboard.totalEntries}
-							</p>
-							<p class="text-sm text-[#f0ece4]">
-								{formatLeaderboardValue(currentLeaderboard.userEntry.value, selectedMetric)}
-							</p>
+							<p class="text-xl font-bold text-[#f5a623]">#{currentLeaderboard.userRank} of {currentLeaderboard.totalEntries}</p>
+							<p class="text-sm text-[#f0ece4]">{formatLeaderboardValue(currentLeaderboard.userEntry.value, selectedMetric)}</p>
 						</div>
 					</div>
 				</div>
@@ -291,12 +237,8 @@
 								<tr class={entry.isCurrentUser ? 'bg-[#f5a623]/5' : ''}>
 									<td class="px-4 py-3 text-sm font-semibold text-[#9a8f7a]">{medal || `#${entry.rank}`}</td>
 									<td class="px-4 py-3">
-										<p class={entry.isCurrentUser ? 'text-sm font-semibold text-[#f5a623]' : 'text-sm font-medium text-[#f0ece4]'}>
-											{entry.displayName}{entry.isCurrentUser ? ' · You' : ''}
-										</p>
-										<p class="text-xs text-[#6b5f4d]">
-											{entry.ageGroup || 'age not set'}{entry.experienceLevel ? ` · ${entry.experienceLevel}` : ''}
-										</p>
+										<p class={entry.isCurrentUser ? 'text-sm font-semibold text-[#f5a623]' : 'text-sm font-medium text-[#f0ece4]'}>{entry.displayName}{entry.isCurrentUser ? ' · You' : ''}</p>
+										<p class="text-xs text-[#6b5f4d]">{entry.ageGroup || 'age not set'}{entry.experienceLevel ? ` · ${entry.experienceLevel}` : ''}</p>
 									</td>
 									<td class="px-4 py-3 text-right text-sm font-bold text-[#f0ece4]">{formatLeaderboardValue(entry.value, selectedMetric)}</td>
 									<td class="px-4 py-3 text-center text-xs text-[#9a8f7a]">{entry.sessionCount || '—'}</td>
@@ -305,15 +247,10 @@
 						</tbody>
 					</table>
 				</div>
-		{:else}
+			{:else}
 				<div class="p-8 text-center sm:p-12">
 					<h3 class="text-base font-semibold text-[#f0ece4]">Competitive ranking not shown</h3>
-					<p class="mx-auto mt-2 max-w-lg text-sm text-[#9a8f7a]">
-						This selected cohort has {pageData.competitiveCohortSize} opted-in riders with usable
-						evidence. A competitive rank is only surfaced from {pageData.competitiveMinimum} riders.
-						For riders whose age cannot be represented by the current age taxonomy, no all-age rank is
-						assumed by default.
-					</p>
+					<p class="mx-auto mt-2 max-w-lg text-sm text-[#9a8f7a]">This selected cohort has {pageData.competitiveCohortSize} opted-in riders with usable evidence. A competitive rank is only surfaced from {pageData.competitiveMinimum} riders. For riders whose age cannot be represented by the current age taxonomy, no all-age rank is assumed by default.</p>
 				</div>
 			{/if}
 		</div>
@@ -324,17 +261,11 @@
 		<div class="mt-4 grid gap-4 md:grid-cols-2">
 			<div>
 				<h3 class="text-sm font-medium text-[#f5a623]">Peer benchmark</h3>
-				<p class="mt-1 text-sm leading-relaxed text-[#9a8f7a]">
-					Uses aggregate percentile distributions. Individual riders are not listed, and the system
-					broadens an undersized cohort rather than pretending a tiny sample is meaningful.
-				</p>
+				<p class="mt-1 text-sm leading-relaxed text-[#9a8f7a]">Uses aggregate percentile distributions. Individual riders are not listed, and the system broadens an undersized cohort rather than pretending a tiny sample is meaningful.</p>
 			</div>
 			<div>
 				<h3 class="text-sm font-medium text-[#f5a623]">Competitive leaderboard</h3>
-				<p class="mt-1 text-sm leading-relaxed text-[#9a8f7a]">
-					Only riders who explicitly opt in are listed. Rankings use all-time best eligible evidence;
-					weekly and monthly rankings are not currently calculated.
-				</p>
+				<p class="mt-1 text-sm leading-relaxed text-[#9a8f7a]">Only riders who explicitly opt in are listed. Rankings use all-time best eligible evidence; weekly and monthly rankings are not currently calculated.</p>
 			</div>
 		</div>
 	</section>
@@ -348,9 +279,7 @@
 		border-radius: 0.5rem;
 		color: #f0ece4;
 		font-size: 0.875rem;
-		transition:
-			border-color 0.15s,
-			box-shadow 0.15s;
+		transition: border-color 0.15s, box-shadow 0.15s;
 	}
 	:global(.input-field:focus) {
 		outline: none;
