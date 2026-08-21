@@ -1,255 +1,295 @@
 import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
-import { shouldExcludeFromStats } from '$lib/types/runs';
 import {
-	shapeLeaderboard,
+	compareToPeers,
+	fetchBenchmarkForMetric,
+	estimateExperienceLevel,
 	METRIC_COLUMN,
 	METRIC_LOWER_IS_BETTER,
+	type AgeGroup,
+	type ExperienceLevel,
 	type LeaderboardMetric,
-	type TimePeriod,
-	type LeaderboardViewRow
-} from '$lib/services/benchmarking/leaderboards';
+	type LeaderboardResult,
+	type LeaderboardViewRow,
+	type TimePeriod
+} from '$lib/services/benchmarking';
+import { calculateAge } from '$lib/utils/uciCategories';
 
-// Minimum opted-in riders before cross-rider rankings are surfaced.
-// Below this the distribution is too thin to be meaningful.
-const MIN_LEADERBOARD_RIDERS = 10;
+// Competitive ranking is deliberately a secondary, opt-in surface. A filtered
+// leaderboard needs enough riders in that actual cohort before rank language is shown.
+const MIN_LEADERBOARD_COHORT = 10;
+const LEADERBOARD_PAGE_SIZE = 100;
+
+const METRICS: LeaderboardMetric[] = ['reactionTime', 'peakSpeed', 'maxG', 'consistency'];
+const AGE_GROUPS: AgeGroup[] = ['13-17', '18-25', '26-35', '36-45', '46+'];
+const EXPERIENCE_LEVELS: ExperienceLevel[] = ['beginner', 'intermediate', 'advanced', 'elite'];
+
+const BENCHMARK_METRIC: Record<
+	LeaderboardMetric,
+	'reaction_ms' | 'peak_speed_ms' | 'max_g' | 'consistency'
+> = {
+	reactionTime: 'reaction_ms',
+	peakSpeed: 'peak_speed_ms',
+	maxG: 'max_g',
+	consistency: 'consistency'
+};
+
+function validMetric(value: string | null): LeaderboardMetric {
+	return METRICS.includes(value as LeaderboardMetric) ? (value as LeaderboardMetric) : 'reactionTime';
+}
+
+function validAgeGroup(value: string | null): AgeGroup | undefined {
+	return AGE_GROUPS.includes(value as AgeGroup) ? (value as AgeGroup) : undefined;
+}
+
+function validExperience(value: string | null): ExperienceLevel | undefined {
+	return EXPERIENCE_LEVELS.includes(value as ExperienceLevel)
+		? (value as ExperienceLevel)
+		: undefined;
+}
+
+function ageGroupForAge(age: number | null): AgeGroup | 'unknown' {
+	if (age === null || age < 13) return 'unknown';
+	if (age < 18) return '13-17';
+	if (age < 26) return '18-25';
+	if (age < 36) return '26-35';
+	if (age < 46) return '36-45';
+	return '46+';
+}
+
+function snapshotValue(snapshot: any, metric: LeaderboardMetric): number | null {
+	const column = METRIC_COLUMN[metric];
+	const value = snapshot?.[column];
+	return typeof value === 'number' ? value : null;
+}
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }) => {
 	const { profile } = await parent();
 	const admin = createSupabaseAdminClient();
 
-	// ── Query params ──────────────────────────────────────────────────────────
-	const selectedMetric = (url.searchParams.get('metric') ?? 'reactionTime') as LeaderboardMetric;
-	const selectedPeriod = (url.searchParams.get('period') ?? 'all_time') as TimePeriod;
-	const selectedAge = url.searchParams.get('ageGroup') ?? undefined;
-	const selectedExp = url.searchParams.get('experience') ?? undefined;
+	const selectedMetric = validMetric(url.searchParams.get('metric'));
+	// Snapshots are all-time bests. Week/month used to change the label without
+	// changing the evidence, so those query values are intentionally ignored.
+	const selectedPeriod: TimePeriod = 'all_time';
 
-	// ── User's own stats (always real, not gated) ─────────────────────────────
 	const empty = {
-		sessionCount: 0,
-		totalRuns: 0,
-		personalBests: {
-			reaction_ms: null as number | null,
-			peak_speed_ms: null as number | null,
-			max_g: null as number | null
-		},
-		consistency: null as number | null,
-		activeGoals: [] as any[],
-		recentSessions: [] as any[],
-		leaderboards: null as Record<string, any> | null,
+		leaderboards: null as Record<string, LeaderboardResult> | null,
+		peerBenchmark: null as any,
 		selectedMetric,
 		selectedPeriod,
+		selectedAgeGroup: undefined as AgeGroup | undefined,
+		selectedExperience: undefined as ExperienceLevel | undefined,
+		competitiveCohortSize: 0,
+		competitiveMinimum: MIN_LEADERBOARD_COHORT,
 		userOptedIn: false,
-		userDisplayName: null as string | null
+		userDisplayName: null as string | null,
+		profile
 	};
 
 	if (!profile) return empty;
 
-	const { data: sessions } = await supabase
-		.from('sessions')
-		.select('id, timestamp')
-		.eq('user_id', profile.id)
-		.eq('archived', false)
-		.eq('session_type', 'gate')
-		.order('timestamp', { ascending: false });
+	const [prefsResult, snapshotResult, riderProfileResult] = await Promise.all([
+		supabase
+			.from('user_preferences')
+			.select('show_on_leaderboard, leaderboard_display_name')
+			.eq('user_id', profile.id)
+			.maybeSingle(),
+		admin
+			.from('rider_performance_snapshots')
+			.select(
+				'user_id, age_group, uci_category, experience_level, session_count, show_on_leaderboard, display_name, best_reaction_ms, best_peak_speed_ms, best_max_g, best_consistency'
+			)
+			.eq('user_id', profile.id)
+			.maybeSingle(),
+		admin
+			.from('rider_profiles')
+			.select('date_of_birth')
+			.eq('user_id', profile.id)
+			.order('effective_from', { ascending: false })
+			.limit(1)
+			.maybeSingle()
+	]);
 
-	if (!sessions || sessions.length === 0) return { ...empty };
+	const prefs = prefsResult.data;
+	const snapshot = snapshotResult.data;
+	const age = calculateAge(riderProfileResult.data?.date_of_birth);
+	const riderAgeGroup = ageGroupForAge(age);
+	const experienceLevel =
+		(snapshot?.experience_level as ExperienceLevel | null) ??
+		estimateExperienceLevel(snapshot?.session_count ?? 0, 50);
 
-	const sessionIds = sessions.map((s) => s.id);
-
-	const { data: runsWithGate } = await supabase
-		.from('runs')
-		.select('tags, gate_runs(reaction_time_ms, peak_speed_ms, max_g, analytics_valid)')
-		.in('session_id', sessionIds);
-
-	const eligibleRuns = (runsWithGate ?? []).filter((r) => !shouldExcludeFromStats(r.tags as any));
-	const allGateRuns = eligibleRuns.flatMap((r) =>
-		Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []
-	);
-	const validGateRuns = allGateRuns.filter((g) => g.analytics_valid);
-
-	const reactionTimes = allGateRuns
-		.map((g) => g.reaction_time_ms)
-		.filter((v): v is number => v !== null);
-	const speeds = validGateRuns.map((g) => g.peak_speed_ms).filter((v): v is number => v !== null);
-	const gForces = allGateRuns.map((g) => g.max_g).filter((v): v is number => v !== null);
-
-	const personalBests = {
-		reaction_ms: reactionTimes.length ? Math.min(...reactionTimes) : null,
-		peak_speed_ms: speeds.length ? Math.max(...speeds) : null,
-		max_g: gForces.length ? Math.max(...gForces) : null
-	};
-
-	let consistency: number | null = null;
-	if (reactionTimes.length >= 3) {
-		const mean = reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length;
-		const std = Math.sqrt(
-			reactionTimes.map((v) => (v - mean) ** 2).reduce((a, b) => a + b, 0) / reactionTimes.length
-		);
-		consistency = (std / mean) * 100;
-	}
-
-	const { count: totalRuns } = await supabase
-		.from('runs')
-		.select('id', { count: 'exact', head: true })
-		.in('session_id', sessionIds);
-
-	// ── Leaderboard preference ────────────────────────────────────────────────
-	const { data: prefs } = await supabase
-		.from('user_preferences')
-		.select('show_on_leaderboard, leaderboard_display_name')
-		.eq('user_id', profile.id)
-		.maybeSingle();
+	// Default competitive filtering is age-relative when that taxonomy is valid.
+	// Under-13 riders are not silently folded into 13-17; the current leaderboard
+	// taxonomy cannot represent them honestly, so no default competitive ranking
+	// is produced until a youth/UCI-category cohort is introduced.
+	const requestedAge = validAgeGroup(url.searchParams.get('ageGroup'));
+	const requestedExperience = validExperience(url.searchParams.get('experience'));
+	const selectedAge = requestedAge ?? (riderAgeGroup === 'unknown' ? undefined : riderAgeGroup);
+	const selectedExp = requestedExperience;
 
 	const userOptedIn = prefs?.show_on_leaderboard ?? false;
-	const userDisplayName = prefs?.leaderboard_display_name ?? null;
+	const userDisplayName = prefs?.leaderboard_display_name ?? snapshot?.display_name ?? null;
 
-	// ── Leaderboard data (admin client, reads leaderboard_view) ───────────────
-	// Check how many riders are opted in. If below threshold, surface null so
-	// the UI shows the "not enough riders yet" state instead of rankings.
-	const { count: optedInCount } = await admin
-		.from('rider_performance_snapshots')
-		.select('user_id', { count: 'exact', head: true })
-		.eq('show_on_leaderboard', true);
+	// ── Population benchmark (primary comparison truth model) ─────────────────
+	// This uses performance_aggregates and its >=30-rider fallback rules. It is
+	// separate from the opt-in competitive leaderboard below.
+	let peerBenchmark: any = null;
+	const userValue = snapshotValue(snapshot, selectedMetric);
 
-	let leaderboards: Record<string, any> | null = null;
+	if (userValue !== null && riderAgeGroup !== 'unknown') {
+		const benchmark = await fetchBenchmarkForMetric(
+			admin,
+			BENCHMARK_METRIC[selectedMetric],
+			riderAgeGroup,
+			experienceLevel
+		);
 
-	if ((optedInCount ?? 0) >= MIN_LEADERBOARD_RIDERS) {
-		// Build a query for each metric. Time-period filtering is not yet
-		// implemented at the snapshot level (snapshots store all-time bests).
-		// Week/month filters will be wired once we add a scored_at timestamp
-		// per metric to rider_performance_snapshots.
-		const metrics: LeaderboardMetric[] = ['reactionTime', 'peakSpeed', 'maxG', 'consistency'];
+		if (benchmark) {
+			const comparison = compareToPeers(
+				userValue,
+				BENCHMARK_METRIC[selectedMetric],
+				riderAgeGroup,
+				experienceLevel,
+				benchmark,
+				METRIC_LOWER_IS_BETTER[selectedMetric]
+			);
 
-		const results = await Promise.all(
-			metrics.map((metric) => {
-				const col = METRIC_COLUMN[metric] as string;
-				const lowerBetter = METRIC_LOWER_IS_BETTER[metric];
+			peerBenchmark = {
+				comparison,
+				benchmark: {
+					sampleSize: benchmark.sampleSize,
+					lastUpdated: benchmark.lastUpdated.toISOString(),
+					cohort: benchmark.cohort,
+					percentile_10: benchmark.percentile_10,
+					percentile_25: benchmark.percentile_25,
+					percentile_50: benchmark.percentile_50,
+					percentile_75: benchmark.percentile_75,
+					percentile_90: benchmark.percentile_90
+				},
+				requestedCohort: {
+					ageGroup: riderAgeGroup,
+					experienceLevel
+				}
+			};
+		}
+	}
 
-				let q = admin
+	// ── Competitive opt-in leaderboard (secondary comparison) ────────────────
+	let leaderboards: Record<string, LeaderboardResult> | null = null;
+	let competitiveCohortSize = 0;
+
+	// Do not default an under-13 rider into an all-age competition. An explicit
+	// age filter may still be used by an adult/parent viewing another cohort.
+	const canShowCompetitiveRanking = riderAgeGroup !== 'unknown' || requestedAge !== undefined;
+
+	if (canShowCompetitiveRanking) {
+		const col = METRIC_COLUMN[selectedMetric] as string;
+		const lowerBetter = METRIC_LOWER_IS_BETTER[selectedMetric];
+
+		let countQuery = admin
+			.from('leaderboard_view')
+			.select('user_id', { count: 'exact', head: true })
+			.not(col, 'is', null);
+		if (selectedAge) countQuery = (countQuery as any).eq('age_group', selectedAge);
+		if (selectedExp) countQuery = (countQuery as any).eq('experience_level', selectedExp);
+
+		const { count } = await countQuery;
+		competitiveCohortSize = count ?? 0;
+
+		if (competitiveCohortSize >= MIN_LEADERBOARD_COHORT) {
+			let rowsQuery = admin
+				.from('leaderboard_view')
+				.select(
+					'user_id, display_name, age_group, experience_level, session_count, best_reaction_ms, best_peak_speed_ms, best_max_g, best_consistency'
+				)
+				.not(col, 'is', null)
+				.order(col, { ascending: lowerBetter })
+				.limit(LEADERBOARD_PAGE_SIZE);
+			if (selectedAge) rowsQuery = (rowsQuery as any).eq('age_group', selectedAge);
+			if (selectedExp) rowsQuery = (rowsQuery as any).eq('experience_level', selectedExp);
+
+			const { data: topRows } = await rowsQuery;
+			const rows = (topRows ?? []) as LeaderboardViewRow[];
+			const entries = rows.map((row, index) => ({
+				rank: index + 1,
+				userId: row.user_id,
+				displayName: row.display_name,
+				value: row[METRIC_COLUMN[selectedMetric]] as number,
+				isCurrentUser: row.user_id === profile.id,
+				ageGroup: row.age_group as AgeGroup | undefined,
+				experienceLevel: row.experience_level as ExperienceLevel | undefined,
+				sessionCount: row.session_count
+			}));
+
+			let userEntry = entries.find((entry) => entry.isCurrentUser) ?? null;
+			let userRank = userEntry?.rank ?? null;
+
+			// Rank remains correct beyond the displayed top 100: count every rider
+			// in the selected cohort with a strictly better value than the user.
+			if (userOptedIn && userValue !== null && userRank === null) {
+				let userRowQuery = admin
 					.from('leaderboard_view')
 					.select(
 						'user_id, display_name, age_group, experience_level, session_count, best_reaction_ms, best_peak_speed_ms, best_max_g, best_consistency'
 					)
-					.not(col, 'is', null)
-					.order(col, { ascending: lowerBetter })
-					.limit(200);
+					.eq('user_id', profile.id)
+					.not(col, 'is', null);
+				if (selectedAge) userRowQuery = (userRowQuery as any).eq('age_group', selectedAge);
+				if (selectedExp) userRowQuery = (userRowQuery as any).eq('experience_level', selectedExp);
+				const { data: currentUserRow } = await userRowQuery.maybeSingle();
 
-				if (selectedAge) q = (q as any).eq('age_group', selectedAge);
-				if (selectedExp) q = (q as any).eq('experience_level', selectedExp);
+				if (currentUserRow) {
+					const currentValue = (currentUserRow as any)[col] as number;
+					let betterQuery = admin
+						.from('leaderboard_view')
+						.select('user_id', { count: 'exact', head: true })
+						.not(col, 'is', null);
+					if (selectedAge) betterQuery = (betterQuery as any).eq('age_group', selectedAge);
+					if (selectedExp) betterQuery = (betterQuery as any).eq('experience_level', selectedExp);
+					betterQuery = lowerBetter
+						? (betterQuery as any).lt(col, currentValue)
+						: (betterQuery as any).gt(col, currentValue);
+					const { count: betterCount } = await betterQuery;
+					userRank = (betterCount ?? 0) + 1;
+					userEntry = {
+						rank: userRank,
+						userId: currentUserRow.user_id,
+						displayName: currentUserRow.display_name,
+						value: currentValue,
+						isCurrentUser: true,
+						ageGroup: currentUserRow.age_group as AgeGroup | undefined,
+						experienceLevel: currentUserRow.experience_level as ExperienceLevel | undefined,
+						sessionCount: currentUserRow.session_count
+					};
+				}
+			}
 
-				return q.then(({ data }) => ({
-					metric,
-					rows: (data ?? []) as LeaderboardViewRow[]
-				}));
-			})
-		);
-
-		leaderboards = {};
-		for (const { metric, rows } of results) {
-			leaderboards[metric] = shapeLeaderboard(
-				rows,
-				{
-					metric,
-					timePeriod: selectedPeriod,
-					ageGroup: selectedAge as any,
-					experienceLevel: selectedExp as any
-				},
-				profile.id
-			);
+			leaderboards = {
+				[selectedMetric]: {
+					entries,
+					userRank,
+					userEntry,
+					totalEntries: competitiveCohortSize,
+					filters: {
+						metric: selectedMetric,
+						timePeriod: selectedPeriod,
+						ageGroup: selectedAge,
+						experienceLevel: selectedExp
+					}
+				}
+			};
 		}
 	}
 
-	// ── Recent sessions ───────────────────────────────────────────────────────
-	const recentIds = sessions.slice(0, 5).map((s) => s.id);
-	const { data: recentRuns } = await supabase
-		.from('runs')
-		.select('session_id, tags, gate_runs(reaction_time_ms, peak_speed_ms, analytics_valid)')
-		.in('session_id', recentIds);
-	const { data: recentRunCounts } = await supabase
-		.from('runs')
-		.select('session_id, id')
-		.in('session_id', recentIds);
-
-	const recentSessions = sessions.slice(0, 5).map((session) => {
-		const sessionEligible = (recentRuns ?? []).filter(
-			(r) => r.session_id === session.id && !shouldExcludeFromStats(r.tags as any)
-		);
-		const sGateRuns = sessionEligible
-			.flatMap((r) => (Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []))
-			.filter((g) => g.analytics_valid);
-		const sReactions = sessionEligible
-			.flatMap((r) => (Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : []))
-			.map((g) => g.reaction_time_ms)
-			.filter((v): v is number => v !== null);
-		const sSpeeds = sGateRuns.map((r) => r.peak_speed_ms).filter((v): v is number => v !== null);
-		const sRunCount = (recentRunCounts ?? []).filter((r) => r.session_id === session.id).length;
-		let reaction_cv: number | null = null;
-		if (sReactions.length >= 3) {
-			const mean = sReactions.reduce((a, b) => a + b, 0) / sReactions.length;
-			const std = Math.sqrt(
-				sReactions.map((v) => (v - mean) ** 2).reduce((a, b) => a + b, 0) / sReactions.length
-			);
-			reaction_cv = (std / mean) * 100;
-		}
-		return {
-			id: session.id,
-			timestamp: session.timestamp,
-			run_count: sRunCount,
-			best_reaction_ms: sReactions.length ? Math.min(...sReactions) : null,
-			best_peak_speed_ms: sSpeeds.length ? Math.max(...sSpeeds) : null,
-			has_valid_speed: sSpeeds.length > 0,
-			reaction_cv
-		};
-	});
-
-	// ── Goals ─────────────────────────────────────────────────────────────────
-	const { data: goals } = await supabase
-		.from('training_goals')
-		.select('id, metric, target_value, start_value, current_value, deadline')
-		.eq('user_id', profile.id)
-		.eq('completed', false)
-		.order('deadline', { ascending: true })
-		.limit(3);
-
-	const now = new Date();
-	const lowerBetterMetrics = ['reactionTime', 'elapsedTime', 'accelerationPhase'];
-	const activeGoals = (goals ?? []).map((goal) => {
-		const deadline = goal.deadline ? new Date(goal.deadline) : null;
-		const daysUntil = deadline ? Math.ceil((deadline.getTime() - now.getTime()) / 86400000) : 999;
-		const start = goal.start_value ?? 0;
-		const target = goal.target_value ?? 0;
-		const current = goal.current_value ?? start;
-		const lowerBetter = lowerBetterMetrics.includes(goal.metric);
-		let progress = 0;
-		if (start !== target) {
-			progress = Math.min(
-				100,
-				Math.max(
-					0,
-					Math.round(
-						lowerBetter
-							? ((start - current) / (start - target)) * 100
-							: ((current - start) / (target - start)) * 100
-					)
-				)
-			);
-		}
-		return { ...goal, daysUntilDeadline: daysUntil, isOverdue: daysUntil < 0, progress };
-	});
-
 	return {
-		sessionCount: sessions.length,
-		totalRuns: totalRuns ?? 0,
-		personalBests,
-		consistency,
-		activeGoals,
-		recentSessions,
 		leaderboards,
+		peerBenchmark,
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: selectedAge,
 		selectedExperience: selectedExp,
+		competitiveCohortSize,
+		competitiveMinimum: MIN_LEADERBOARD_COHORT,
 		userOptedIn,
 		userDisplayName,
 		profile
