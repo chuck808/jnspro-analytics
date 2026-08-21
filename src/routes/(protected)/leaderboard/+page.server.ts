@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import {
 	compareToPeers,
+	competitionRanks,
 	fetchBenchmarkForMetric,
 	estimateExperienceLevel,
 	METRIC_COLUMN,
@@ -75,7 +76,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: undefined as AgeGroup | undefined,
-		selectedAgeFilter: '' as string,
 		selectedExperience: undefined as ExperienceLevel | undefined,
 		competitiveCohortSize: 0,
 		competitiveMinimum: MIN_LEADERBOARD_COHORT,
@@ -123,7 +123,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	const selectedAge = explicitAllAge
 		? undefined
 		: requestedAge ?? (riderAgeGroup === 'unknown' ? undefined : riderAgeGroup);
-	const selectedAgeFilter = explicitAllAge ? 'all' : selectedAge ?? '';
 	const selectedExp = requestedExperience;
 
 	const userOptedIn = prefs?.show_on_leaderboard ?? false;
@@ -203,11 +202,13 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 
 			const { data: topRows } = await rowsQuery;
 			const rows = (topRows ?? []) as LeaderboardViewRow[];
+			const metricColumn = METRIC_COLUMN[selectedMetric];
+			const ranks = competitionRanks(rows.map((row) => row[metricColumn] as number));
 			const entries = rows.map((row, index) => ({
-				rank: index + 1,
+				rank: ranks[index],
 				userId: row.user_id,
 				displayName: row.display_name,
-				value: row[METRIC_COLUMN[selectedMetric]] as number,
+				value: row[metricColumn] as number,
 				isCurrentUser: row.user_id === profile.id,
 				ageGroup: row.age_group as AgeGroup | undefined,
 				experienceLevel: row.experience_level as ExperienceLevel | undefined,
@@ -231,7 +232,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 				const currentUserRow = currentUserRowRaw as LeaderboardViewRow | null;
 
 				if (currentUserRow) {
-					const currentValue = currentUserRow[col as keyof LeaderboardViewRow] as number;
+					const currentValue = currentUserRow[metricColumn] as number;
 					let betterQuery = admin
 						.from('leaderboard_view')
 						.select('user_id', { count: 'exact', head: true })
@@ -279,7 +280,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: selectedAge,
-		selectedAgeFilter,
 		selectedExperience: selectedExp,
 		competitiveCohortSize,
 		competitiveMinimum: MIN_LEADERBOARD_COHORT,
