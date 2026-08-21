@@ -104,17 +104,28 @@ export async function upsertSnapshot(
 
 // ── Fetch benchmark ───────────────────────────────────────────────────────────
 
+export interface ResolvedPerformanceBenchmark extends PerformanceBenchmark {
+	cohort: {
+		ageGroup: string;
+		experienceLevel: string;
+	};
+}
+
 /**
  * Fetch the percentile distribution for a metric from performance_aggregates.
  * Falls back through cohort levels: (age × exp) → (age, all) → (all, exp) → (all, all).
  * Returns null when the best available distribution has fewer than MIN_BENCHMARK_SAMPLE riders.
+ *
+ * The resolved cohort is returned alongside the distribution so callers can tell
+ * riders exactly which population supplied the comparison instead of implying the
+ * requested cohort was used when fallback was required.
  */
 export async function fetchBenchmarkForMetric(
 	supabase: SupabaseClient,
 	metric: 'reaction_ms' | 'peak_speed_ms' | 'max_g' | 'consistency',
 	ageGroup: AgeGroup | 'unknown',
 	experienceLevel: ExperienceLevel
-): Promise<PerformanceBenchmark | null> {
+): Promise<ResolvedPerformanceBenchmark | null> {
 	// Try progressively broader cohorts until one has enough data
 	const candidates = [
 		{ age: ageGroup === 'unknown' ? 'all' : ageGroup, exp: experienceLevel },
@@ -143,7 +154,11 @@ export async function fetchBenchmarkForMetric(
 			percentile_75: data.percentile_75,
 			percentile_90: data.percentile_90,
 			sampleSize: data.sample_size,
-			lastUpdated: new Date(data.computed_at)
+			lastUpdated: new Date(data.computed_at),
+			cohort: {
+				ageGroup: cohort.age,
+				experienceLevel: cohort.exp
+			}
 		};
 	}
 
