@@ -78,6 +78,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: undefined as AgeGroup | undefined,
+		selectedAgeFilter: '' as string,
 		selectedExperience: undefined as ExperienceLevel | undefined,
 		competitiveCohortSize: 0,
 		competitiveMinimum: MIN_LEADERBOARD_COHORT,
@@ -119,12 +120,16 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		estimateExperienceLevel(snapshot?.session_count ?? 0, 50);
 
 	// Default competitive filtering is age-relative when that taxonomy is valid.
-	// Under-13 riders are not silently folded into 13-17; the current leaderboard
-	// taxonomy cannot represent them honestly, so no default competitive ranking
-	// is produced until a youth/UCI-category cohort is introduced.
-	const requestedAge = validAgeGroup(url.searchParams.get('ageGroup'));
+	// `ageGroup=all` is an explicit opt-in to an all-age competition; deleting the
+	// query parameter returns to the rider-relative default.
+	const requestedAgeRaw = url.searchParams.get('ageGroup');
+	const requestedAge = validAgeGroup(requestedAgeRaw);
+	const explicitAllAge = requestedAgeRaw === 'all';
 	const requestedExperience = validExperience(url.searchParams.get('experience'));
-	const selectedAge = requestedAge ?? (riderAgeGroup === 'unknown' ? undefined : riderAgeGroup);
+	const selectedAge = explicitAllAge
+		? undefined
+		: requestedAge ?? (riderAgeGroup === 'unknown' ? undefined : riderAgeGroup);
+	const selectedAgeFilter = explicitAllAge ? 'all' : selectedAge ?? '';
 	const selectedExp = requestedExperience;
 
 	const userOptedIn = prefs?.show_on_leaderboard ?? false;
@@ -178,9 +183,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	let leaderboards: Record<string, LeaderboardResult> | null = null;
 	let competitiveCohortSize = 0;
 
-	// Do not default an under-13 rider into an all-age competition. An explicit
-	// age filter may still be used by an adult/parent viewing another cohort.
-	const canShowCompetitiveRanking = riderAgeGroup !== 'unknown' || requestedAge !== undefined;
+	// Do not default an under-13 rider into an all-age competition. They may
+	// deliberately browse all ages with `ageGroup=all`, but it is never assumed.
+	const canShowCompetitiveRanking =
+		riderAgeGroup !== 'unknown' || requestedAge !== undefined || explicitAllAge;
 
 	if (canShowCompetitiveRanking) {
 		const col = METRIC_COLUMN[selectedMetric] as string;
@@ -287,6 +293,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: selectedAge,
+		selectedAgeFilter,
 		selectedExperience: selectedExp,
 		competitiveCohortSize,
 		competitiveMinimum: MIN_LEADERBOARD_COHORT,
