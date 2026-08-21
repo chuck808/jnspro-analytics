@@ -5,20 +5,72 @@ import { performHealthCheck } from '$lib/services/anomalyDetection';
 import { analyzeGoalAdaptation } from '$lib/services/goalAdaptation';
 import { shouldExcludeFromStats } from '$lib/types/runs';
 import { buildGoalEvidenceProjections } from '$lib/server/goalEvidenceProjection';
+import { computeSessionGoalMetrics } from '$lib/server/sessionGoalMetrics';
+
+type GateMetricRun = {
+	reaction_time_ms: number | null;
+	max_g: number | null;
+	peak_speed_ms: number | null;
+	elapsed_time_ms: number | null;
+	time_to_peak_speed_ms: number | null;
+	analytics_valid: boolean;
+};
+
+function gateRunsForSession(session: any): {
+	eligibleRunCount: number;
+	metricRuns: GateMetricRun[];
+	reactions: number[];
+} {
+	const eligibleRuns = (session?.runs ?? []).filter(
+		(run: any) => !shouldExcludeFromStats(run.tags as any)
+	);
+
+	const metricRuns: GateMetricRun[] = eligibleRuns.flatMap((run: any) => {
+		const gates = Array.isArray(run.gate_runs)
+			? run.gate_runs
+			: run.gate_runs
+				? [run.gate_runs]
+				: [];
+
+		return gates.map((gate: any) => ({
+			reaction_time_ms: gate.reaction_time_ms ?? null,
+			max_g: gate.max_g ?? null,
+			peak_speed_ms: gate.peak_speed_ms ?? null,
+			elapsed_time_ms: run.elapsed_time_ms ?? null,
+			time_to_peak_speed_ms: gate.time_to_peak_speed_ms ?? null,
+			analytics_valid: gate.analytics_valid ?? false
+		}));
+	});
+
+	return {
+		eligibleRunCount: eligibleRuns.length,
+		metricRuns,
+		reactions: metricRuns
+			.map((run) => run.reaction_time_ms)
+			.filter((value): value is number => value !== null)
+	};
+}
+
+function reactionCvPercent(values: number[]): number {
+	if (values.length < 2) return 0;
+	const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+	if (mean <= 0) return 0;
+	const variance =
+		values.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / values.length;
+	return (Math.sqrt(variance) / mean) * 100;
+}
 
 export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => {
 	const { profile } = await parent();
-	if (!profile)
+	if (!profile) {
 		return {
 			goals: [],
 			sessionCount: 0,
 			currentValues: {},
-			healthCheck: null,
-			goalsWithIntelligence: []
+			healthCheck: null
 		};
+	}
 
-	// Load goals with persisted milestones retained as a fallback while the
-	// evidence-derived projection is rolled out.
 	const { data: goals } = await supabase
 		.from('training_goals')
 		.select(
@@ -40,9 +92,6 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		.eq('user_id', profile.id)
 		.order('created_at', { ascending: false });
 
-	// Rebuild goal truth from canonical eligible evidence. Unlike the legacy
-	// append-only milestone table, this projection naturally reverses when a run
-	// is later classified as warm-up/testing/competition/excluded.
 	let goalEvidence: Awaited<ReturnType<typeof buildGoalEvidenceProjections>> = {};
 	try {
 		goalEvidence = await buildGoalEvidenceProjections(
@@ -53,6 +102,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 				metric: goal.metric,
 				start_value: goal.start_value,
 				created_at: goal.created_at,
+				completed_at: goal.completed_at,
 				distance_m: goal.distance_m
 			}))
 		);
@@ -60,13 +110,13 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		console.warn('[Goals] Evidence projection failed, using persisted fallback:', projectionError);
 	}
 
-	// Load recent session data for health/current-summary UI. Goal current values
-	// and prediction milestones come from the full evidence projection above.
 	const { data: sessions } = await supabase
 		.from('sessions')
 		.select(
 			`
-            id, timestamp,
+            id,
+            timestamp,
+            session_focus,
             runs(
                 elapsed_time_ms,
                 distance_m,
@@ -74,6 +124,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
                 gate_runs(
                     reaction_time_ms,
                     max_g,
+                    peak_speed_ms,
                     analytics_valid,
                     time_to_peak_speed_ms
                 )
@@ -86,80 +137,28 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		.order('timestamp', { ascending: false })
 		.limit(20);
 
-	// Flatten all gate runs — cast explicitly to avoid 'never' from union type
-	type GateRunRow = {
-		reaction_time_ms: number;
-		max_g: number;
-		analytics_valid: boolean;
-		time_to_peak_speed_ms: number | null;
-		elapsed_time_ms: number | null;
-		distance_m: number | null;
+	const sessionEvidence = (sessions ?? []).map((session) => {
+		const evidence = gateRunsForSession(session);
+		return {
+			session,
+			...evidence,
+			metrics: computeSessionGoalMetrics(evidence.metricRuns, evidence.eligibleRunCount)
+		};
+	});
+
+	const allMetricRuns = sessionEvidence.flatMap((entry) => entry.metricRuns);
+	const aggregateMetrics = computeSessionGoalMetrics(allMetricRuns);
+	const latestMetrics = sessionEvidence[0]?.metrics;
+	const currentValues: Record<string, number | null> = {
+		reactionTime: aggregateMetrics.reactionTime,
+		maxG: aggregateMetrics.maxG,
+		peakSpeed: aggregateMetrics.peakSpeed,
+		elapsedTime: aggregateMetrics.elapsedTime,
+		accelerationPhase: aggregateMetrics.accelerationPhase,
+		consistency: latestMetrics?.consistency ?? null,
+		endurance: latestMetrics?.endurance ?? null
 	};
 
-	const allGateRuns: GateRunRow[] = (sessions ?? []).flatMap((s) =>
-		s.runs
-			.filter((r) => !shouldExcludeFromStats(r.tags as any))
-			.flatMap((r) => {
-				const gateRunsArr = Array.isArray(r.gate_runs)
-					? r.gate_runs
-					: r.gate_runs
-						? [r.gate_runs]
-						: [];
-				return gateRunsArr.map((g) => ({
-					reaction_time_ms: g.reaction_time_ms,
-					max_g: g.max_g,
-					analytics_valid: g.analytics_valid,
-					time_to_peak_speed_ms: g.time_to_peak_speed_ms ?? null,
-					elapsed_time_ms: r.elapsed_time_ms ?? null,
-					distance_m: r.distance_m ?? null
-				}));
-			})
-	);
-
-	// Also filter the last session's runs for consistency calculation
-	const lastSessionEligibleRuns =
-		(sessions ?? [])[0]?.runs?.filter((r) => !shouldExcludeFromStats(r.tags as any)) ?? [];
-
-	const currentValues: Record<string, number | null> = {};
-
-	if (allGateRuns.length > 0) {
-		const reactions = allGateRuns
-			.map((g) => g.reaction_time_ms)
-			.filter((v): v is number => v !== null);
-		currentValues['reactionTime'] = reactions.length > 0 ? Math.min(...reactions) : null;
-
-		const gs = allGateRuns.map((g) => g.max_g).filter((v): v is number => v !== null);
-		currentValues['maxG'] = gs.length > 0 ? Math.max(...gs) : null;
-
-		// Consistency CV from last session — stats-eligible runs only
-		const lastSessionRuns =
-			lastSessionEligibleRuns.flatMap((r) => {
-				const arr = Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : [];
-				return arr;
-			}) ?? [];
-		if (lastSessionRuns.length > 1) {
-			const rts = lastSessionRuns.map((g) => g.reaction_time_ms);
-			const mean = rts.reduce((s, v) => s + v, 0) / rts.length;
-			const variance = rts.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / rts.length;
-			currentValues['consistency'] = mean > 0 ? (1 - Math.sqrt(variance) / mean) * 100 : null;
-		}
-
-		const elapsed = allGateRuns
-			.map((g) => g.elapsed_time_ms)
-			.filter((v): v is number => v !== null);
-		currentValues['elapsedTime'] = elapsed.length > 0 ? Math.min(...elapsed) / 1000 : null;
-
-		const accelPhase = allGateRuns
-			.filter((g) => g.analytics_valid && g.time_to_peak_speed_ms !== null)
-			.map((g) => g.time_to_peak_speed_ms!);
-		currentValues['accelerationPhase'] =
-			accelPhase.length > 0 ? Math.min(...accelPhase) / 1000 : null;
-
-		currentValues['endurance'] = (sessions ?? [])[0]?.runs?.length ?? null;
-	}
-
-	// Enrich goals with evidence-derived current values and milestones. Persisted
-	// values remain a fallback only if projection failed or no projection exists.
 	const enrichedGoals = (goals ?? []).map((goal) => {
 		const projection = goalEvidence[goal.id];
 		return {
@@ -169,41 +168,43 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		};
 	});
 
-	// PHASE 5: Health check (needs to be before goal intelligence for shouldRest flag)
-	// Gated behind 10 sessions — below that, the fatigue and injury risk models have
-	// insufficient data to be meaningful, and false positives get surfaced to riders.
+	// This cross-session signal is retained only as an input to optional goal
+	// adaptation. Goals no longer presents it as a medical or injury assessment;
+	// Progress owns the rider-facing longitudinal recovery/training-load view.
 	let healthCheck: ReturnType<typeof performHealthCheck> | null = null;
-	if (sessions && sessions.length >= 10) {
+	if ((sessions ?? []).length >= 10) {
+		// The anomaly/fatigue service expects chronological history. The query is
+		// newest-first for page convenience, so explicitly reverse a copy here.
+		const chronological = [...sessionEvidence].reverse();
+
 		const performanceData = {
 			metric: 'reactionTime',
 			lowerIsBetter: true,
-			dataPoints: allGateRuns.slice(0, 50).map((run, index) => ({
-				sessionId: sessions[Math.floor(index / 10)]?.id || `session-${index}`,
-				value: run.reaction_time_ms,
-				timestamp: sessions[Math.floor(index / 10)]?.timestamp || new Date().toISOString()
-			}))
+			dataPoints: chronological
+				.flatMap((entry) =>
+					entry.reactions.map((value) => ({
+						sessionId: entry.session.id,
+						value,
+						timestamp: entry.session.timestamp
+					}))
+				)
+				.slice(-50)
 		};
 
-		const sessionHistory = sessions.map((s) => {
-			const eligibleRuns = (s.runs || []).filter((r) => !shouldExcludeFromStats(r.tags as any));
-			const reactions = eligibleRuns.flatMap((r) => {
-				const arr = Array.isArray(r.gate_runs) ? r.gate_runs : r.gate_runs ? [r.gate_runs] : [];
-				return arr.map((g) => g.reaction_time_ms).filter((v): v is number => v !== null);
-			});
-
-			return {
-				sessionId: s.id,
-				timestamp: s.timestamp,
-				bestValue: reactions.length > 0 ? Math.min(...reactions) : 0,
+		const sessionHistory = chronological
+			.filter((entry) => entry.reactions.length > 0)
+			.map((entry) => ({
+				sessionId: entry.session.id,
+				timestamp: entry.session.timestamp,
+				bestValue: Math.min(...entry.reactions),
 				avgValue:
-					reactions.length > 0 ? reactions.reduce((a, b) => a + b, 0) / reactions.length : 0,
-				consistency: 0, // Simplified for now
-				runCount: eligibleRuns.length,
-				// Pass sessionFocus so fatigueAnalysis can exclude technique/testing sessions
-				// from consistency-based fatigue detection (mirrors sessionNarrative.ts isTesting guard).
-				sessionFocus: (s as any).session_focus ?? null
-			};
-		});
+					entry.reactions.reduce((sum, value) => sum + value, 0) / entry.reactions.length,
+				// fatigueAnalysis expects variability (CV), where a larger value is
+				// worse. Do not feed the rider-facing 100-CV consistency score here.
+				consistency: reactionCvPercent(entry.reactions),
+				runCount: entry.eligibleRunCount,
+				sessionFocus: entry.session.session_focus ?? null
+			}));
 
 		try {
 			healthCheck = performHealthCheck(performanceData, sessionHistory);
@@ -213,27 +214,28 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 		}
 	}
 
-	// PHASE 5: Add intelligence layer with adaptive goal analysis
-	const goalsWithIntelligence = enrichedGoals.map((goal) => {
+	// One canonical collection leaves the server. Evidence-derived values,
+	// interpretation, prediction and optional adaptations cannot drift simply
+	// because the page picked the wrong parallel array.
+	const goalViewModels = enrichedGoals.map((goal) => {
 		const current = goal.computed_current ?? goal.current_value ?? goal.start_value;
 		const lowerIsBetter =
 			goal.metric === 'reactionTime' ||
 			goal.metric === 'elapsedTime' ||
 			goal.metric === 'accelerationPhase';
 
-		// Get milestone values for prediction
 		const milestones = Array.isArray(goal.goal_milestones) ? goal.goal_milestones : [];
 		const sessionDataPoints = milestones
-			.filter((m) => m && m.value !== undefined && m.achieved_at)
+			.filter((milestone) => milestone && milestone.value !== undefined && milestone.achieved_at)
 			.sort(
-				(a: any, b: any) => new Date(a.achieved_at).getTime() - new Date(b.achieved_at).getTime()
+				(a: any, b: any) =>
+					new Date(a.achieved_at).getTime() - new Date(b.achieved_at).getTime()
 			)
-			.map((m, index) => ({
+			.map((milestone, index) => ({
 				sessionNumber: index + 1,
-				value: m.value
+				value: milestone.value
 			}));
 
-		// Add current value
 		if (current !== null) {
 			sessionDataPoints.push({
 				sessionNumber: sessionDataPoints.length + 1,
@@ -241,13 +243,20 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 			});
 		}
 
-		// Generate prediction
-		const prediction =
+		const rawPrediction =
 			sessionDataPoints.length >= 2 && current !== null
 				? predictGoalProgress(sessionDataPoints, goal.target_value, current, lowerIsBetter)
 				: null;
+		const prediction = rawPrediction
+			? {
+					type: rawPrediction.type,
+					sessionsRemaining: rawPrediction.sessionsRemaining,
+					confidenceInterval: rawPrediction.confidenceInterval,
+					rSquared: rawPrediction.rSquared,
+					metadata: rawPrediction.metadata
+				}
+			: null;
 
-		// Use analyzeGoalAdaptation for comprehensive analysis
 		let adaptiveAnalysis = null;
 		let progressStatus: 'way_ahead' | 'ahead' | 'on_track' | 'behind' | 'way_behind' | 'stalled' =
 			'on_track';
@@ -270,51 +279,22 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 						deadline: new Date(goal.deadline),
 						lowerIsBetter
 					},
-					{
-						sessionsRemaining: prediction?.sessionsRemaining ?? null
-					},
-					{
-						shouldRest: healthCheck?.shouldRest ?? false
-					}
+					{ sessionsRemaining: prediction?.sessionsRemaining ?? null },
+					{ shouldRest: healthCheck?.shouldRest ?? false }
 				);
 
 				progressStatus = adaptiveAnalysis.progressEvaluation.status;
 				percentComplete = adaptiveAnalysis.progressEvaluation.percentageComplete;
 			} catch (error) {
 				console.error('Goal adaptation analysis error:', error);
-				// Fallback to manual calculation
-				if (lowerIsBetter) {
-					percentComplete = Math.min(
-						100,
-						Math.max(
-							0,
-							((goal.start_value - current) / (goal.start_value - goal.target_value)) * 100
-						)
-					);
-				} else {
-					percentComplete = Math.min(
-						100,
-						Math.max(
-							0,
-							((current - goal.start_value) / (goal.target_value - goal.start_value)) * 100
-						)
-					);
-				}
-
-				// Simple status determination
-				const start = new Date(goal.created_at);
-				const deadline = new Date(goal.deadline);
-				const now = new Date();
-				const totalDuration = deadline.getTime() - start.getTime();
-				const elapsed = now.getTime() - start.getTime();
-				const timeProgress = (elapsed / totalDuration) * 100;
-				const variance = percentComplete - timeProgress;
-
-				if (variance > 30) progressStatus = 'way_ahead';
-				else if (variance > 10) progressStatus = 'ahead';
-				else if (variance >= -10) progressStatus = 'on_track';
-				else if (variance >= -30) progressStatus = 'behind';
-				else progressStatus = 'way_behind';
+				const start = goal.start_value;
+				const target = goal.target_value;
+				const denominator = lowerIsBetter ? start - target : target - start;
+				const numerator = lowerIsBetter ? start - current : current - start;
+				percentComplete =
+					denominator === 0
+						? 0
+						: Math.min(100, Math.max(0, (numerator / denominator) * 100));
 			}
 		}
 
@@ -328,10 +308,9 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent }) => 
 	});
 
 	return {
-		goals: enrichedGoals,
+		goals: goalViewModels,
 		sessionCount: sessions?.length ?? 0,
 		currentValues,
-		goalsWithIntelligence,
 		healthCheck
 	};
 };
@@ -345,16 +324,24 @@ export const actions: Actions = {
 		let target_value = parseFloat(form.get('target_value') as string);
 		let start_value = parseFloat(form.get('start_value') as string);
 		const deadline = form.get('deadline') as string;
-		const distance_m = form.get('distance_m') ? parseFloat(form.get('distance_m') as string) : null;
+		const distance_m = form.get('distance_m')
+			? parseFloat(form.get('distance_m') as string)
+			: null;
 
 		if (!metric || isNaN(target_value) || isNaN(start_value) || !deadline) {
 			return fail(400, { createError: 'All required fields must be filled in' });
 		}
 
-		// Convert reaction time from seconds to milliseconds for database storage
+		// Rider-facing reaction inputs are seconds; canonical storage is ms.
 		if (metric === 'reactionTime') {
 			target_value *= 1000;
 			start_value *= 1000;
+		}
+
+		// Rider-facing speed inputs are km/h; goal evidence is stored in m/s.
+		if (metric === 'peakSpeed') {
+			target_value /= 3.6;
+			start_value /= 3.6;
 		}
 
 		const { error } = await supabase.from('training_goals').insert({
@@ -415,7 +402,6 @@ export const actions: Actions = {
 			return fail(400, { adjustError: 'Missing required fields' });
 		}
 
-		// Build update object based on adjustment type
 		let updateData: any;
 
 		switch (adjustmentType) {
@@ -434,16 +420,12 @@ export const actions: Actions = {
 				break;
 
 			case 'pause':
-				// Pause is not yet implemented — paused_at column does not exist
-				// in training_goals. Return an informative error rather than
-				// silently doing nothing and telling the user it worked.
 				return fail(501, {
 					adjustError:
 						"Goal pause is not yet available. If you need a break, you can delete and recreate the goal when you're ready to resume."
 				});
 
 			case 'cancel': {
-				// Delete the goal
 				const { error: deleteError } = await supabase
 					.from('training_goals')
 					.delete()
@@ -458,7 +440,6 @@ export const actions: Actions = {
 				return fail(400, { adjustError: 'Unknown adjustment type' });
 		}
 
-		// Apply the update
 		const { error } = await supabase
 			.from('training_goals')
 			.update(updateData)

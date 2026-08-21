@@ -13,8 +13,9 @@
 - Phase 5 — Single-session Overview: DONE
 - Phase 6 — Session Analysis: DONE
 - Phase 7 — Session Deep Dive: DONE
-- **Phase 8 — Progress / longitudinal analytics: DONE**
-- **Phase 9 — Goals: IN PROGRESS**
+- Phase 8 — Progress / longitudinal analytics: DONE
+- **Phase 9 — Goals: DONE**
+- **Phase 10 — Compare / leaderboard: NEXT**
 
 ## Phase 5 sign-off
 
@@ -120,6 +121,66 @@ Independent verification after the final fixes:
 
 Phase 8 is therefore signed off.
 
+## Phase 9 sign-off
+
+Goals now owns **commitment and evidence-backed progress toward a chosen target**. Progress continues to own current form, longitudinal direction, repeatability and training-load/recovery investigation.
+
+Signed-off hierarchy and semantics:
+
+1. **Evidence** — Start / **Best so far** / Target, canonical evidence progress and reversible milestones;
+2. **Interpretation** — target-date pace is explicitly labelled as interpretation rather than measurement;
+3. **Estimate** — prediction is a model estimate, not a promise, and only serializable prediction data leaves the server;
+4. **Action** — optional model-derived adjustments require rider approval, while closing/deleting remain explicit rider actions.
+
+### Phase 9 correctness/trust fixes
+
+- `goals` and the former parallel intelligence collection were collapsed into one canonical rendered goal view model.
+- Goal health/adaptation inputs use real per-session attribution rather than `Math.floor(index / 10)` and use actual reaction-time CV instead of hard-coded `consistency: 0`.
+- **Current** was renamed **Best so far**, matching the Release 1 ratchet semantic: best eligible evidence since the goal began, not latest form.
+- Injury/diagnostic and "exactly when" language was removed; prediction and recovery language is evidence-proportionate and non-diagnostic.
+- Prediction results are stripped to serializable fields before the SvelteKit load boundary; the model's `predict()` function never leaves the server.
+- Closing a goal records a finish date but does not itself claim the target was achieved.
+- Closed-goal history independently reports whether eligible evidence actually reached the target before closure.
+- Completed-goal evidence remains frozen at `completed_at`.
+- Peak Speed was restored as a supported goal metric end-to-end, including the database check constraint.
+- Distance-specific elapsed-time goals retain like-for-like evidence filtering.
+
+### Phase 9 schema note
+
+Migration: `supabase/migrations/20260821_allow_peak_speed_goal_metric.sql`.
+
+The hosted database had a stale `training_goals_metric_check` taxonomy containing `gateForm` / `peakPower` and omitting `peakSpeed`. The migration replaces it with the seven current supported metrics:
+
+- `reactionTime`
+- `maxG`
+- `peakSpeed`
+- `consistency`
+- `elapsedTime`
+- `accelerationPhase`
+- `endurance`
+
+The migration was applied directly to the linked hosted project rather than using a full `db push`, because the repository still contains historical migration-baseline drift that would otherwise attempt to replay already-existing schema objects.
+
+### Phase 9 verification
+
+Independent verification after the final fixes:
+
+- `svelte-check`: 0 errors;
+- `tsc --noEmit`: clean;
+- Vitest: 112/112 passing;
+- no-goal and no-new-evidence states render cleanly;
+- genuine improvement updates Best so far and evidence milestones;
+- reclassifying the best run as `warmup` reverses Best so far, removes the milestone, clears target-reached state and recalculates prediction;
+- target-reached-by-evidence and manual-close-before-target are distinguished correctly;
+- completed-goal freeze remains intact after later better evidence;
+- prediction present/absent states render correctly with **Model estimate** wording;
+- `reactionTime`, `maxG`, `peakSpeed`, `consistency`, `elapsedTime`, `accelerationPhase` and `endurance` goal types are supported end-to-end;
+- Peak Speed creation/tracking verified live after the schema migration;
+- distance-specific elapsed-time evidence ignores a faster run at the wrong distance;
+- 390 px mobile renders cleanly with no horizontal overflow.
+
+Phase 9 is therefore signed off.
+
 ## Non-obvious session-share invariant
 
 `SocialShareModal` must always bind to the **persisted** achievement (`persistedAchievement`), never the first-time setup live preview.
@@ -136,35 +197,20 @@ The long-used test rider contains a handful of corrupted legacy May reaction val
 
 Prefer a clean dedicated visual/test rider for future longitudinal UI passes, or clean those rows before interpreting aggregate screenshots.
 
-## Phase 9 — inventory complete
+## Phase 10 — next exact starting point
 
-Full inventory: `docs/notes/phase9-goals-inventory.md`.
+Audit Compare / Leaderboard before redesigning it.
 
-Goals should own **commitment and evidence-backed progress toward a chosen target**. Progress should continue to own current form, longitudinal direction, repeatability, fatigue/regression investigation and contextual trends.
+The intended product model is **benchmark context, not a raw youth-vs-elite ranking table**. Inventory the route and supporting benchmark services against these questions first:
 
-The audit found three blockers to fix before redesigning the cards:
+1. what exactly is being ranked or percentile-scored today;
+2. which rider/category/onboarding baseline determines the comparison population;
+3. whether excluded evidence can leak into benchmark snapshots or leaderboards;
+4. whether labels distinguish rider-relative benchmarking from raw absolute performance;
+5. what a young rider/parent should understand at first glance versus what an experienced rider or coach may drill into;
+6. whether admin baseline-reset/recompute tooling remains coherent as population evidence grows.
 
-1. **Disconnected intelligence model:** the server builds `goalsWithIntelligence` with prediction/status/adaptation, but the live page renders `data.goals` and then tries to read those intelligence fields from it. The expensive intelligence layer is therefore calculated but normally disconnected from the goal cards. Collapse this to one canonical page goal model.
-2. **Training-health attribution:** the health-check loader flattens runs and reconstructs session attribution using `Math.floor(index / 10)`, implicitly assuming ten runs per session. It also supplies hard-coded `consistency: 0`. Fix the model input before surfacing strong recovery guidance.
-3. **Trust language:** rider-facing copy currently promises predictions can tell the rider **"exactly when"** a goal will be reached and uses diagnostic/medical language such as Injury Risk Detection, Injury Prevention and Rest Required. Reframe prediction as uncertain estimation and training-health output as non-diagnostic recovery/training-load signals.
-
-The active goal card also labels the canonical ratcheted evidence value as **Current**. Phase 9 should change this to **Best so far** so the UI matches the Release 1 semantic: best eligible evidence since goal creation, not latest form.
-
-A further product decision is required around completion: `completed_at` currently cannot distinguish **target achieved by evidence** from **rider manually closed the goal**. Do not present all completed goals as evidence-proven achievements unless that distinction is added or derived safely.
-
-`src/routes/(protected)/goals/page_enhanced.svelte` appears unreferenced and should be treated as a legacy/dead candidate, not as a second source of design truth.
-
-## Phase 9 — next exact starting point
-
-First implementation slice is correctness/trust, not visual polish:
-
-1. unify `goals` / `goalsWithIntelligence` into one rendered goal collection;
-2. fix health-check run-to-session attribution and remove the hard-coded consistency input;
-3. rename **Current** to **Best so far**;
-4. replace prediction certainty and injury/diagnostic language with evidence-proportionate wording;
-5. only then restructure cards around **evidence -> interpretation -> prediction -> action**.
-
-Verification focus: no goals, active/no-new-evidence, genuine improvement, excluded-evidence reversal, evidence-reached target, manual completion before target, completed-goal freeze, all supported metric types, prediction present/absent, <10 vs 10+ session health inputs, and 390 px mobile.
+Do not redesign percentile cards until the population/baseline truth model is verified.
 
 ## Standing constraints
 
