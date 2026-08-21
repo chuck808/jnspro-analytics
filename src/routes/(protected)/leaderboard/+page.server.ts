@@ -227,10 +227,11 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 					.not(col, 'is', null);
 				if (selectedAge) userRowQuery = (userRowQuery as any).eq('age_group', selectedAge);
 				if (selectedExp) userRowQuery = (userRowQuery as any).eq('experience_level', selectedExp);
-				const { data: currentUserRow } = await userRowQuery.maybeSingle();
+				const { data: currentUserRowRaw } = await userRowQuery.maybeSingle();
+				const currentUserRow = currentUserRowRaw as LeaderboardViewRow | null;
 
 				if (currentUserRow) {
-					const currentValue = (currentUserRow as any)[col] as number;
+					const currentValue = currentUserRow[col as keyof LeaderboardViewRow] as number;
 					let betterQuery = admin
 						.from('leaderboard_view')
 						.select('user_id', { count: 'exact', head: true })
