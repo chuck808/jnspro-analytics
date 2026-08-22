@@ -9,6 +9,12 @@ import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
 import { reconcilePerformanceSnapshot } from '$lib/server/reconcilePerformanceSnapshot';
+import {
+	isRideFeel,
+	isSessionFocus,
+	isTrackSurface,
+	isWeatherCondition
+} from '$lib/types/sessionContext';
 
 export const actions: Actions = {
 	/**
@@ -16,7 +22,6 @@ export const actions: Actions = {
 	 * Allows users to categorize runs (warmup, best-effort, etc.)
 	 */
 	updateRunTags: async ({ request, locals: { supabase, session } }) => {
-		// Auth check — session is set by authGuard in hooks.server.ts
 		if (!session) return fail(401, { error: 'Not authenticated' });
 
 		const data = await request.formData();
@@ -35,8 +40,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invalid tags format' });
 		}
 
-		// Verify the run belongs to a session owned by this user before updating.
-		// The join ensures neither runId nor sessionId can be forged independently.
 		const { data: ownership, error: ownershipError } = await supabase
 			.from('runs')
 			.select('id, sessions!inner(user_id)')
@@ -56,8 +59,6 @@ export const actions: Actions = {
 			return fail(500, { error: 'Failed to update run tags' });
 		}
 
-		// A tag change can alter PBs, percentile cohorts and leaderboard values immediately.
-		// Rebuild the persisted benchmarking projection instead of waiting for another upload.
 		try {
 			await reconcilePerformanceSnapshot(createSupabaseAdminClient(), session.user.id);
 		} catch (reconcileError) {
@@ -68,48 +69,64 @@ export const actions: Actions = {
 	},
 
 	/**
-	 * Update session context (weather, surface, focus)
+	 * Update optional session context. Values are validated against the canonical
+	 * UI taxonomy before they reach the database so forged/stale form values
+	 * cannot silently create a second context vocabulary.
 	 */
 	updateSessionContext: async ({ request, locals: { supabase, session } }) => {
-		// Auth check — session is set by authGuard in hooks.server.ts
-		if (!session) {
-			return fail(401, { error: 'Not authenticated' });
-		}
+		if (!session) return fail(401, { error: 'Not authenticated' });
 
 		const data = await request.formData();
-		const sessionId = data.get('sessionId') as string;
-		const weather = data.get('weather') as string | null;
-		const surface = data.get('surface') as string | null;
-		const focus = data.get('focus') as string | null;
-		const feel = data.get('feel') as string | null;
+		const sessionId = String(data.get('sessionId') ?? '').trim();
+		const weatherRaw = data.get('weather');
+		const surfaceRaw = data.get('surface');
+		const focusRaw = data.get('focus');
+		const feelRaw = data.get('feel');
 
-		if (!sessionId) {
-			return fail(400, { error: 'Missing sessionId' });
+		if (!sessionId) return fail(400, { error: 'Missing sessionId' });
+
+		const weather = weatherRaw ? String(weatherRaw) : null;
+		const surface = surfaceRaw ? String(surfaceRaw) : null;
+		const focus = focusRaw ? String(focusRaw) : null;
+		const feel = feelRaw ? String(feelRaw) : null;
+
+		if (weather && !isWeatherCondition(weather)) {
+			return fail(400, { error: 'Invalid weather condition' });
+		}
+		if (surface && !isTrackSurface(surface)) {
+			return fail(400, { error: 'Invalid track surface' });
+		}
+		if (focus && !isSessionFocus(focus)) {
+			return fail(400, { error: 'Invalid session focus' });
+		}
+		if (feel && !isRideFeel(feel)) {
+			return fail(400, { error: 'Invalid ride feel' });
 		}
 
-		// Update session context
-		const { error } = await supabase
+		const { data: updatedSession, error } = await supabase
 			.from('sessions')
 			.update({
-				weather_conditions: weather || null,
-				track_surface: surface || null,
-				session_focus: focus || null,
-				ride_feel: feel || null
+				weather_conditions: weather,
+				track_surface: surface,
+				session_focus: focus,
+				ride_feel: feel
 			})
 			.eq('id', sessionId)
-			.eq('user_id', session.user.id); // Security: Verify ownership
+			.eq('user_id', session.user.id)
+			.select('id')
+			.maybeSingle();
 
 		if (error) {
 			console.error('Error updating session context:', error);
 			return fail(500, { error: 'Failed to update session context' });
 		}
 
+		if (!updatedSession) {
+			return fail(403, { error: 'Session not found or access denied' });
+		}
+
 		return { success: true, sessionId };
 	},
-
-	// ========================================
-	// Session Notes Actions
-	// ========================================
 
 	addNote: async ({ request, locals: { supabase, session } }) => {
 		if (!session) return fail(401, { error: 'Not authenticated' });
@@ -124,7 +141,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing required fields' });
 		}
 
-		// Verify session ownership
 		const { data: sessionData } = await supabase
 			.from('sessions')
 			.select('user_id')
@@ -135,7 +151,6 @@ export const actions: Actions = {
 			return fail(403, { error: 'Unauthorized' });
 		}
 
-		// Insert note
 		const { error } = await supabase.from('session_notes').insert({
 			session_id: sessionId,
 			user_id: session.user.id,
@@ -163,7 +178,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing required fields' });
 		}
 
-		// Update note (RLS will ensure ownership)
 		const { error } = await supabase
 			.from('session_notes')
 			.update({ content })
@@ -188,7 +202,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing note ID' });
 		}
 
-		// Delete note (RLS will ensure ownership)
 		const { error } = await supabase
 			.from('session_notes')
 			.delete()
