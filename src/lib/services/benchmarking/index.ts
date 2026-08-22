@@ -44,8 +44,13 @@ export const MIN_BENCHMARK_SAMPLE = 30;
  * currently qualified, which left stale cohort rows behind after riders were
  * deleted or reclassified. performance_aggregates has no independent source
  * data, so clearing it before recomputation is the honest refresh semantic.
+ *
+ * Returns an error message for callers that need to surface refresh failure;
+ * ingest callers may continue treating aggregate refresh as non-fatal.
  */
-export async function refreshPerformanceAggregates(adminClient: SupabaseClient): Promise<void> {
+export async function refreshPerformanceAggregates(
+	adminClient: SupabaseClient
+): Promise<string | null> {
 	const { error: clearError } = await adminClient
 		.from('performance_aggregates')
 		.delete()
@@ -53,13 +58,16 @@ export async function refreshPerformanceAggregates(adminClient: SupabaseClient):
 
 	if (clearError) {
 		console.error('[benchmarking] aggregate clear failed:', clearError.message);
-		return;
+		return clearError.message;
 	}
 
 	const { error: refreshError } = await adminClient.rpc('refresh_performance_aggregates');
 	if (refreshError) {
 		console.error('[benchmarking] aggregate refresh failed:', refreshError.message);
+		return refreshError.message;
 	}
+
+	return null;
 }
 
 // ── Snapshot upsert ───────────────────────────────────────────────────────────
