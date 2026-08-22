@@ -1,15 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { buildCoachRosterProjection } from './coachWorkspaceProjection';
+import {
+	buildCoachRosterProjection,
+	type CoachRosterGoal,
+	type CoachRosterLink,
+	type CoachRosterMessage,
+	type CoachRosterRider,
+	type CoachRosterShare
+} from './coachWorkspaceProjection';
 
-function base() {
+function base(): {
+	links: CoachRosterLink[];
+	riders: CoachRosterRider[];
+	shares: CoachRosterShare[];
+	messages: CoachRosterMessage[];
+	goals: CoachRosterGoal[];
+} {
 	return {
 		links: [
 			{ id: 'l1', rider_id: 'r1', status: 'active', invited_at: '2026-08-01T10:00:00Z' }
 		],
 		riders: [{ id: 'r1', name: 'Rider One', email: 'rider@example.com' }],
-		shares: [] as Array<{ link_id: string; created_at: string; viewed_at: string | null }>,
-		messages: [] as Array<{ link_id: string; message_type: string; resolved_at: string | null }>,
-		goals: [] as Array<{ user_id: string; completed_at: string | null }>
+		shares: [],
+		messages: [],
+		goals: []
 	};
 }
 
