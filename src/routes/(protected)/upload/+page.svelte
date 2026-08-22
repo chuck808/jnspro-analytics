@@ -21,7 +21,7 @@
 		run_count: number;
 	};
 
-	let state = $state<UploadState>('idle');
+	let uploadState = $state<UploadState>('idle');
 	let file = $state<File | null>(null);
 	let result = $state<UploadResult | null>(null);
 	let errorMsg = $state('');
@@ -44,13 +44,13 @@
 	function setFile(nextFile: File) {
 		if (!nextFile.name.toLowerCase().endsWith('.json')) {
 			errorMsg = 'Select a JSON session file from your AppGatePro SD card.';
-			state = 'error';
+			uploadState = 'error';
 			file = null;
 			duplicateSession = null;
 			return;
 		}
 		file = nextFile;
-		state = 'idle';
+		uploadState = 'idle';
 		errorMsg = '';
 		result = null;
 		warnings = [];
@@ -59,7 +59,7 @@
 
 	async function upload() {
 		if (!file) return;
-		state = 'reading';
+		uploadState = 'reading';
 		errorMsg = '';
 		warnings = [];
 		duplicateSession = null;
@@ -70,12 +70,12 @@
 			try {
 				parsed = JSON.parse(text);
 			} catch {
-				state = 'error';
+				uploadState = 'error';
 				errorMsg = 'This file is not valid JSON. It may be incomplete or corrupted.';
 				return;
 			}
 
-			state = 'uploading';
+			uploadState = 'uploading';
 			const response = await fetch('/api/upload', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -84,7 +84,7 @@
 			const body = await response.json();
 
 			if (response.status === 409 && body.duplicate) {
-				state = 'error';
+				uploadState = 'error';
 				duplicateSession = body.existing_session as DuplicateSession;
 				errorMsg = body.message || 'This session has already been imported.';
 				warnings = body.warnings ?? [];
@@ -92,7 +92,7 @@
 			}
 
 			if (!response.ok || !body.success) {
-				state = 'error';
+				uploadState = 'error';
 				const validationErrors = Array.isArray(body.errors) ? body.errors.join('\n') : null;
 				errorMsg = validationErrors || body.message || body.error || 'Upload failed.';
 				warnings = body.warnings ?? [];
@@ -101,16 +101,16 @@
 
 			result = body as UploadResult;
 			warnings = body.warnings ?? [];
-			state = 'success';
+			uploadState = 'success';
 			file = null;
 		} catch {
-			state = 'error';
+			uploadState = 'error';
 			errorMsg = 'Network error — check your connection and try again.';
 		}
 	}
 
 	function reset() {
-		state = 'idle';
+		uploadState = 'idle';
 		file = null;
 		result = null;
 		errorMsg = '';
@@ -118,7 +118,7 @@
 		duplicateSession = null;
 	}
 
-	let isUploading = $derived(state === 'reading' || state === 'uploading');
+	let isUploading = $derived(uploadState === 'reading' || uploadState === 'uploading');
 </script>
 
 <svelte:head>
@@ -169,7 +169,7 @@
 		</div>
 	</section>
 
-	{#if state === 'success' && result}
+	{#if uploadState === 'success' && result}
 		<section class="rounded-xl border border-[#3de8c8]/30 bg-[#131010] p-6">
 			<div class="flex items-start gap-4">
 				<div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#3de8c8]/10">
@@ -261,7 +261,7 @@
 				{/if}
 			</div>
 
-			{#if state === 'error'}
+			{#if uploadState === 'error'}
 				{#if duplicateSession}
 					<div class="mt-4 rounded-lg border border-[#f5a623]/30 bg-[#f5a623]/10 p-4">
 						<p class="text-sm font-semibold text-[#f5a623]">Already imported</p>
@@ -288,7 +288,7 @@
 				disabled={!file || isUploading}
 				class="mt-4 flex w-full items-center justify-center rounded-lg bg-[#f5a623] py-3 text-sm font-semibold text-[#0a0809] transition-colors hover:bg-[#c97e0a] disabled:cursor-not-allowed disabled:opacity-40"
 			>
-				{isUploading ? (state === 'reading' ? 'Reading file…' : 'Importing session…') : file ? 'Import session' : 'Choose a file to continue'}
+				{isUploading ? (uploadState === 'reading' ? 'Reading file…' : 'Importing session…') : file ? 'Import session' : 'Choose a file to continue'}
 			</button>
 		</section>
 	{/if}
