@@ -201,6 +201,27 @@ export const RIDE_FEEL_OPTIONS: RideFeelMeta[] = [
 	}
 ];
 
+const WEATHER_VALUES = new Set(WEATHER_OPTIONS.map((option) => option.value));
+const SURFACE_VALUES = new Set(SURFACE_OPTIONS.map((option) => option.value));
+const FOCUS_VALUES = new Set(FOCUS_OPTIONS.map((option) => option.value));
+const RIDE_FEEL_VALUES = new Set(RIDE_FEEL_OPTIONS.map((option) => option.value));
+
+export function isWeatherCondition(value: unknown): value is WeatherCondition {
+	return typeof value === 'string' && WEATHER_VALUES.has(value as WeatherCondition);
+}
+
+export function isTrackSurface(value: unknown): value is TrackSurface {
+	return typeof value === 'string' && SURFACE_VALUES.has(value as TrackSurface);
+}
+
+export function isSessionFocus(value: unknown): value is SessionFocus {
+	return typeof value === 'string' && FOCUS_VALUES.has(value as SessionFocus);
+}
+
+export function isRideFeel(value: unknown): value is RideFeel {
+	return typeof value === 'string' && RIDE_FEEL_VALUES.has(value as RideFeel);
+}
+
 /**
  * Get metadata for a weather condition
  */
