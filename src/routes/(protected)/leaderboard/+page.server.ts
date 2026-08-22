@@ -76,6 +76,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: undefined as AgeGroup | undefined,
+		selectedAgeFilter: '' as string,
 		selectedExperience: undefined as ExperienceLevel | undefined,
 		competitiveCohortSize: 0,
 		competitiveMinimum: MIN_LEADERBOARD_COHORT,
@@ -123,6 +124,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 	const selectedAge = explicitAllAge
 		? undefined
 		: requestedAge ?? (riderAgeGroup === 'unknown' ? undefined : riderAgeGroup);
+	const selectedAgeFilter = explicitAllAge ? 'all' : requestedAge ?? '';
 	const selectedExp = requestedExperience;
 
 	const userOptedIn = prefs?.show_on_leaderboard ?? false;
@@ -280,6 +282,7 @@ export const load: PageServerLoad = async ({ locals: { supabase }, parent, url }
 		selectedMetric,
 		selectedPeriod,
 		selectedAgeGroup: selectedAge,
+		selectedAgeFilter,
 		selectedExperience: selectedExp,
 		competitiveCohortSize,
 		competitiveMinimum: MIN_LEADERBOARD_COHORT,
