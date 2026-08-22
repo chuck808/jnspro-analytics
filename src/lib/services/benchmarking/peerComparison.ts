@@ -5,7 +5,7 @@
  * while maintaining privacy and providing meaningful insights.
  */
 
-export type AgeGroup = '13-17' | '18-25' | '26-35' | '36-45' | '46+';
+export type AgeGroup = 'under-13' | '13-17' | '18-25' | '26-35' | '36-45' | '46+';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite';
 
 export interface PerformanceBenchmark {
@@ -47,16 +47,9 @@ export function compareToPeers(
 	benchmark: PerformanceBenchmark,
 	lowerIsBetter: boolean
 ): PeerComparisonResult {
-	// Calculate percentile
 	const percentile = calculatePercentile(userValue, benchmark, lowerIsBetter);
-
-	// Determine ranking category
 	const ranking = determineRanking(percentile);
-
-	// Generate comparison text
 	const comparisonText = generateComparisonText(percentile, ranking, metric, experienceLevel);
-
-	// Suggest a goal based on next tier
 	const suggestedGoal = suggestNextGoal(userValue, percentile, benchmark, lowerIsBetter);
 
 	return {
@@ -71,46 +64,35 @@ export function compareToPeers(
 	};
 }
 
-/**
- * Calculate user's percentile within benchmark distribution
- */
 function calculatePercentile(
 	value: number,
 	benchmark: PerformanceBenchmark,
 	lowerIsBetter: boolean
 ): number {
-	// Interpolate to find percentile
 	const { percentile_10, percentile_25, percentile_50, percentile_75, percentile_90 } = benchmark;
 
-	// Handle edge cases
 	if (lowerIsBetter) {
-		if (value <= percentile_10) return 90; // Top 10%
+		if (value <= percentile_10) return 90;
 		if (value <= percentile_25) return interpolate(value, percentile_10, percentile_25, 90, 75);
 		if (value <= percentile_50) return interpolate(value, percentile_25, percentile_50, 75, 50);
 		if (value <= percentile_75) return interpolate(value, percentile_50, percentile_75, 50, 25);
 		if (value <= percentile_90) return interpolate(value, percentile_75, percentile_90, 25, 10);
-		return Math.max(0, 10 - ((value - percentile_90) / percentile_90) * 10); // Extrapolate below 10th
-	} else {
-		if (value >= percentile_90) return 90; // Top 10%
-		if (value >= percentile_75) return interpolate(value, percentile_75, percentile_90, 75, 90);
-		if (value >= percentile_50) return interpolate(value, percentile_50, percentile_75, 50, 75);
-		if (value >= percentile_25) return interpolate(value, percentile_25, percentile_50, 25, 50);
-		if (value >= percentile_10) return interpolate(value, percentile_10, percentile_25, 10, 25);
-		return Math.max(0, 10 - ((percentile_10 - value) / percentile_10) * 10); // Extrapolate below 10th
+		return Math.max(0, 10 - ((value - percentile_90) / percentile_90) * 10);
 	}
+
+	if (value >= percentile_90) return 90;
+	if (value >= percentile_75) return interpolate(value, percentile_75, percentile_90, 75, 90);
+	if (value >= percentile_50) return interpolate(value, percentile_50, percentile_75, 50, 75);
+	if (value >= percentile_25) return interpolate(value, percentile_25, percentile_50, 25, 50);
+	if (value >= percentile_10) return interpolate(value, percentile_10, percentile_25, 10, 25);
+	return Math.max(0, 10 - ((percentile_10 - value) / percentile_10) * 10);
 }
 
-/**
- * Linear interpolation helper
- */
 function interpolate(value: number, x1: number, x2: number, y1: number, y2: number): number {
 	if (x2 === x1) return y1;
 	return y1 + ((value - x1) / (x2 - x1)) * (y2 - y1);
 }
 
-/**
- * Determine ranking category from percentile
- */
 function determineRanking(percentile: number): PeerComparisonResult['ranking'] {
 	if (percentile >= 90) return 'top_10';
 	if (percentile >= 75) return 'top_25';
@@ -120,9 +102,6 @@ function determineRanking(percentile: number): PeerComparisonResult['ranking'] {
 	return 'needs_improvement';
 }
 
-/**
- * Generate comparison text
- */
 function generateComparisonText(
 	percentile: number,
 	ranking: PeerComparisonResult['ranking'],
@@ -155,38 +134,30 @@ function generateComparisonText(
 	}
 }
 
-/**
- * Suggest next goal based on reaching next tier
- */
 function suggestNextGoal(
 	currentValue: number,
 	percentile: number,
 	benchmark: PerformanceBenchmark,
 	lowerIsBetter: boolean
 ): number | null {
-	// Suggest reaching next quartile
-	if (percentile < 25) {
-		return benchmark.percentile_25;
-	}
-	if (percentile < 50) {
-		return benchmark.percentile_50;
-	}
-	if (percentile < 75) {
-		return benchmark.percentile_75;
-	}
-	if (percentile < 90) {
-		return benchmark.percentile_90;
-	}
+	if (percentile < 25) return benchmark.percentile_25;
+	if (percentile < 50) return benchmark.percentile_50;
+	if (percentile < 75) return benchmark.percentile_75;
+	if (percentile < 90) return benchmark.percentile_90;
 
-	// Already in top 10%, suggest 5% improvement
 	const improvement = lowerIsBetter ? -0.05 : 0.05;
 	return currentValue * (1 + improvement);
 }
 
 /**
- * Determine user's age group
+ * Determine user's broad benchmark age group.
+ *
+ * Under-13 riders are explicit rather than being folded into 13-17. That keeps
+ * youth evidence out of an older cohort and allows the aggregate service to fall
+ * back honestly when the under-13 sample is still too small.
  */
 export function determineAgeGroup(age: number): AgeGroup {
+	if (age < 13) return 'under-13';
 	if (age < 18) return '13-17';
 	if (age < 26) return '18-25';
 	if (age < 36) return '26-35';
@@ -194,14 +165,10 @@ export function determineAgeGroup(age: number): AgeGroup {
 	return '46+';
 }
 
-/**
- * Estimate experience level from session count and performance
- */
 export function estimateExperienceLevel(
 	sessionCount: number,
 	avgPerformancePercentile: number
 ): ExperienceLevel {
-	// Combine session count and performance
 	if (sessionCount < 10) return 'beginner';
 
 	if (sessionCount < 30) {
@@ -214,36 +181,27 @@ export function estimateExperienceLevel(
 		return 'beginner';
 	}
 
-	// 100+ sessions
 	if (avgPerformancePercentile >= 90) return 'elite';
 	if (avgPerformancePercentile >= 75) return 'advanced';
 	if (avgPerformancePercentile >= 50) return 'intermediate';
 	return 'beginner';
 }
 
-/**
- * Get ranking color for UI
- */
 export function getRankingColor(ranking: PeerComparisonResult['ranking']): string {
 	switch (ranking) {
 		case 'top_10':
-			return '#3de8c8'; // Teal
 		case 'top_25':
-			return '#3de8c8'; // Teal
+			return '#3de8c8';
 		case 'above_average':
-			return '#f5a623'; // Amber
 		case 'average':
-			return '#f5a623'; // Amber
+			return '#f5a623';
 		case 'below_average':
-			return '#ff6b3d'; // Orange
+			return '#ff6b3d';
 		case 'needs_improvement':
-			return '#ff4444'; // Red
+			return '#ff4444';
 	}
 }
 
-/**
- * Get ranking emoji for display
- */
 export function getRankingEmoji(ranking: PeerComparisonResult['ranking']): string {
 	switch (ranking) {
 		case 'top_10':
@@ -261,23 +219,17 @@ export function getRankingEmoji(ranking: PeerComparisonResult['ranking']): strin
 	}
 }
 
-/**
- * Format metric value for display
- */
 export function formatBenchmarkValue(value: number, metric: string): string {
 	const lowerMetric = metric.toLowerCase();
 
 	if (lowerMetric.includes('reaction') || lowerMetric.includes('time')) {
 		return `${(value / 1000).toFixed(3)}s`;
 	}
-
 	if (lowerMetric.includes('speed')) {
 		return `${(value * 3.6).toFixed(1)} km/h`;
 	}
-
 	if (lowerMetric.includes('power') || lowerMetric.includes('g')) {
 		return `${value.toFixed(2)}g`;
 	}
-
 	return value.toFixed(2);
 }

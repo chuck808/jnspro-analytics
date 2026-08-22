@@ -80,6 +80,25 @@ export const METRIC_LOWER_IS_BETTER: Record<LeaderboardMetric, boolean> = {
 };
 
 /**
+ * Competition ranking for values already ordered best-to-worst.
+ * Equal values share the same rank and the next rank skips the tied positions:
+ * 250, 250, 260 -> 1, 1, 3.
+ *
+ * This matches the cohort-wide fallback rank used by the server, where rank is
+ * defined as the number of strictly better riders plus one.
+ */
+export function competitionRanks(sortedValues: number[]): number[] {
+	let previousValue: number | undefined;
+	let currentRank = 0;
+
+	return sortedValues.map((value, index) => {
+		if (index === 0 || value !== previousValue) currentRank = index + 1;
+		previousValue = value;
+		return currentRank;
+	});
+}
+
+/**
  * Shape raw leaderboard_view rows into LeaderboardResult.
  * Called from page.server.ts after querying the DB.
  */
@@ -103,9 +122,10 @@ export function shapeLeaderboard(
 	});
 
 	const limited = withValue.slice(0, limit);
+	const ranks = competitionRanks(limited.map((row) => row[col] as number));
 
 	const entries: LeaderboardEntry[] = limited.map((row, i) => ({
-		rank: i + 1,
+		rank: ranks[i],
 		userId: row.user_id,
 		displayName: row.display_name,
 		value: row[col] as number,

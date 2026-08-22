@@ -9,7 +9,7 @@
  *                                 sample size is below MIN_BENCHMARK_SAMPLE.
  *   upsertSnapshot()            — called from upload API after each ingest.
  *                                 Updates rider_performance_snapshots and
- *                                 triggers refresh_performance_aggregates().
+ *                                 rebuilds performance_aggregates.
  *
  * Key functions used by client code (page.svelte):
  *   compareToPeers()            — pure calculation, unchanged. Receives the
@@ -37,6 +37,39 @@ import {
 // the application enforces a higher bar (30) so early data doesn't mislead.
 export const MIN_BENCHMARK_SAMPLE = 30;
 
+/**
+ * Rebuild the derived aggregate table from the current snapshot population.
+ *
+ * refresh_performance_aggregates() historically only upserted cohorts that
+ * currently qualified, which left stale cohort rows behind after riders were
+ * deleted or reclassified. performance_aggregates has no independent source
+ * data, so clearing it before recomputation is the honest refresh semantic.
+ *
+ * Returns an error message for callers that need to surface refresh failure;
+ * ingest callers may continue treating aggregate refresh as non-fatal.
+ */
+export async function refreshPerformanceAggregates(
+	adminClient: SupabaseClient
+): Promise<string | null> {
+	const { error: clearError } = await adminClient
+		.from('performance_aggregates')
+		.delete()
+		.not('metric', 'is', null);
+
+	if (clearError) {
+		console.error('[benchmarking] aggregate clear failed:', clearError.message);
+		return clearError.message;
+	}
+
+	const { error: refreshError } = await adminClient.rpc('refresh_performance_aggregates');
+	if (refreshError) {
+		console.error('[benchmarking] aggregate refresh failed:', refreshError.message);
+		return refreshError.message;
+	}
+
+	return null;
+}
+
 // ── Snapshot upsert ───────────────────────────────────────────────────────────
 
 export interface SnapshotInput {
@@ -60,7 +93,7 @@ export interface SnapshotInput {
 }
 
 /**
- * Upsert the rider's performance snapshot and refresh aggregates.
+ * Upsert the rider's performance snapshot and rebuild aggregates.
  * Call this from the upload API after a successful ingest.
  * Uses the admin (service-role) client.
  */
@@ -94,27 +127,33 @@ export async function upsertSnapshot(
 		return;
 	}
 
-	// Refresh aggregate distributions. This is a cheap scan of the snapshots
-	// table (~milliseconds) not a scan of gate_runs.
-	const { error: refreshError } = await adminClient.rpc('refresh_performance_aggregates');
-	if (refreshError) {
-		console.error('[benchmarking] aggregate refresh failed:', refreshError.message);
-	}
+	await refreshPerformanceAggregates(adminClient);
 }
 
 // ── Fetch benchmark ───────────────────────────────────────────────────────────
+
+export interface ResolvedPerformanceBenchmark extends PerformanceBenchmark {
+	cohort: {
+		ageGroup: string;
+		experienceLevel: string;
+	};
+}
 
 /**
  * Fetch the percentile distribution for a metric from performance_aggregates.
  * Falls back through cohort levels: (age × exp) → (age, all) → (all, exp) → (all, all).
  * Returns null when the best available distribution has fewer than MIN_BENCHMARK_SAMPLE riders.
+ *
+ * The resolved cohort is returned alongside the distribution so callers can tell
+ * riders exactly which population supplied the comparison instead of implying the
+ * requested cohort was used when fallback was required.
  */
 export async function fetchBenchmarkForMetric(
 	supabase: SupabaseClient,
 	metric: 'reaction_ms' | 'peak_speed_ms' | 'max_g' | 'consistency',
 	ageGroup: AgeGroup | 'unknown',
 	experienceLevel: ExperienceLevel
-): Promise<PerformanceBenchmark | null> {
+): Promise<ResolvedPerformanceBenchmark | null> {
 	// Try progressively broader cohorts until one has enough data
 	const candidates = [
 		{ age: ageGroup === 'unknown' ? 'all' : ageGroup, exp: experienceLevel },
@@ -143,7 +182,11 @@ export async function fetchBenchmarkForMetric(
 			percentile_75: data.percentile_75,
 			percentile_90: data.percentile_90,
 			sampleSize: data.sample_size,
-			lastUpdated: new Date(data.computed_at)
+			lastUpdated: new Date(data.computed_at),
+			cohort: {
+				ageGroup: cohort.age,
+				experienceLevel: cohort.exp
+			}
 		};
 	}
 

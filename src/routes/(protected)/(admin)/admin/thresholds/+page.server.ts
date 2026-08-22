@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { createSupabaseAdminClient } from '$lib/server/supabase';
+import { refreshPerformanceAggregates } from '$lib/services/benchmarking';
 
 export const load: PageServerLoad = async () => {
 	const admin = createSupabaseAdminClient();
@@ -121,8 +122,8 @@ export const actions: Actions = {
 	// Manually trigger a refresh
 	triggerRefresh: async () => {
 		const admin = createSupabaseAdminClient();
-		const { error } = await admin.rpc('refresh_performance_aggregates');
-		if (error) return fail(500, { error: error.message });
+		const refreshError = await refreshPerformanceAggregates(admin);
+		if (refreshError) return fail(500, { error: refreshError });
 		return { refreshSuccess: true };
 	}
 };
