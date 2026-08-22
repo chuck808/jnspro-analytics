@@ -22,6 +22,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'Missing userId or fileData' }, { status: 400 });
 	}
 
+	// Trust boundary: this endpoint authenticates the external ingest bridge, not an
+	// individual hardware device. The bridge is responsible for resolving and
+	// authorising device -> rider ownership before it supplies userId here.
 	const supabase = createSupabaseAdminClient();
 
 	try {
