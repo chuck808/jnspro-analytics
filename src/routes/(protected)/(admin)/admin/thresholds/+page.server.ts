@@ -122,7 +122,8 @@ export const actions: Actions = {
 	// Manually trigger a refresh
 	triggerRefresh: async () => {
 		const admin = createSupabaseAdminClient();
-		await refreshPerformanceAggregates(admin);
+		const refreshError = await refreshPerformanceAggregates(admin);
+		if (refreshError) return fail(500, { error: refreshError });
 		return { refreshSuccess: true };
 	}
 };
