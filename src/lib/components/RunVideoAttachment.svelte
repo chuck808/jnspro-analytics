@@ -60,12 +60,15 @@
 		fileInput?.click();
 	}
 
-	function safeFilename(filename: string): string {
-		return filename.replace(/[^a-zA-Z0-9._-]+/g, '-');
-	}
-
-	function attachmentAttemptId(): string {
-		return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	async function cleanupUnfinalizedUpload(storagePath: string) {
+		const response = await fetch(`/api/runs/${runId}/video/upload-url`, {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ storage_path: storagePath })
+		});
+		if (!response.ok) {
+			console.warn('Failed to clean unfinalized video upload');
+		}
 	}
 
 	async function handleFileSelect(file: File) {
@@ -81,9 +84,8 @@
 		}
 
 		const supabase = $page.data.supabase;
-		const userId = $page.data.user?.id;
-		if (!supabase || !userId) {
-			errorMessage = 'Not signed in.';
+		if (!supabase) {
+			errorMessage = 'Upload client unavailable.';
 			return;
 		}
 
@@ -91,18 +93,37 @@
 		let uploadedPath: string | null = null;
 		let metadataFinalized = false;
 		try {
-			// Never overwrite the currently-working object before metadata points at
-			// the replacement. A unique attempt path gives us a cheap two-phase
-			// lifecycle: upload new -> finalize DB reference -> retire old server-side.
-			const storagePath = `${userId}/${runId}/${attachmentAttemptId()}-${safeFilename(file.name)}`;
-			uploadedPath = storagePath;
+			// The app session lives in an httpOnly cookie, so the browser Supabase
+			// client cannot authenticate a normal Storage write. Ask the authenticated
+			// SvelteKit server for a short-lived signed upload token instead; the bytes
+			// still travel browser -> Supabase directly and never cross Vercel.
+			const ticketResponse = await fetch(`/api/runs/${runId}/video/upload-url`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					filename: file.name,
+					mime_type: file.type,
+					file_size_bytes: file.size
+				})
+			});
+			if (!ticketResponse.ok) {
+				const body = await ticketResponse.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to authorize video upload');
+			}
+
+			const ticket = await ticketResponse.json();
+			const storagePath = ticket.storage_path as string;
+			const token = ticket.token as string;
 
 			const [uploadResult, analysis] = await Promise.all([
-				supabase.storage.from('run-videos').upload(storagePath, file, { upsert: false }),
+				supabase.storage.from('run-videos').uploadToSignedUrl(storagePath, token, file, {
+					contentType: file.type
+				}),
 				analyzeVideoForSync(file)
 			]);
 
 			if (uploadResult.error) throw new Error(uploadResult.error.message);
+			uploadedPath = storagePath;
 
 			const response = await fetch(`/api/runs/${runId}/video`, {
 				method: 'POST',
@@ -128,15 +149,12 @@
 			console.error('Video upload error:', err);
 			errorMessage = err instanceof Error ? err.message : 'Upload failed';
 
-			// If bytes reached Storage but metadata did not commit, remove this
-			// attempt. The previously attached video (if any) was never overwritten.
+			// Cleanup must also use the authenticated server path; a direct browser
+			// Storage remove would have the same httpOnly-cookie/RLS problem as upload.
 			if (uploadedPath && !metadataFinalized) {
-				const { error: cleanupError } = await supabase.storage
-					.from('run-videos')
-					.remove([uploadedPath]);
-				if (cleanupError) {
+				await cleanupUnfinalizedUpload(uploadedPath).catch((cleanupError) => {
 					console.warn('Failed to clean unfinalized video upload:', cleanupError);
-				}
+				});
 			}
 		} finally {
 			uploading = false;
