@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import {
 		WEATHER_OPTIONS,
@@ -73,11 +74,23 @@
 
 		try {
 			const response = await fetch('?/updateSessionContext', { method: 'POST', body: formData });
-			if (!response.ok) {
+			const actionResult = deserialize(await response.text());
+
+			if (actionResult.type === 'failure') {
 				saveError =
-					response.status === 403
+					actionResult.status === 403
 						? 'This session could not be updated. Reload the page and try again.'
 						: 'Context was not saved. Your session evidence is unchanged; try again when convenient.';
+				return;
+			}
+
+			if (actionResult.type === 'error') {
+				saveError = 'Context was not saved. Your recorded session is unaffected; try again when convenient.';
+				return;
+			}
+
+			if (actionResult.type !== 'success') {
+				saveError = 'Context was not saved. Your recorded session is unaffected; try again when convenient.';
 				return;
 			}
 
