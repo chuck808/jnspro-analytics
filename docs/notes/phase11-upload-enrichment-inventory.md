@@ -1,6 +1,6 @@
 # Phase 11 — Upload and session enrichment inventory
 
-Status: inventory complete on `phase11-upload-enrichment-inventory`; no runtime changes yet.
+Status: implementation substantially complete on `phase11-upload-enrichment-inventory`; ingest core and enrichment/UI slices verified live. Final whole-phase sign-off pending the remaining edge-case matrix below.
 
 ## Product job
 
@@ -10,163 +10,109 @@ Treat **manual/SD upload, direct Wi-Fi/device ingest, and the first post-session
 
 Release 1 ingest invariants remain non-negotiable: per-rider checksum deduplication, concurrent duplicate handling, rollback of partial sessions, canonical derived-state reconciliation, and reversible run exclusions.
 
-## Current transport model
+## Implemented Phase 11 model
 
-### Manual / SD
+### Canonical ingest
 
-`POST /api/upload`
+Both `POST /api/upload` and `POST /api/device-ingest` now delegate source persistence to one server-side `ingestSessionEvidence()` path. That shared path owns:
 
-- authenticates the signed-in rider;
-- calculates the same session checksum used by device ingest;
-- returns a rider-facing 409 with the existing session when the same file already exists;
-- validates and transforms the SD JSON;
-- links the current active bike and latest rider-profile snapshot;
-- inserts session -> runs -> gate_runs, with optional timeseries warnings;
-- rolls the whole session back if required run/gate data fails;
-- reconciles performance snapshots/goals after successful source ingest.
+- SD-format validation and transform;
+- per-rider checksum identity and duplicate lookup;
+- concurrent duplicate race handling;
+- active-bike/latest-rider-profile linkage;
+- session -> runs -> gate_runs persistence;
+- optional timeseries degradation/warnings;
+- required-evidence rollback;
+- canonical derived-state reconciliation.
 
-The `/upload` page is currently entirely framed as an SD-card/manual upload page.
+Transport wrappers retain their deliberately different rider/device semantics:
 
-### Direct Wi-Fi / device
+- manual duplicate -> informative HTTP 409 with the existing session;
+- device retry -> HTTP 200 successful idempotent no-op.
 
-`POST /api/device-ingest`
+Validation now runs before duplicate lookup for both transports. For valid sessions this is indistinguishable; invalid payloads now consistently receive validation failure rather than participating in checksum lookup.
 
-- authenticates the trusted ingest bridge with `DEVICE_INGEST_SECRET`;
-- accepts `userId` + the same SD-format `fileData`;
-- uses the same checksum namespace as manual upload, so an SD retry after Wi-Fi ingest is detected as the same session;
-- treats device-side duplicate retries as a successful no-op;
-- links the same active bike/latest rider profile;
-- inserts the same required evidence model and rolls back partial sessions;
-- runs the same derived-state reconciliation.
+### Upload journey
 
-This means cross-transport deduplication is already fundamentally correct. The rider-facing upload page, however, does not explain that Wi-Fi sessions may already have arrived, nor does it surface recent automatic arrivals.
+`/upload` is no longer framed as though SD transfer is the only supported arrival path.
 
-## Current enrichment model
+The hierarchy is now:
 
-The first enrichment surface is not `/upload`; it lives on Session Overview through `SessionSetupStrip`.
+1. direct Wi-Fi upload when enabled on the hardware;
+2. manual SD import as fallback;
+3. clear receipt/duplicate/warning state;
+4. hand-off to Session Overview for optional context and run classification;
+5. interpretation after evidence capture.
 
-It offers two distinct evidence/context jobs:
+The page explicitly explains that Wi-Fi and SD share the same source-session fingerprint, so manually importing an SD copy of a session that already arrived over Wi-Fi resolves to the existing session instead of creating another one.
 
-1. **Session context** — weather, track surface, session focus, and ride feel via `SessionContextEditor`.
-2. **Run classification** — warmup / exclude / experimental / competition etc. via `RunTagSelector`.
+### Enrichment
 
-The design already respects the key product invariant: context is optional, while exclusion tags can change statistical eligibility. Session Overview previews how draft context/tagging would affect interpretation before persistence. Persisted run-tag changes reconcile downstream derived state.
+Session context remains optional and interpretation-only. Run classification remains evidence-affecting where tags exclude runs from normal statistics.
 
-## What is already good
+Server-side context updates now:
 
-- Manual and Wi-Fi uploads share the same checksum identity, so accidental SD upload after successful Wi-Fi ingest is caught.
-- Required source evidence is atomic at the session level; optional timeseries failures degrade with warnings rather than destroying otherwise-valid evidence.
-- Bike/rider-profile snapshots are linked at ingest time for later historical physics/context correctness.
-- Enrichment is post-ingest and optional rather than blocking data capture.
-- Run tagging preserves the original historical run while controlling whether it contributes to normal statistics.
-- Tag edits trigger canonical reconciliation rather than leaving PB/goal/leaderboard state stale.
+- validate weather, surface, focus and ride-feel values against the canonical application taxonomies;
+- reject forged/stale taxonomy values;
+- reject session IDs that do not actually update an owned row;
+- do not run performance reconciliation, because context does not change canonical PB/statistical eligibility.
 
-## Seams / defects found
+`SessionContextEditor` now deserializes the SvelteKit form-action envelope. `fail(...)` responses therefore remain visibly failed in edit mode rather than masquerading as successful saves. Network/server failures likewise show rider-facing feedback that recorded evidence was unaffected.
 
-### 1. The two ingest endpoints still duplicate almost the entire persistence pipeline
+## Explicit decisions / trust boundaries
 
-Release 1 successfully shared checksum/dedup/rollback helpers, but `api/upload/+server.ts` and `api/device-ingest/+server.ts` still separately implement:
+### Ingest-source provenance — deferred intentionally
 
-- active-bike/latest-profile lookup;
-- session insert;
-- run insert;
-- gate-run insert;
-- optional timeseries insert;
-- counters/warnings;
-- reconciliation call.
+No `ingest_source` / `upload_source` column is being added in Phase 11.
 
-This is now the largest correctness risk in the upload subsystem. The two implementations are already not byte-for-byte identical (manual exposes timeseries error detail and validation warnings; device does not). Another schema field or ingest rule can easily drift between transports.
+Transport provenance could help future support diagnostics, but it is operational metadata rather than analytical truth and no current rider-facing feature depends on it. Adding schema immediately before trial access would increase migration/test surface without solving a present correctness problem. If support or device telemetry later needs provenance, add it explicitly; do not infer it from checksum or timestamps.
 
-**Phase 11 should extract one canonical server-side session persistence function and leave only authentication/transport-specific response semantics in the two routes.**
+### Device -> rider ownership boundary
 
-### 2. Upload UI presents manual SD as if it were the only arrival path
+`/api/device-ingest` authenticates the trusted external ingest bridge using `DEVICE_INGEST_SECRET`; it does **not** authenticate an individual hardware device. The bridge is responsible for resolving and authorising the device -> rider association before submitting `userId` to this application.
 
-The page says "Copy the JSON file from your AppGatePro SD card and upload it here." That is now incomplete product language because direct Wi-Fi ingest is a real supported path.
+This boundary is now documented next to the endpoint. Do not add a second pairing model here unless the external hardware/bridge system stops guaranteeing that association.
 
-This does not require making Wi-Fi primary. The page should explain two paths calmly:
+### Video
 
-- automatic/direct device upload when configured;
-- manual SD upload as fallback/import.
+Video is deliberately **not** part of Phase 11 and remains optional. Phase 12 owns video workflow and synchronization. Sensor upload remains the primary evidence path regardless of whether video is present.
 
-The user should also understand that uploading the SD copy of an already-arrived Wi-Fi session is safe and will resolve to the existing session rather than duplicate it.
+## Verified so far
 
-### 3. No transport/source provenance is stored on the session
+Static gates after the latest second-slice fix:
 
-There is no `ingest_source` / `upload_source` field. Once a session exists, the application cannot tell whether it arrived by Wi-Fi or manual upload.
+- `svelte-check`: clean;
+- `tsc --noEmit`: clean;
+- Vitest: 119/119.
 
-That is not required for analytical truth, but it limits useful rider support and diagnostics (for example, "uploaded automatically from device" vs "imported from SD") and makes transport troubleshooting harder.
+Live/API/component verification already completed:
 
-Before adding schema, decide whether this provenance is worth retaining. Do not infer transport from checksum or timestamps.
+- fresh manual SD upload;
+- manual duplicate -> 409 existing-session receipt;
+- fresh device ingest;
+- device retry -> successful duplicate no-op;
+- device first -> same SD manually -> same session ID;
+- forced required-evidence failure -> no orphan/zombie checksum reservation;
+- corrected retry after required-evidence failure -> succeeds;
+- valid context save -> persisted and editor exits;
+- invalid context action failure -> editor stays open, visible error, no DB mutation;
+- forged session ID/context server guards;
+- cross-transport duplicate presentation;
+- incomplete-profile upload state;
+- post-import hand-off into session context/tagging;
+- desktop/mobile upload/enrichment presentation.
 
-### 4. Post-upload success jumps straight to analytics rather than acknowledging enrichment as optional next step
+## Remaining whole-phase sign-off checks
 
-Manual upload success offers **View session analytics** and **Upload another**. Session Overview then separately nudges context/tagging.
+These are edge-case confirmations rather than known defects:
 
-The underlying sequence is sound, but the journey is disconnected. A better hand-off is likely:
+1. manual first -> same payload through device ingest -> one session / device no-op;
+2. optional timeseries insertion failure -> required source session survives with warning/degraded trace count;
+3. no active bike and/or no rider-profile snapshot -> ingest succeeds and linkage receipt is honest;
+4. post-ingest exclusion of a PB/goal-contributing run still reverses downstream snapshot/goal evidence through the existing reconciliation path.
 
-> Session imported -> optional "Add context / check warmups" -> continue to Overview
+The last behaviour has been verified repeatedly in earlier phases after tag edits, but retaining it here as a final Phase 11 regression is useful because Phase 11 changes the ingest journey around that enrichment action.
 
-This should remain optional and skippable. Do not turn weather/feel/tagging into a precondition for seeing the session.
+## Whole-phase sign-off rule
 
-### 5. Context save failures are effectively silent in the UI
-
-`SessionContextEditor.saveContext()` only reacts visibly to `response.ok`. A non-OK SvelteKit action response leaves the editor open with no rider-facing error; only thrown/network errors reach `console.error`.
-
-This is a real UX defect. Context is optional, but when a rider chooses to save it the result should be explicit.
-
-### 6. Session-context values are not server-validated against the application enums
-
-`updateSessionContext` accepts arbitrary strings from FormData and writes them directly. The migration uses free-text columns and does not constrain these values.
-
-The current UI only submits known options, so normal use is fine, but the server contract is weaker than the rest of the evidence model. Phase 11 should validate against the canonical `sessionContext` option sets and reject invalid values rather than allowing taxonomy drift.
-
-### 7. The enrichment action does not need performance reconciliation — and correctly does not do it
-
-Weather/surface/focus/feel affect interpretation but not canonical PB/statistical eligibility. `updateSessionContext` therefore does not reconcile snapshots/goals. This is intentional and should stay that way.
-
-Run tags are different: they alter eligibility and already trigger reconciliation. Preserve this separation.
-
-### 8. Device ingest's trusted bridge can nominate any `userId`
-
-The endpoint authenticates one shared `DEVICE_INGEST_SECRET` and then trusts the supplied `userId`. That may be exactly the intended external-hardware bridge model, but it means rider/device binding is enforced outside this route rather than by the analytics application.
-
-Phase 11 should document the ownership/binding boundary explicitly. If the external system already guarantees device->rider association, do not duplicate pairing logic here. If it does not, this endpoint is too broad.
-
-## Proposed Phase 11 hierarchy
-
-1. **Arrival** — automatic Wi-Fi when configured or manual SD fallback.
-2. **Receipt** — clear success / duplicate / warning state with link to the actual session.
-3. **Optional enrichment** — context and run classification, explicitly skippable.
-4. **Interpretation** — continue to Session Overview; richer Analysis/Deep Dive remain unchanged.
-
-## First implementation slice
-
-Correctness before visual polish:
-
-1. extract a canonical server-side session-ingest persistence function used by both `/api/upload` and `/api/device-ingest`;
-2. preserve manual duplicate = informative 409 and device retry = successful idempotent no-op as transport-specific wrappers;
-3. preserve all Release 1 rollback/reconciliation semantics and timeseries-warning behaviour;
-4. add enum validation to `updateSessionContext` and rider-visible save failure handling;
-5. add focused regression tests around the shared ingest result shape / required-vs-optional failure boundary where practical.
-
-Then restructure `/upload` copy and success hand-off around automatic-or-manual arrival plus optional enrichment. Do not make video part of this phase; Phase 12 owns video.
-
-## Verification matrix for the implementation slice
-
-Static first: `svelte-check`, `tsc --noEmit`, Vitest.
-
-Live/hosted cases:
-
-1. fresh manual SD upload;
-2. same manual file repeated -> existing-session duplicate receipt;
-3. fresh device/Wi-Fi upload;
-4. device retry -> successful no-op;
-5. device first, then same SD file manually -> one session only, manual route points to existing session;
-6. manual first, then same device payload -> one session only;
-7. forced required run/gate failure -> no zombie session/checksum reservation;
-8. optional timeseries failure -> source session survives with warning;
-9. missing active bike/profile -> ingest still succeeds and reports linkage honestly;
-10. context save success and invalid-context rejection;
-11. context save server failure produces visible feedback;
-12. run exclusion after ingest still reverses downstream PB/goal/snapshot evidence;
-13. 390 px upload/enrichment flow.
+Phase 11 can be closed when the four remaining checks above are green and the static baseline remains clean. No additional upload presentation work, provenance schema, or video work is required for Phase 11.
