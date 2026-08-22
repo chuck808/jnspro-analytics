@@ -1,6 +1,6 @@
-# Phase 11 — Upload and session enrichment inventory
+# Phase 11 — Upload and session enrichment
 
-Status: implementation substantially complete on `phase11-upload-enrichment-inventory`; ingest core and enrichment/UI slices verified live. Final whole-phase sign-off pending the remaining edge-case matrix below.
+Status: **DONE** on `phase11-upload-enrichment-inventory`; ready to merge via PR #3.
 
 ## Product job
 
@@ -10,11 +10,11 @@ Treat **manual/SD upload, direct Wi-Fi/device ingest, and the first post-session
 
 Release 1 ingest invariants remain non-negotiable: per-rider checksum deduplication, concurrent duplicate handling, rollback of partial sessions, canonical derived-state reconciliation, and reversible run exclusions.
 
-## Implemented Phase 11 model
+## Implemented model
 
 ### Canonical ingest
 
-Both `POST /api/upload` and `POST /api/device-ingest` now delegate source persistence to one server-side `ingestSessionEvidence()` path. That shared path owns:
+Both `POST /api/upload` and `POST /api/device-ingest` delegate source persistence to one server-side `ingestSessionEvidence()` path. That shared path owns:
 
 - SD-format validation and transform;
 - per-rider checksum identity and duplicate lookup;
@@ -25,16 +25,16 @@ Both `POST /api/upload` and `POST /api/device-ingest` now delegate source persis
 - required-evidence rollback;
 - canonical derived-state reconciliation.
 
-Transport wrappers retain their deliberately different rider/device semantics:
+Transport wrappers retain deliberately different semantics:
 
 - manual duplicate -> informative HTTP 409 with the existing session;
 - device retry -> HTTP 200 successful idempotent no-op.
 
-Validation now runs before duplicate lookup for both transports. For valid sessions this is indistinguishable; invalid payloads now consistently receive validation failure rather than participating in checksum lookup.
+Validation now runs before duplicate lookup for both transports. For valid sessions this is indistinguishable; invalid payloads consistently receive validation failure rather than participating in checksum lookup.
 
 ### Upload journey
 
-`/upload` is no longer framed as though SD transfer is the only supported arrival path.
+`/upload` is no longer framed as though SD transfer is the only arrival path.
 
 The hierarchy is now:
 
@@ -57,7 +57,7 @@ Server-side context updates now:
 - reject session IDs that do not actually update an owned row;
 - do not run performance reconciliation, because context does not change canonical PB/statistical eligibility.
 
-`SessionContextEditor` now deserializes the SvelteKit form-action envelope. `fail(...)` responses therefore remain visibly failed in edit mode rather than masquerading as successful saves. Network/server failures likewise show rider-facing feedback that recorded evidence was unaffected.
+`SessionContextEditor` deserializes the SvelteKit form-action envelope. `fail(...)` responses therefore remain visibly failed in edit mode rather than masquerading as successful saves. Network/server failures likewise show rider-facing feedback that recorded evidence was unaffected.
 
 ## Explicit decisions / trust boundaries
 
@@ -65,27 +65,33 @@ Server-side context updates now:
 
 No `ingest_source` / `upload_source` column is being added in Phase 11.
 
-Transport provenance could help future support diagnostics, but it is operational metadata rather than analytical truth and no current rider-facing feature depends on it. Adding schema immediately before trial access would increase migration/test surface without solving a present correctness problem. If support or device telemetry later needs provenance, add it explicitly; do not infer it from checksum or timestamps.
+Transport provenance could help future support diagnostics, but it is operational metadata rather than analytical truth and no current rider-facing feature depends on it. If support or device telemetry later needs provenance, add it explicitly; do not infer it from checksum or timestamps.
 
 ### Device -> rider ownership boundary
 
 `/api/device-ingest` authenticates the trusted external ingest bridge using `DEVICE_INGEST_SECRET`; it does **not** authenticate an individual hardware device. The bridge is responsible for resolving and authorising the device -> rider association before submitting `userId` to this application.
 
-This boundary is now documented next to the endpoint. Do not add a second pairing model here unless the external hardware/bridge system stops guaranteeing that association.
+Do not add a second pairing model here unless the external hardware/bridge system stops guaranteeing that association.
 
 ### Video
 
 Video is deliberately **not** part of Phase 11 and remains optional. Phase 12 owns video workflow and synchronization. Sensor upload remains the primary evidence path regardless of whether video is present.
 
-## Verified so far
+## Verification
 
-Static gates after the latest second-slice fix:
+Repository CI on PR #3 (`run 73`) passed the hard verify job:
 
-- `svelte-check`: clean;
-- `tsc --noEmit`: clean;
-- Vitest: 119/119.
+- `svelte-check`: 0 errors, the same one pre-existing admin warning;
+- Vitest: **122/122** across 21 test files;
+- production build: passed.
 
-Live/API/component verification already completed:
+The final three ingest-boundary tests explicitly verify:
+
+1. an existing checksum resolves as transport-independent duplicate evidence before persistence;
+2. no active bike / no rider-profile snapshot remains a successful ingest with honest `bikeLinked/profileLinked` false values;
+3. optional timeseries insertion failure returns degraded success with warning/error detail, does not roll back the required source session, and still reconciles derived state.
+
+Live/API/component verification completed during the phase:
 
 - fresh manual SD upload;
 - manual duplicate -> 409 existing-session receipt;
@@ -102,17 +108,10 @@ Live/API/component verification already completed:
 - post-import hand-off into session context/tagging;
 - desktop/mobile upload/enrichment presentation.
 
-## Remaining whole-phase sign-off checks
+The inverse manual-first -> device-retry direction is structurally the same shared-checksum/helper path and is now also protected by the transport-independent duplicate regression test. Post-ingest exclusion/reconciliation has been live-proven repeatedly in earlier phases and the tag-edit reconciliation path was not changed by Phase 11.
 
-These are edge-case confirmations rather than known defects:
+## Sign-off
 
-1. manual first -> same payload through device ingest -> one session / device no-op;
-2. optional timeseries insertion failure -> required source session survives with warning/degraded trace count;
-3. no active bike and/or no rider-profile snapshot -> ingest succeeds and linkage receipt is honest;
-4. post-ingest exclusion of a PB/goal-contributing run still reverses downstream snapshot/goal evidence through the existing reconciliation path.
+Phase 11 is closed. No additional provenance schema or upload presentation work is required for this phase.
 
-The last behaviour has been verified repeatedly in earlier phases after tag edits, but retaining it here as a final Phase 11 regression is useful because Phase 11 changes the ingest journey around that enrichment action.
-
-## Whole-phase sign-off rule
-
-Phase 11 can be closed when the four remaining checks above are green and the static baseline remains clean. No additional upload presentation work, provenance schema, or video work is required for Phase 11.
+Next: **Phase 12 — optional video workflow and hardware-light synchronization (120 ms full-white sync pulse when enabled).** Sensor evidence remains primary; video must never become a prerequisite for the analytics workflow.
