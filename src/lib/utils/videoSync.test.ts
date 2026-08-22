@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { median, selectFlashCandidate } from './videoSync';
+import { median, selectSyncPulseCandidate } from './videoSync';
 
 describe('median', () => {
 	it('handles odd and even length arrays', () => {
@@ -12,62 +12,75 @@ describe('median', () => {
 	});
 });
 
-describe('selectFlashCandidate', () => {
+describe('selectSyncPulseCandidate', () => {
 	function times(n: number, intervalS = 0.1) {
 		return Array.from({ length: n }, (_, i) => i * intervalS);
 	}
 
-	it('detects a clean, isolated flash against a low-noise baseline', () => {
-		// Baseline ~20, flash spikes to ~90, decays back down over 2 samples.
-		const luminances = [20, 21, 19, 20, 90, 40, 22, 21, 20, 19];
-		const candidate = selectFlashCandidate(luminances, times(10));
+	it('anchors a 120ms-style white pulse to its leading edge', () => {
+		// At 20ms sampling, a 120ms full-white cue spans roughly six samples.
+		// Gate zero is the first bright sample (0.20s), not the plateau peak.
+		const t = times(24, 0.02);
+		const luminances = [
+			20, 20, 21, 20, 20, 19, 20, 20, 21, 20,
+			90, 93, 95, 94, 96, 95,
+			38, 22, 20, 20, 21, 20, 20, 20
+		];
+		const candidate = selectSyncPulseCandidate(luminances, t);
 		expect(candidate).not.toBeNull();
-		expect(candidate!.index).toBe(4);
-		expect(candidate!.offsetS).toBeCloseTo(0.4, 5);
+		expect(candidate!.index).toBe(10);
+		expect(candidate!.offsetS).toBeCloseTo(0.2, 5);
 	});
 
-	it('rejects a sustained brightness change (lights switching on and staying on)', () => {
-		// Jumps from ~20 to ~90 and STAYS there — no decay — should be rejected
-		// even though the delta itself is large.
+	it('accepts the same finite pulse shape at coarse 100ms sampling', () => {
+		const luminances = [20, 20, 21, 90, 88, 21, 20, 20];
+		const candidate = selectSyncPulseCandidate(luminances, times(8));
+		expect(candidate).not.toBeNull();
+		expect(candidate!.offsetS).toBeCloseTo(0.3, 5);
+	});
+
+	it('rejects a sustained brightness change', () => {
 		const luminances = [20, 21, 19, 20, 90, 89, 91, 90, 88, 90];
-		const candidate = selectFlashCandidate(luminances, times(10));
-		expect(candidate).toBeNull();
+		expect(selectSyncPulseCandidate(luminances, times(10))).toBeNull();
 	});
 
-	it('rejects noise that never exceeds the relative threshold', () => {
-		// Realistic handheld-footage jitter — deltas are all small and similar
-		// in magnitude, nothing should read as a flash.
+	it('rejects ordinary low-amplitude video noise', () => {
 		const luminances = [50, 52, 49, 51, 53, 48, 50, 51, 49, 52];
-		const candidate = selectFlashCandidate(luminances, times(10));
-		expect(candidate).toBeNull();
+		expect(selectSyncPulseCandidate(luminances, times(10))).toBeNull();
 	});
 
-	it('is robust to a noisy baseline — requires the spike to clear the *relative* threshold, not just the absolute one', () => {
-		// Noise floor itself has ~15-unit swings, so a same-sized "spike" must
-		// not be mistaken for a flash — the 3x-median-delta check should catch
-		// this even though a naive fixed threshold might not.
+	it('uses the clip noise floor as well as an absolute threshold', () => {
 		const luminances = [50, 65, 48, 62, 51, 64, 49, 63, 50, 61];
-		const candidate = selectFlashCandidate(luminances, times(10));
-		expect(candidate).toBeNull();
+		expect(selectSyncPulseCandidate(luminances, times(10))).toBeNull();
 	});
 
-	it('picks the single largest qualifying spike when there are multiple bright frames', () => {
-		const luminances = [20, 20, 60, 21, 20, 95, 40, 20, 21, 20];
-		const candidate = selectFlashCandidate(luminances, times(10));
+	it('chooses the strongest qualifying finite pulse when multiple rises exist', () => {
+		const luminances = [20, 20, 60, 21, 20, 95, 93, 40, 20, 21, 20];
+		const candidate = selectSyncPulseCandidate(luminances, times(11));
 		expect(candidate).not.toBeNull();
 		expect(candidate!.index).toBe(5);
 	});
 
-	it('returns null for fewer than 3 samples', () => {
-		expect(selectFlashCandidate([10, 90], times(2))).toBeNull();
-		expect(selectFlashCandidate([], [])).toBeNull();
+	it('does not require decay within a fixed number of fine samples', () => {
+		const t = times(20, 0.02);
+		const luminances = [
+			20, 20, 20, 20, 20,
+			90, 92, 93, 94, 93, 92, 91,
+			25, 21, 20, 20, 20, 20, 20, 20
+		];
+		const candidate = selectSyncPulseCandidate(luminances, t);
+		expect(candidate).not.toBeNull();
+		expect(candidate!.index).toBe(5);
 	});
 
-	it('returns null when the decay lookahead runs off the end of the array', () => {
-		// Flash is the very last sample — no room to confirm decay — must not
-		// be accepted on faith.
+	it('returns null when a bright rise occurs too late to confirm decay', () => {
 		const luminances = [20, 21, 19, 20, 90];
-		const candidate = selectFlashCandidate(luminances, times(5));
-		expect(candidate).toBeNull();
+		expect(selectSyncPulseCandidate(luminances, times(5))).toBeNull();
+	});
+
+	it('returns null for mismatched or insufficient samples', () => {
+		expect(selectSyncPulseCandidate([10, 90], times(2))).toBeNull();
+		expect(selectSyncPulseCandidate([], [])).toBeNull();
+		expect(selectSyncPulseCandidate([20, 90, 20], [0, 0.1])).toBeNull();
 	});
 });
