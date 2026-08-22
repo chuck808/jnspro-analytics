@@ -1,11 +1,11 @@
 <script lang="ts">
 	/**
-	 * Video attachment for a single run (see VIDEO_SYNC_DESIGN.md).
-	 * Deliberately low-key when no video is attached — a small text link, not
-	 * an empty-state box. Owns the whole upload/replace/delete lifecycle and
-	 * error UI; delegates rendering of an attached, successfully-synced video
-	 * to RunVideoHero, falling back to a plain player when sync detection
-	 * failed/hasn't run or when not in hero context.
+	 * Optional video attachment for a single run.
+	 *
+	 * Sensor evidence remains complete without video. When a clip is attached,
+	 * local analysis looks for the external Lights unit's finite full-white sync
+	 * pulse; a clip with no usable cue still attaches and falls back to ordinary
+	 * playback rather than claiming synchronized telemetry.
 	 */
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
@@ -60,6 +60,17 @@
 		fileInput?.click();
 	}
 
+	async function cleanupUnfinalizedUpload(storagePath: string) {
+		const response = await fetch(`/api/runs/${runId}/video/upload-url`, {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ storage_path: storagePath })
+		});
+		if (!response.ok) {
+			console.warn('Failed to clean unfinalized video upload');
+		}
+	}
+
 	async function handleFileSelect(file: File) {
 		errorMessage = null;
 
@@ -73,25 +84,46 @@
 		}
 
 		const supabase = $page.data.supabase;
-		const userId = $page.data.user?.id;
-		if (!supabase || !userId) {
-			errorMessage = 'Not signed in.';
+		if (!supabase) {
+			errorMessage = 'Upload client unavailable.';
 			return;
 		}
 
 		uploading = true;
+		let uploadedPath: string | null = null;
+		let metadataFinalized = false;
 		try {
-			const storagePath = `${userId}/${runId}/${file.name}`;
+			// The app session lives in an httpOnly cookie, so the browser Supabase
+			// client cannot authenticate a normal Storage write. Ask the authenticated
+			// SvelteKit server for a short-lived signed upload token instead; the bytes
+			// still travel browser -> Supabase directly and never cross Vercel.
+			const ticketResponse = await fetch(`/api/runs/${runId}/video/upload-url`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					filename: file.name,
+					mime_type: file.type,
+					file_size_bytes: file.size
+				})
+			});
+			if (!ticketResponse.ok) {
+				const body = await ticketResponse.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to authorize video upload');
+			}
 
-			// Upload and flash-sync analysis are independent (one hits Storage,
-			// one only touches the local File) — run concurrently so total wait
-			// is max(...), not sum(...).
+			const ticket = await ticketResponse.json();
+			const storagePath = ticket.storage_path as string;
+			const token = ticket.token as string;
+
 			const [uploadResult, analysis] = await Promise.all([
-				supabase.storage.from('run-videos').upload(storagePath, file, { upsert: true }),
+				supabase.storage.from('run-videos').uploadToSignedUrl(storagePath, token, file, {
+					contentType: file.type
+				}),
 				analyzeVideoForSync(file)
 			]);
 
 			if (uploadResult.error) throw new Error(uploadResult.error.message);
+			uploadedPath = storagePath;
 
 			const response = await fetch(`/api/runs/${runId}/video`, {
 				method: 'POST',
@@ -107,16 +139,26 @@
 			});
 
 			if (!response.ok) {
-				const body = await response.json();
-				throw new Error(body.message || 'Failed to attach video');
+				const body = await response.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to attach video');
 			}
 
+			metadataFinalized = true;
 			await invalidateAll();
 		} catch (err) {
 			console.error('Video upload error:', err);
 			errorMessage = err instanceof Error ? err.message : 'Upload failed';
+
+			// Cleanup must also use the authenticated server path; a direct browser
+			// Storage remove would have the same httpOnly-cookie/RLS problem as upload.
+			if (uploadedPath && !metadataFinalized) {
+				await cleanupUnfinalizedUpload(uploadedPath).catch((cleanupError) => {
+					console.warn('Failed to clean unfinalized video upload:', cleanupError);
+				});
+			}
 		} finally {
 			uploading = false;
+			if (fileInput) fileInput.value = '';
 		}
 	}
 
@@ -128,8 +170,8 @@
 		try {
 			const response = await fetch(`/api/runs/${runId}/video`, { method: 'DELETE' });
 			if (!response.ok) {
-				const body = await response.json();
-				throw new Error(body.message || 'Failed to remove video');
+				const body = await response.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to remove video');
 			}
 			await invalidateAll();
 		} catch (err) {

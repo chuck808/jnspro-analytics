@@ -1,21 +1,20 @@
 /**
- * src/lib/utils/videoSync.ts
+ * Client-side hardware-light sync detection for attached run videos.
  *
- * Client-side flash-frame sync detection for attached run videos (see
- * VIDEO_SYNC_DESIGN.md §4). The same ESP-NOW broadcast that fires the gate
- * also fires a bright flash at the exact instant reaction time hits zero —
- * this scans the uploaded clip for that flash and returns its offset from
- * the start of the video, so the analytics chart (in run-clock time) can be
- * aligned to the video (in its own clock).
+ * When enabled, the external Lights unit switches to a full-white background
+ * for ~120 ms beginning at gate zero. That rising edge is the synchronization
+ * event: reaction time and the run clock both start there. This detector scans
+ * the uploaded clip for that finite luminance pulse and stores the leading-edge
+ * offset from the start of the video.
  *
- * All thresholds below are principled starting points, not validated against
- * real GoPro flash footage yet — expect to recalibrate once real clips are
- * available (see VIDEO_SYNC_DESIGN.md §7).
+ * This is deliberately independent of GoPro recording control. A camera flash
+ * is not the sync source, and failed detection must never block plain playback.
  */
 
 const COARSE_SAMPLE_INTERVAL_S = 0.1;
-const MAX_SCAN_S = 20; // arm -> random delay -> light sequence comfortably finishes inside this
-const FINE_WINDOW_S = 0.15;
+const MAX_SCAN_S = 20;
+const FINE_WINDOW_BEFORE_S = 0.15;
+const FINE_WINDOW_AFTER_S = 0.3;
 const FINE_STEP_S = 0.02;
 const OVERALL_TIMEOUT_MS = 15_000;
 const SEEK_TIMEOUT_MS = 2_000;
@@ -24,10 +23,12 @@ const METADATA_TIMEOUT_MS = 3_000;
 const SAMPLE_WIDTH = 64;
 const SAMPLE_HEIGHT = 36;
 
-const MIN_ABS_DELTA = 12; // out of 255
-const MIN_RELATIVE_DELTA_MULTIPLIER = 3; // relative to this clip's own noise floor
-const DECAY_LOOKAHEAD_SAMPLES = 2;
+const MIN_ABS_DELTA = 12;
+const MIN_RELATIVE_DELTA_MULTIPLIER = 3;
 const MIN_DECAY_FRACTION = 0.4;
+// The commanded cue is 120 ms. Allow camera exposure/seek quantisation and
+// coarse 100 ms sampling without accepting a room light that simply stays on.
+const MAX_PULSE_DECAY_WINDOW_S = 0.28;
 
 export interface VideoAnalysisResult {
 	durationMs: number | null;
@@ -77,60 +78,83 @@ export function median(values: number[]): number {
 	return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
-export interface FlashCandidate {
+export interface SyncPulseCandidate {
 	index: number;
 	offsetS: number;
 	luminance: number;
 }
 
 /**
- * Pure decision logic for the coarse scan: given evenly-spaced luminance
- * samples, pick the flash candidate (if any) and validate it's a real flash
- * (large enough delta relative to this clip's own noise floor, AND decays
- * back down within a couple of samples — rejects a sustained brightness
- * change like room lights switching on and staying on). Deliberately
- * side-effect-free and independent of any video/canvas API so it's directly
- * unit-testable without a real browser video-decoding pipeline.
- *
- * `times[i]` must correspond to `luminances[i]`.
+ * Select the leading edge of a finite bright pulse from timestamped luminance
+ * samples. The candidate must rise well above this clip's noise floor and then
+ * decay within a real-time window. Using timestamps rather than a fixed number
+ * of samples makes the rule consistent between the 100 ms coarse scan and the
+ * 20 ms refinement scan.
  */
-export function selectFlashCandidate(luminances: number[], times: number[]): FlashCandidate | null {
-	if (luminances.length < 3) return null;
+export function selectSyncPulseCandidate(
+	luminances: number[],
+	times: number[],
+	maxDecayWindowS = MAX_PULSE_DECAY_WINDOW_S
+): SyncPulseCandidate | null {
+	if (luminances.length < 3 || luminances.length !== times.length) return null;
 
-	const deltas = luminances.slice(1).map((v, i) => v - luminances[i]);
+	const deltas = luminances.slice(1).map((value, i) => value - luminances[i]);
 	const medianAbsDelta = median(deltas.map(Math.abs));
-
-	let candidateIdx = -1;
-	let candidateDelta = -Infinity;
-	for (let i = 0; i < deltas.length; i++) {
-		if (deltas[i] > candidateDelta) {
-			candidateDelta = deltas[i];
-			candidateIdx = i;
-		}
-	}
-	if (candidateIdx === -1) return null;
-
 	const threshold = Math.max(MIN_ABS_DELTA, MIN_RELATIVE_DELTA_MULTIPLIER * medianAbsDelta);
-	if (candidateDelta < threshold) return null;
 
-	// A real flash decays — reject a sustained brightness change (e.g. lights
-	// switching on and staying on) rather than a single spike.
-	const flashIdx = candidateIdx + 1;
-	const flashLuminance = luminances[flashIdx];
-	const lookaheadEnd = Math.min(luminances.length - 1, flashIdx + DECAY_LOOKAHEAD_SAMPLES);
-	let decayed = false;
-	for (let i = flashIdx + 1; i <= lookaheadEnd; i++) {
-		if (flashLuminance - luminances[i] >= candidateDelta * MIN_DECAY_FRACTION) {
-			decayed = true;
-			break;
+	// Evaluate strongest positive rises first. A later, brighter frame inside a
+	// plateau is irrelevant; gate zero is the transition into the white pulse.
+	const rises = deltas
+		.map((delta, i) => ({ delta, edgeIndex: i + 1 }))
+		.filter(({ delta }) => delta >= threshold)
+		.sort((a, b) => b.delta - a.delta);
+
+	for (const { delta, edgeIndex } of rises) {
+		const edgeTime = times[edgeIndex];
+		const pulseLuminance = luminances[edgeIndex];
+		let decayed = false;
+
+		for (let i = edgeIndex + 1; i < luminances.length; i++) {
+			const elapsed = times[i] - edgeTime;
+			if (elapsed < 0) continue;
+			if (elapsed > maxDecayWindowS) break;
+			if (pulseLuminance - luminances[i] >= delta * MIN_DECAY_FRACTION) {
+				decayed = true;
+				break;
+			}
+		}
+
+		if (decayed) {
+			return {
+				index: edgeIndex,
+				offsetS: edgeTime,
+				luminance: pulseLuminance
+			};
 		}
 	}
-	if (!decayed) return null;
 
-	return { index: flashIdx, offsetS: times[flashIdx], luminance: flashLuminance };
+	return null;
 }
 
-async function findFlashOffset(
+async function sampleWindow(
+	video: HTMLVideoElement,
+	ctx: CanvasRenderingContext2D,
+	startS: number,
+	endS: number,
+	stepS: number
+): Promise<{ times: number[]; luminances: number[] }> {
+	const times: number[] = [];
+	const luminances: number[] = [];
+	for (let t = startS; t <= endS + stepS / 2; t += stepS) {
+		const seeked = await seekTo(video, t);
+		if (!seeked) continue;
+		times.push(t);
+		luminances.push(sampleLuminance(video, ctx));
+	}
+	return { times, luminances };
+}
+
+async function findSyncPulseOffset(
 	video: HTMLVideoElement,
 	ctx: CanvasRenderingContext2D,
 	durationS: number
@@ -138,45 +162,23 @@ async function findFlashOffset(
 	const scanEndS = Math.min(durationS, MAX_SCAN_S);
 	if (scanEndS <= 0) return null;
 
-	// --- Coarse scan ---
-	const times: number[] = [];
-	const luminances: number[] = [];
-	for (let t = 0; t <= scanEndS; t += COARSE_SAMPLE_INTERVAL_S) {
-		const seeked = await seekTo(video, t);
-		if (!seeked) continue;
-		times.push(t);
-		luminances.push(sampleLuminance(video, ctx));
-	}
+	const coarse = await sampleWindow(video, ctx, 0, scanEndS, COARSE_SAMPLE_INTERVAL_S);
+	const coarseCandidate = selectSyncPulseCandidate(coarse.luminances, coarse.times);
+	if (coarseCandidate === null) return null;
 
-	const candidate = selectFlashCandidate(luminances, times);
-	if (candidate === null) return null;
+	// Refine the rising edge, not the brightest point of the white plateau.
+	const fineStart = Math.max(0, coarseCandidate.offsetS - FINE_WINDOW_BEFORE_S);
+	const fineEnd = Math.min(durationS, coarseCandidate.offsetS + FINE_WINDOW_AFTER_S);
+	const fine = await sampleWindow(video, ctx, fineStart, fineEnd, FINE_STEP_S);
+	const fineCandidate = selectSyncPulseCandidate(fine.luminances, fine.times);
 
-	const coarseOffsetS = candidate.offsetS;
-
-	// --- Fine refinement around the coarse candidate ---
-	const fineStart = Math.max(0, coarseOffsetS - FINE_WINDOW_S);
-	const fineEnd = Math.min(durationS, coarseOffsetS + FINE_WINDOW_S);
-	let bestFineOffset = coarseOffsetS;
-	let bestFineLuminance = candidate.luminance;
-	for (let t = fineStart; t <= fineEnd; t += FINE_STEP_S) {
-		const seeked = await seekTo(video, t);
-		if (!seeked) continue;
-		const luminance = sampleLuminance(video, ctx);
-		if (luminance > bestFineLuminance) {
-			bestFineLuminance = luminance;
-			bestFineOffset = t;
-		}
-	}
-
-	return bestFineOffset;
+	return fineCandidate?.offsetS ?? coarseCandidate.offsetS;
 }
 
 /**
- * Analyzes a video file for duration and flash-frame sync offset. Decodes
- * the file once (a single hidden <video> element) for both. Never throws —
- * failures resolve individual fields to null rather than rejecting, since a
- * failed sync detection should fall back to plain playback, not block the
- * upload.
+ * Analyze a video file for duration and optional hardware-light sync offset.
+ * Never throws: sync failure resolves to null so video attachment/playback can
+ * still succeed without claiming synchronized telemetry.
  */
 export async function analyzeVideoForSync(file: File): Promise<VideoAnalysisResult> {
 	const video = document.createElement('video');
@@ -186,7 +188,6 @@ export async function analyzeVideoForSync(file: File): Promise<VideoAnalysisResu
 
 	const url = URL.createObjectURL(file);
 	video.src = url;
-
 	const cleanup = () => URL.revokeObjectURL(url);
 
 	try {
@@ -196,17 +197,14 @@ export async function analyzeVideoForSync(file: File): Promise<VideoAnalysisResu
 		}
 
 		const durationMs = Math.round(video.duration * 1000);
-
 		const canvas = document.createElement('canvas');
 		canvas.width = SAMPLE_WIDTH;
 		canvas.height = SAMPLE_HEIGHT;
 		const ctx = canvas.getContext('2d', { willReadFrequently: true });
-		if (!ctx) {
-			return { durationMs, syncOffsetS: null };
-		}
+		if (!ctx) return { durationMs, syncOffsetS: null };
 
 		const syncOffsetS = await withTimeout(
-			findFlashOffset(video, ctx, video.duration),
+			findSyncPulseOffset(video, ctx, video.duration),
 			OVERALL_TIMEOUT_MS,
 			null
 		);
