@@ -1,11 +1,11 @@
 <script lang="ts">
 	/**
-	 * Video attachment for a single run (see VIDEO_SYNC_DESIGN.md).
-	 * Deliberately low-key when no video is attached — a small text link, not
-	 * an empty-state box. Owns the whole upload/replace/delete lifecycle and
-	 * error UI; delegates rendering of an attached, successfully-synced video
-	 * to RunVideoHero, falling back to a plain player when sync detection
-	 * failed/hasn't run or when not in hero context.
+	 * Optional video attachment for a single run.
+	 *
+	 * Sensor evidence remains complete without video. When a clip is attached,
+	 * local analysis looks for the external Lights unit's finite full-white sync
+	 * pulse; a clip with no usable cue still attaches and falls back to ordinary
+	 * playback rather than claiming synchronized telemetry.
 	 */
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
@@ -60,6 +60,14 @@
 		fileInput?.click();
 	}
 
+	function safeFilename(filename: string): string {
+		return filename.replace(/[^a-zA-Z0-9._-]+/g, '-');
+	}
+
+	function attachmentAttemptId(): string {
+		return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	}
+
 	async function handleFileSelect(file: File) {
 		errorMessage = null;
 
@@ -80,14 +88,17 @@
 		}
 
 		uploading = true;
+		let uploadedPath: string | null = null;
+		let metadataFinalized = false;
 		try {
-			const storagePath = `${userId}/${runId}/${file.name}`;
+			// Never overwrite the currently-working object before metadata points at
+			// the replacement. A unique attempt path gives us a cheap two-phase
+			// lifecycle: upload new -> finalize DB reference -> retire old server-side.
+			const storagePath = `${userId}/${runId}/${attachmentAttemptId()}-${safeFilename(file.name)}`;
+			uploadedPath = storagePath;
 
-			// Upload and flash-sync analysis are independent (one hits Storage,
-			// one only touches the local File) — run concurrently so total wait
-			// is max(...), not sum(...).
 			const [uploadResult, analysis] = await Promise.all([
-				supabase.storage.from('run-videos').upload(storagePath, file, { upsert: true }),
+				supabase.storage.from('run-videos').upload(storagePath, file, { upsert: false }),
 				analyzeVideoForSync(file)
 			]);
 
@@ -107,16 +118,29 @@
 			});
 
 			if (!response.ok) {
-				const body = await response.json();
-				throw new Error(body.message || 'Failed to attach video');
+				const body = await response.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to attach video');
 			}
 
+			metadataFinalized = true;
 			await invalidateAll();
 		} catch (err) {
 			console.error('Video upload error:', err);
 			errorMessage = err instanceof Error ? err.message : 'Upload failed';
+
+			// If bytes reached Storage but metadata did not commit, remove this
+			// attempt. The previously attached video (if any) was never overwritten.
+			if (uploadedPath && !metadataFinalized) {
+				const { error: cleanupError } = await supabase.storage
+					.from('run-videos')
+					.remove([uploadedPath]);
+				if (cleanupError) {
+					console.warn('Failed to clean unfinalized video upload:', cleanupError);
+				}
+			}
 		} finally {
 			uploading = false;
+			if (fileInput) fileInput.value = '';
 		}
 	}
 
@@ -128,8 +152,8 @@
 		try {
 			const response = await fetch(`/api/runs/${runId}/video`, { method: 'DELETE' });
 			if (!response.ok) {
-				const body = await response.json();
-				throw new Error(body.message || 'Failed to remove video');
+				const body = await response.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to remove video');
 			}
 			await invalidateAll();
 		} catch (err) {
