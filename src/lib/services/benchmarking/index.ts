@@ -9,7 +9,7 @@
  *                                 sample size is below MIN_BENCHMARK_SAMPLE.
  *   upsertSnapshot()            — called from upload API after each ingest.
  *                                 Updates rider_performance_snapshots and
- *                                 triggers refresh_performance_aggregates().
+ *                                 rebuilds performance_aggregates.
  *
  * Key functions used by client code (page.svelte):
  *   compareToPeers()            — pure calculation, unchanged. Receives the
@@ -37,6 +37,31 @@ import {
 // the application enforces a higher bar (30) so early data doesn't mislead.
 export const MIN_BENCHMARK_SAMPLE = 30;
 
+/**
+ * Rebuild the derived aggregate table from the current snapshot population.
+ *
+ * refresh_performance_aggregates() historically only upserted cohorts that
+ * currently qualified, which left stale cohort rows behind after riders were
+ * deleted or reclassified. performance_aggregates has no independent source
+ * data, so clearing it before recomputation is the honest refresh semantic.
+ */
+export async function refreshPerformanceAggregates(adminClient: SupabaseClient): Promise<void> {
+	const { error: clearError } = await adminClient
+		.from('performance_aggregates')
+		.delete()
+		.not('metric', 'is', null);
+
+	if (clearError) {
+		console.error('[benchmarking] aggregate clear failed:', clearError.message);
+		return;
+	}
+
+	const { error: refreshError } = await adminClient.rpc('refresh_performance_aggregates');
+	if (refreshError) {
+		console.error('[benchmarking] aggregate refresh failed:', refreshError.message);
+	}
+}
+
 // ── Snapshot upsert ───────────────────────────────────────────────────────────
 
 export interface SnapshotInput {
@@ -60,7 +85,7 @@ export interface SnapshotInput {
 }
 
 /**
- * Upsert the rider's performance snapshot and refresh aggregates.
+ * Upsert the rider's performance snapshot and rebuild aggregates.
  * Call this from the upload API after a successful ingest.
  * Uses the admin (service-role) client.
  */
@@ -94,12 +119,7 @@ export async function upsertSnapshot(
 		return;
 	}
 
-	// Refresh aggregate distributions. This is a cheap scan of the snapshots
-	// table (~milliseconds) not a scan of gate_runs.
-	const { error: refreshError } = await adminClient.rpc('refresh_performance_aggregates');
-	if (refreshError) {
-		console.error('[benchmarking] aggregate refresh failed:', refreshError.message);
-	}
+	await refreshPerformanceAggregates(adminClient);
 }
 
 // ── Fetch benchmark ───────────────────────────────────────────────────────────
