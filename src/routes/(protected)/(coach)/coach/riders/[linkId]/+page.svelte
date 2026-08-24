@@ -33,8 +33,8 @@
 	}
 
 	const RIDER_LEVEL_LABELS: Record<string, string> = {
-		grom: 'Grom (age 2–12)',
-		rider: 'Club Rider (age 13–18)',
+		novice: 'Novice',
+		intermediate: 'Intermediate',
 		expert: 'Expert / Regional',
 		elite: 'Elite / National'
 	};
