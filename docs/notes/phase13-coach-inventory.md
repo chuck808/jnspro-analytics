@@ -2,7 +2,7 @@
 
 **Branch:** `phase13-coach-inventory`
 
-No runtime changes yet. This is the inventory/truth-model pass before redesigning the coach workspace.
+Inventory complete. The first truth-model and UI restructure slices are implemented and verified on this branch.
 
 ## Product boundary
 
@@ -56,119 +56,71 @@ On an active link, coach/rider can send messages. A coach can flag suspected onb
 
 The coach dashboard counts unread report shares per rider; opening a rider workspace marks those shares viewed.
 
-## Current coach UI
+## Implemented Phase 13 model
+
+`buildCoachRosterProjection()` is now the canonical roster-attention model, using only already-authorized data:
+
+- unread rider-shared evidence;
+- latest shared-report timestamp;
+- unresolved profile flags;
+- active-goal count;
+- pending rider vs pending parent consent;
+- active/no-shared-report/inactive state.
+
+It deliberately does not infer training activity from sessions/runs.
+
+## Implemented coach UI
 
 ### `/coach`
 
-Current dashboard is primarily:
+The coach dashboard is now structured around:
 
-- invite rider by email;
-- roster of link states;
-- unread shared-report count.
+1. Needs attention;
+2. All riders;
+3. Invite rider.
 
-It has no longitudinal coaching overview and no recent-training signal.
+The attention section surfaces unread rider-shared reports, unresolved shared profile flags, and pending consent states. It explicitly does not treat the absence of a shared report as evidence that the rider has not trained.
 
 ### `/coach/riders/[linkId]`
 
-Current rider workspace exposes:
+The rider workspace is now structured around:
 
-- rider identity/basic profile;
-- latest onboarding profile, view-only;
-- training goals, view-only;
-- profile-inaccuracy flag action;
-- shared coach/rider message thread;
-- reports explicitly shared by the rider;
-- revoke/remove-trainee action.
+1. shared evidence;
+2. training goals;
+3. shared conversation;
+4. onboarding reference profile;
+5. coaching relationship controls.
 
-It does not show a session list, raw runs, automatic recent-training feed, or private notes.
+Profile/goals remain read-only. Reports remain rider-initiated. Private session notes and general session/run history remain outside the coach workspace.
 
-## Core workflow gap
+## Verified live matrix
 
-The coach experience is **push-only**.
+- roster with unread report;
+- unresolved profile flag;
+- pending rider;
+- pending parent;
+- quiet active rider;
+- roster search;
+- mobile roster;
+- active rider with zero reports;
+- multiple shared reports;
+- active + completed goals;
+- sending a message;
+- sending a profile flag and seeing the open-flag count update;
+- opening a shared report;
+- removing a rider, which revokes the link without deleting rider data.
 
-An active coach has no way to know that a rider trained yesterday, improved, regressed, changed setup, accumulated enough evidence for a trend, or simply has new material worth discussing unless the rider deliberately generates and sends a report.
+Rider-level display taxonomy was corrected to the actual stored values: `novice`, `intermediate`, `expert`, `elite`.
 
-That explains the current product complaint precisely: the coach area is consent-safe, but operationally passive.
+## Verification baseline
 
-## What Phase 13 must not do
+- `svelte-check`: 0 errors, 1 known unrelated warning;
+- `tsc --noEmit`: clean;
+- Vitest: 128/128;
+- production build: green.
 
-- Do not grant blanket sessions/runs RLS to coaches without an explicit new rider/parent sharing decision.
-- Do not treat an active coach link as equivalent to account ownership.
-- Do not expose private `session_notes` through a convenience query.
-- Do not make this analytics app replace the separate hardware/live dashboard used during club sessions.
-- Do not require riders to generate bespoke reports after every training session merely to keep a coach informed.
+## Deferred design decision
 
-## Recommended product model
+The workspace is materially better while preserving today's consent model, so Phase 13 does not silently add automatic session access.
 
-Separate **ongoing coaching awareness** from **deep report sharing**.
-
-### Layer 1 — coach roster awareness
-
-Make `/coach` answer:
-
-- who has shared something new with me?;
-- whose goals need attention?;
-- who has no recent shared evidence?;
-- which relationships are still pending/blocked?;
-
-This can initially use already-permitted/link-owned data: report-share timestamps/unread state, goal state, messages and profile completeness. No new session access is required for this slice.
-
-### Layer 2 — rider workspace
-
-Reorganise each rider page around:
-
-1. what needs attention;
-2. goals/current evidence already permitted to coach;
-3. latest explicitly shared reports;
-4. shared conversation/profile flags;
-5. onboarding/profile reference lower down.
-
-This removes the current "profile-first" feel without widening access.
-
-### Layer 3 — optional ongoing summary sharing
-
-If the product should eliminate manual report generation for routine coaching, introduce an **explicit rider-controlled sharing scope** rather than reinterpreting `active`.
-
-Candidate future scope:
-
-- current default: `reports_only` (today's behaviour);
-- optional: `training_summaries` — automatically expose a deliberately bounded derived summary after eligible sessions;
-- still no raw runs/private notes unless separately designed and consented.
-
-For minors, any widening of the sharing scope should be treated as part of the safeguarding/parent-consent model, not as a hidden UI preference.
-
-Do not implement this permission expansion until the rider-side wording/data contract and parent-consent consequences are explicitly decided.
-
-## First implementation slice
-
-Do **not** change RLS/session access yet.
-
-First restructure the existing coach dashboard/rider page using only already-authorized data:
-
-- roster priority/status model from active/pending links, unread shares, latest shared-report date, unresolved profile flags and goal state;
-- surface "Needs attention" before profile details;
-- distinguish `new shared evidence` from ordinary messages;
-- keep reports as immutable rider-pushed snapshots;
-- keep profile/goals read-only;
-- preserve revoke semantics.
-
-Then live-test whether that materially improves the workflow. Only after that should Phase 13 decide whether an explicit `training_summaries` sharing scope is necessary.
-
-## Verification targets for the first slice
-
-- approved coach with 0 riders;
-- pending rider invite;
-- pending parent consent;
-- active rider with no shared reports;
-- active rider with unread shared report;
-- active rider with read report history;
-- active rider with active/completed goals;
-- profile flag/message thread;
-- coach revoke;
-- rider revoke immediately removes coach route access;
-- minor consent path remains unchanged;
-- mobile roster/rider workspace.
-
-## Next exact step
-
-Implement a pure server-side coach-roster/rider-attention projection from the data already available under the existing RLS model, with focused tests before changing presentation.
+If routine coaching later needs automatic awareness of recent training, introduce an explicit rider-controlled sharing scope such as `training_summaries`, with safeguarding/parent-consent consequences designed deliberately. Do not reinterpret an active coach link as blanket session access.
