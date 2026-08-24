@@ -117,7 +117,8 @@ Rider-level display taxonomy was corrected to the actual stored values: `novice`
 - `svelte-check`: 0 errors, 1 known unrelated warning;
 - `tsc --noEmit`: clean;
 - Vitest: 128/128;
-- production build: green.
+- production build: green;
+- hard CI verify job: green on the final runtime head and again after documentation-only checkpoint updates.
 
 ## Deferred design decision
 
