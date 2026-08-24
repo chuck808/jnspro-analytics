@@ -25,33 +25,35 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard — AppGatePro</title>
+	<title>Admin Operations — AppGatePro</title>
 </svelte:head>
 
 <div class="space-y-6">
 	<!-- Header -->
 	<div>
-		<h2 class="themed-text-primary text-lg font-bold">Admin Dashboard</h2>
-		<p class="themed-text-secondary mt-0.5 text-sm">System overview and user management</p>
+		<h2 class="themed-text-primary text-lg font-bold">Admin Operations</h2>
+		<p class="themed-text-secondary mt-0.5 text-sm">
+			Operate the platform, inspect evidence, and manage access
+		</p>
 	</div>
 
-	<!-- Quick Access to New Features -->
+	<!-- Operational priorities -->
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 		<a
-			href="/admin/goals-intelligence"
+			href="/admin/feedback"
 			class="themed-card group block rounded-xl p-5 transition-all hover:scale-[1.02] hover:border-[color:var(--accent)]"
 		>
 			<div class="mb-3 flex items-center gap-3">
 				<div class="themed-bg-accent flex h-10 w-10 items-center justify-center rounded-lg">
-					<span class="text-xl">🧠</span>
+					<span class="text-xl">💬</span>
 				</div>
 				<div class="flex-1">
 					<h3
 						class="themed-text-primary text-sm font-semibold transition-colors group-hover:text-[color:var(--accent)]"
 					>
-						Goals Intelligence
+						Feedback inbox
 					</h3>
-					<p class="text-xs text-[color:var(--text-subtle)]">Phase 5 Features</p>
+					<p class="text-xs text-[color:var(--text-subtle)]">Operate</p>
 				</div>
 				<svg
 					class="h-5 w-5 text-[color:var(--text-subtle)] transition-colors group-hover:text-[color:var(--accent)]"
@@ -63,12 +65,12 @@
 				</svg>
 			</div>
 			<p class="themed-text-secondary text-xs">
-				Monitor AI predictions, health alerts, and goal progress
+				Review user-reported bugs, questions, requests, and follow-up notes
 			</p>
 		</a>
 
 		<a
-			href="/admin/leaderboard-admin"
+			href="/admin/users"
 			class="themed-card group block rounded-xl p-5 transition-all hover:scale-[1.02] hover:border-[#3de8c8]"
 		>
 			<div class="mb-3 flex items-center gap-3">
@@ -76,15 +78,15 @@
 					class="flex h-10 w-10 items-center justify-center rounded-lg
                             border border-[#3de8c8]/40 bg-[#3de8c8]/20"
 				>
-					<span class="text-xl">🏆</span>
+					<span class="text-xl">👥</span>
 				</div>
 				<div class="flex-1">
 					<h3
 						class="themed-text-primary text-sm font-semibold transition-colors group-hover:text-[#3de8c8]"
 					>
-						Leaderboard Admin
+						People & access
 					</h3>
-					<p class="text-xs text-[color:var(--text-subtle)]">Privacy & Compliance</p>
+					<p class="text-xs text-[color:var(--text-subtle)]">Operate</p>
 				</div>
 				<svg
 					class="h-5 w-5 text-[color:var(--text-subtle)] transition-colors group-hover:text-[#3de8c8]"
@@ -96,7 +98,7 @@
 				</svg>
 			</div>
 			<p class="themed-text-secondary text-xs">
-				Track participation, privacy compliance, and moderation
+				Manage users, roles, coaching access, and account state
 			</p>
 		</a>
 
@@ -115,9 +117,9 @@
 					<h3
 						class="themed-text-primary text-sm font-semibold transition-colors group-hover:text-[#ff6b3d]"
 					>
-						Advanced Analytics
+						Platform evidence
 					</h3>
-					<p class="text-xs text-[color:var(--text-subtle)]">Platform Intelligence</p>
+					<p class="text-xs text-[color:var(--text-subtle)]">Inspect</p>
 				</div>
 				<svg
 					class="h-5 w-5 text-[color:var(--text-subtle)] transition-colors group-hover:text-[#ff6b3d]"
@@ -128,7 +130,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 				</svg>
 			</div>
-			<p class="themed-text-secondary text-xs">User segmentation, benchmarks, and data quality</p>
+			<p class="themed-text-secondary text-xs">Inspect population trends, benchmarks, and data quality</p>
 		</a>
 	</div>
 
@@ -159,7 +161,7 @@
 	<!-- Growth Stats -->
 	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
 		<div class="themed-card rounded-xl p-5">
-			<h3 class="themed-text-primary mb-4 text-sm font-semibold">User Growth</h3>
+			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Signup activity</h3>
 			<div class="space-y-3">
 				<div class="flex items-center justify-between rounded-lg bg-[color:var(--background)] p-3">
 					<div>
@@ -193,7 +195,7 @@
 		</div>
 
 		<div class="themed-card rounded-xl p-5">
-			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Session Activity</h3>
+			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Session activity</h3>
 			<div class="space-y-3">
 				<div class="flex items-center justify-between rounded-lg bg-[color:var(--background)] p-3">
 					<div>
@@ -229,11 +231,11 @@
 
 	<!-- Top Users & Recent Signups -->
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-		<!-- Most Active Users -->
+		<!-- Highest session volume -->
 		<div class="themed-card rounded-xl p-5">
-			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Most Active Users</h3>
+			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Highest session volume</h3>
 			{#if data.topUsers.length === 0}
-				<p class="py-8 text-center text-sm text-[color:var(--text-subtle)]">No active users yet</p>
+				<p class="py-8 text-center text-sm text-[color:var(--text-subtle)]">No session activity yet</p>
 			{:else}
 				<div class="space-y-2">
 					{#each data.topUsers as user}
@@ -280,7 +282,7 @@
 
 		<!-- Recent Signups -->
 		<div class="themed-card rounded-xl p-5">
-			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Recent Signups</h3>
+			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Recent signups</h3>
 			{#if data.recentSignups.length === 0}
 				<p class="py-8 text-center text-sm text-[color:var(--text-subtle)]">No users yet</p>
 			{:else}
@@ -336,7 +338,7 @@
 	<!-- User List -->
 	<div class="themed-card rounded-xl p-5">
 		<div class="mb-4 flex items-center justify-between">
-			<h3 class="themed-text-primary text-sm font-semibold">All Users</h3>
+			<h3 class="themed-text-primary text-sm font-semibold">User directory</h3>
 			<a href="/admin/users" class="themed-accent text-xs hover:underline">Manage all →</a>
 		</div>
 		<div class="overflow-x-auto">
@@ -413,7 +415,7 @@
 	<!-- Recent audit log -->
 	{#if data.recentAudit.length > 0}
 		<div class="themed-card rounded-xl p-5">
-			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Recent Role Changes</h3>
+			<h3 class="themed-text-primary mb-4 text-sm font-semibold">Recent role changes</h3>
 			<div class="space-y-2">
 				{#each data.recentAudit as entry}
 					<div class="flex items-center gap-3 rounded-lg bg-[color:var(--background)] p-3 text-xs">
