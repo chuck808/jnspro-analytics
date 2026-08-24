@@ -11,7 +11,7 @@
 
 	const icons = {
 		home: 'M3 12l2-2 7-7 7 7 2 2M5 10v10h4v-6h6v6h4V10',
-		sessions: 'M4 6h16M4 12H16M4 18h16',
+		sessions: 'M4 6h16M4 12h16M4 18h16',
 		progress: 'M4 16l4-5 4 3 6-8 2 2',
 		goal: 'M12 3a9 9 0 109 9h-9V3z M12 7v5h5',
 		compare: 'M7 20V10m5 10V4m5 16v-7',
