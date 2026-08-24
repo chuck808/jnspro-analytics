@@ -88,7 +88,7 @@
 			items: [
 				{ label: 'Research data', href: '/admin/research', icon: icons.research },
 				{ label: 'Feedback analytics', href: '/admin/feedback-analytics', icon: icons.chart },
-				{ label: 'Feedback', href: '/feedback', icon: icons.content }
+				{ label: 'Feedback', href: '/admin/feedback', icon: icons.content }
 			]
 		},
 		{
