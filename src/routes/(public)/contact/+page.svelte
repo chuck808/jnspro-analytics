@@ -1,8 +1,63 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-
 	let submitting = $state(false);
 	let submitted = $state(false);
+	let submitError = $state('');
+
+	const subjectLabels: Record<string, string> = {
+		support: 'Technical Support',
+		device: 'Device Hardware',
+		billing: 'Billing & Accounts',
+		feature: 'Feature Request',
+		bug: 'Bug Report',
+		other: 'Other'
+	};
+
+	const feedbackTypes: Record<string, 'bug' | 'feature' | 'feedback' | 'question'> = {
+		support: 'question',
+		device: 'question',
+		billing: 'question',
+		feature: 'feature',
+		bug: 'bug',
+		other: 'feedback'
+	};
+
+	async function submitContact(event: SubmitEvent) {
+		event.preventDefault();
+		submitting = true;
+		submitError = '';
+
+		const form = event.currentTarget as HTMLFormElement;
+		const formData = new FormData(form);
+		const subjectKey = String(formData.get('subject') ?? '');
+		const name = String(formData.get('name') ?? '').trim();
+		const email = String(formData.get('email') ?? '').trim();
+		const message = String(formData.get('message') ?? '').trim();
+
+		try {
+			const response = await fetch('/api/feedback', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					type: feedbackTypes[subjectKey] ?? 'feedback',
+					subject: `Contact: ${subjectLabels[subjectKey] ?? 'Other'}`,
+					description: name ? `${message}\n\nFrom: ${name}` : message,
+					email
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Contact submission failed');
+			}
+
+			submitted = true;
+			form.reset();
+		} catch {
+			submitError =
+				'Your message could not be sent. Please try again or email support@jnsprosystems.com directly.';
+		} finally {
+			submitting = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -70,8 +125,8 @@
 								/>
 							</svg>
 							<div>
-								<p class="text-sm font-semibold text-[#f0ece4]">Response Time</p>
-								<p class="text-sm text-[#9a8f7a]">Within 24-48 hours</p>
+								<p class="text-sm font-semibold text-[#f0ece4]">Support</p>
+								<p class="text-sm text-[#9a8f7a]">Messages are reviewed by the AppGatePro team</p>
 							</div>
 						</div>
 
@@ -149,9 +204,9 @@
 								/>
 							</svg>
 						</div>
-						<h3 class="mb-2 text-lg font-bold text-[#f0ece4]">Message Sent!</h3>
+						<h3 class="mb-2 text-lg font-bold text-[#f0ece4]">Message Sent</h3>
 						<p class="mb-6 text-sm text-[#9a8f7a]">
-							Thank you for reaching out. We'll get back to you soon.
+							Your message has been added to the support inbox for review.
 						</p>
 						<button
 							onclick={() => (submitted = false)}
@@ -163,19 +218,7 @@
 				{:else}
 					<h2 class="mb-4 text-xl font-bold text-[#f0ece4]">Send a Message</h2>
 
-					<form
-						method="POST"
-						use:enhance={() => {
-							submitting = true;
-							return async ({ result }) => {
-								submitting = false;
-								if (result.type === 'success') {
-									submitted = true;
-								}
-							};
-						}}
-						class="space-y-4"
-					>
+					<form onsubmit={submitContact} class="space-y-4">
 						<div>
 							<label for="name" class="mb-2 block text-sm font-medium text-[#9a8f7a]">
 								Name *
@@ -250,6 +293,12 @@
 							></textarea>
 						</div>
 
+						{#if submitError}
+							<p class="rounded-lg border border-[#ff6b3d]/30 bg-[#ff6b3d]/10 p-3 text-sm text-[#ff8f6b]">
+								{submitError}
+							</p>
+						{/if}
+
 						<button
 							type="submit"
 							disabled={submitting}
@@ -260,11 +309,6 @@
 						>
 							{submitting ? 'Sending...' : 'Send Message'}
 						</button>
-
-						<p class="text-center text-xs text-[#6b5f4d]">
-							Note: This is a demo form. In production, integrate with an email service or contact
-							form backend.
-						</p>
 					</form>
 				{/if}
 			</div>
