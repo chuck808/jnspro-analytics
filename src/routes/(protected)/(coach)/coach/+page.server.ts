@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { inviteRider } from '$lib/server/coachLinks';
+import { buildCoachRosterProjection } from '$lib/server/coachWorkspaceProjection';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { profile } = await parent();
@@ -17,32 +18,39 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		riderIds.length > 0
 			? await locals.supabase.from('profiles').select('id, name, email').in('id', riderIds)
 			: { data: [] };
-	const riderById = new Map((riders ?? []).map((r) => [r.id, r]));
 
-	const activeLinkIds = (links ?? []).filter((l) => l.status === 'active').map((l) => l.id);
-	const { data: unreadShares } =
+	const activeLinks = (links ?? []).filter((l) => l.status === 'active');
+	const activeLinkIds = activeLinks.map((l) => l.id);
+	const activeRiderIds = activeLinks.map((l) => l.rider_id);
+
+	const [{ data: shares }, { data: messages }, { data: goals }] = await Promise.all([
 		activeLinkIds.length > 0
-			? await locals.supabase
+			? locals.supabase
 					.from('report_shares')
-					.select('link_id')
+					.select('link_id, created_at, viewed_at')
 					.in('link_id', activeLinkIds)
-					.is('viewed_at', null)
-			: { data: [] };
+			: Promise.resolve({ data: [] }),
+		activeLinkIds.length > 0
+			? locals.supabase
+					.from('coach_rider_messages')
+					.select('link_id, message_type, resolved_at')
+					.in('link_id', activeLinkIds)
+			: Promise.resolve({ data: [] }),
+		activeRiderIds.length > 0
+			? locals.supabase
+					.from('training_goals')
+					.select('user_id, completed_at')
+					.in('user_id', activeRiderIds)
+			: Promise.resolve({ data: [] })
+	]);
 
-	const unreadByLink = new Map<string, number>();
-	for (const s of unreadShares ?? []) {
-		unreadByLink.set(s.link_id, (unreadByLink.get(s.link_id) ?? 0) + 1);
-	}
-
-	const roster = (links ?? []).map((l) => ({
-		linkId: l.id,
-		riderId: l.rider_id,
-		riderName: riderById.get(l.rider_id)?.name ?? 'Unknown',
-		riderEmail: riderById.get(l.rider_id)?.email ?? null,
-		status: l.status,
-		invitedAt: l.invited_at,
-		unreadCount: unreadByLink.get(l.id) ?? 0
-	}));
+	const roster = buildCoachRosterProjection({
+		links: (links ?? []) as any,
+		riders: (riders ?? []) as any,
+		shares: (shares ?? []) as any,
+		messages: (messages ?? []) as any,
+		goals: (goals ?? []) as any
+	});
 
 	return {
 		roster,
