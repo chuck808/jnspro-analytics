@@ -350,7 +350,8 @@
 								class="themed-text-secondary pr-4 pb-2 text-left text-xs
                                        font-semibold tracking-wider uppercase">{h}</th
 							>
-					{/each}
+						{/each}
+					</tr>
 				</thead>
 				<tbody>
 					{#each data.users.slice(0, 10) as user}
@@ -405,7 +406,7 @@
 							stroke-width="2"
 							d="M9 5l7 7-7 7"
 						/>
-				</svg>
+					</svg>
 				</a>
 			</div>
 		{/if}
