@@ -109,13 +109,14 @@
 
 			{#if (form as any)?.roleSuccess}
 				<div
+					role="status"
 					class="mb-4 rounded-lg border border-[#3de8c8]/30 bg-[#3de8c8]/10 p-3 text-sm text-[#3de8c8]"
 				>
 					Role updated successfully
 				</div>
 			{/if}
 			{#if (form as any)?.roleError}
-				<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+				<div role="alert" class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
 					{(form as any).roleError}
 				</div>
 			{/if}
@@ -196,13 +197,14 @@
 
 			{#if (form as any)?.coachGrantSuccess}
 				<div
+					role="status"
 					class="mb-4 rounded-lg border border-[#3de8c8]/30 bg-[#3de8c8]/10 p-3 text-sm text-[#3de8c8]"
 				>
 					Coach status granted.
 				</div>
 			{/if}
 			{#if (form as any)?.coachGrantError}
-				<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+				<div role="alert" class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
 					{(form as any).coachGrantError}
 				</div>
 			{/if}
@@ -345,13 +347,14 @@
 
 			{#if (form as any)?.coachLinkSuccess}
 				<div
+					role="status"
 					class="mb-4 rounded-lg border border-jns-success/30 bg-jns-success/10 p-3 text-sm text-jns-success"
 				>
 					Done
 				</div>
 			{/if}
 			{#if (form as any)?.coachLinkError}
-				<div class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+				<div role="alert" class="mb-4 rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
 					{(form as any).coachLinkError}
 				</div>
 			{/if}
