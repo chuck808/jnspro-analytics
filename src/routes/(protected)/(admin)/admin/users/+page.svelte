@@ -46,7 +46,9 @@
 			<h3 class="themed-text-primary text-base font-bold">All Users</h3>
 			<p class="themed-text-secondary mt-0.5 text-xs">{data.users.length} registered</p>
 		</div>
+		<label for="user-search" class="sr-only">Search users</label>
 		<input
+			id="user-search"
 			type="search"
 			bind:value={search}
 			placeholder="Search name, email, club..."
