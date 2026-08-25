@@ -4,7 +4,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let roleSaving = $state(false);
-	let selectedRole = $state(data.profile?.role ?? 'user');
+	let selectedRole = $derived(data.profile?.role ?? 'user');
 	let coachGrantSaving = $state(false);
 
 	function fmtDate(ts: string | null) {
