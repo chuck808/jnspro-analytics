@@ -105,7 +105,7 @@
 		<div class="sidebar-footer">
 			<P size="xs">
 				Questions?
-				<A href="mailto:support@appgatepro.com">support@appgatepro.com</A>
+				<A href="mailto:support@jnsprosystems.com">support@jnsprosystems.com</A>
 			</P>
 			<P size="xs">Or use the feedback button inside the app.</P>
 		</div>
