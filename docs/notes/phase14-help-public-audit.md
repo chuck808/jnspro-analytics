@@ -51,6 +51,13 @@ The stale guide follow-up is complete in both its markdown sources and generated
 
 `src/lib/docs/contents.ts` was regenerated from `docs/chapters/*.md` with the repository's canonical `scripts/generate-docs.py`; the generated file was not hand-edited.
 
+Independent verification after the initial completion pass found two additional stale `/docs` surfaces that the original audit had missed:
+
+- the docs sidebar footer still used the obsolete `support@appgatepro.com` address; it now uses `support@jnsprosystems.com` in both the `mailto:` target and visible text;
+- the rewritten Compare chapter still embedded `static/docs/leaderboard-page.png`, a screenshot of the pre-Phase-10 Leaderboard UI with the obsolete title, early-access banner and Time Period filter. The stale screenshot reference has been removed rather than relabelled as current. The generated docs bundle was regenerated after that source change.
+
+The old PNG remains an unused static asset; it is no longer referenced by the current Compare documentation.
+
 ### Admin Home cleanup
 
 The independently reproduced malformed SVG path for the `Avg Sessions/User` stat icon was replaced with a valid bar-chart path. No unrelated Admin Home formatting or behavior was changed.
@@ -87,7 +94,8 @@ Static/source verification also confirmed:
 - Help uses the current support address and current product semantics;
 - Contact subject mapping and success/error behavior match `/api/feedback`;
 - `/api/feedback` supports unauthenticated and authenticated attribution as described;
-- generated docs contain the corrected Upload, Compare, and Session chapters;
+- the `/docs` sidebar uses the current support address;
+- generated docs contain the corrected Upload, Compare, and Session chapters and no longer render the obsolete Compare screenshot;
 - the Admin `Avg Sessions/User` icon now uses the repaired path;
 - Privacy/Terms/About were re-read after the implementation slices rather than assumed from the earlier audit note.
 
