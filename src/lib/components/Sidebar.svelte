@@ -94,7 +94,6 @@
 		{
 			label: 'System',
 			items: [
-				{ label: 'Help FAQs', href: '/admin/help-faqs', icon: icons.help },
 				{ label: 'Email templates', href: '/admin/email-templates', icon: icons.content },
 				{ label: 'Maintenance', href: '/admin/maintenance', icon: icons.maintenance }
 			]
