@@ -1,0 +1,41 @@
+name: Phase 14 docs refresh
+
+on:
+  push:
+    branches:
+      - phase14-help-public-audit
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-docs:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase14-help-public-audit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install docs generator dependency
+        run: python -m pip install 'Markdown==3.8.2'
+
+      - name: Regenerate docs bundle
+        run: python scripts/generate-docs.py
+
+      - name: Commit generated docs if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- src/lib/docs/contents.ts; then
+            echo 'Generated docs already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/docs/contents.ts
+          git commit -m 'docs: regenerate app guide'
+          git push origin HEAD:phase14-help-public-audit
