@@ -2,171 +2,105 @@
 
 ---
 
-## What you're looking at
+## Three views, three different jobs
 
-You just uploaded a session. Now there's a page — well, three pages — full of numbers, charts, and little coloured badges. Here's what it all means and, more importantly, how much of it you actually need to look at.
+A session is split across **Overview**, **Analysis**, and **Deep Dive**. They use the same recorded evidence, but they are deliberately ordered from quickest interpretation to most detailed inspection.
 
-Short version: not all of it, not every time. This is the most detailed view in the whole system — everything the sensor recorded, everything the firmware calculated, everything the analytics engine derived from that. That's a lot to take in, so it's split across three pages instead of dumped on you all at once. Think of them as three different questions:
+- **Overview** — what happened in this session, what context matters, and what deserves attention next.
+- **Analysis** — choose a run and understand its important evidence, charts, comparisons, and optional video.
+- **Deep Dive** — inspect evidence quality, raw signal, derived diagnostics, benchmark context, notes, and supporting records.
 
-- **Overview** — "How did today go?"
-- **Analysis** — "What actually happened in this specific run?"
-- **Deep Dive** — "I want to dig into something specific."
-
-You'll use Overview every session. You'll use Analysis often. Deep Dive is there for when something's odd or you want to compare things properly — most sessions you won't touch it at all, and that's fine.
+You do not need to work through all three after every ride. Overview is the fast read; Analysis is where to investigate a run; Deep Dive is there when you need to challenge or explain the interpretation.
 
 ---
 
-## Overview — the 30-second check
+## Overview — understand the session before chasing a single number
 
-This is where you land after uploading, and it's built to be skimmed.
+The Overview page starts with the session record and its setup/context rather than immediately dropping you into a chart. Weather, surface, session focus, ride feel, bike/profile linkage, and run tags give the recorded numbers useful context without changing the underlying sensor evidence.
 
-![Session overview — context, tags, and the session summary](/docs/session-overview-top.png)
+Run tags can also affect which runs count toward session statistics. In particular, runs deliberately excluded from stats remain in the session record but are left out of the calculations that should represent your usable training evidence.
 
-At the top: the date, how many runs, and a **Context** panel where you can log the weather, track surface, and how the session felt. None of this changes your numbers — a 0.198s reaction time is 0.198s whether it was sunny or pouring — but it gives future-you something to look back on. If you notice six months from now that your times are consistently better on dry concrete than damp asphalt, that's only visible because you logged it. If you just want the data and can't be bothered, ignore this section entirely. Nothing downstream depends on it.
+The page then builds a session-level read from the canonical performance engine: headline evidence, progression across runs, a plain-language narrative, and strengths or limiters when the evidence supports them. If a genuine shareable achievement is detected, the page can offer the social sharing flow; ordinary sessions do not need to manufacture one.
 
-Below that is **Tag runs** — mark a run as a warmup, your best effort, an experiment, or exclude it from stats entirely. This matters more than it sounds like it should: tagged-out runs still exist and you can still look at them, they just stop dragging your session averages around. If you always throw in two throwaway warmup runs before your real efforts, tag them — your consistency score will actually reflect your training instead of getting muddied by laps you weren't trying on.
-
-> **Worth knowing:** if you've got active training goals, a small progress indicator shows up here too, telling you which metric moved and by how much. And if the session produced something genuinely worth celebrating — a real personal best, not just "a decent run" — you'll see a **Share** button that generates a card you can post or send to your coach. It only shows up when something real happened; the system won't manufacture excitement out of an ordinary Tuesday.
-
-> **Also worth knowing:** if your bike setup or biometrics (height/weight) changed since your last session, you'll see a **Setup changed** banner here showing exactly what changed and, once enough sessions exist on the new setup, a before/after comparison of reaction time, speed, consistency, and session quality — so you can actually tell whether that equipment tweak helped. This is entirely automatic; see the Profile & Bike Setup chapter for why keeping your profile current matters here.
-
-Scroll down and you'll hit the session narrative — a plain-English paragraph, not a wall of numbers, telling you what the data actually shows. Then strengths/focus areas, the headline stats (best reaction, best peak speed, best max G, consistency), and finally a chart showing how you trended across the runs in this session:
-
-![Cross-run progression chart, tracking reaction time across the session](/docs/session-overview-progression.png)
-
-A rising line here isn't automatically bad — it depends what you're tracking (lower reaction time is better, higher peak speed is better) — but a *consistent* decline across the session, in whichever direction is worse for that metric, usually just means fatigue. That's useful to know before your next set.
+If setup or context is missing on a first pass, the page can let you fill that in while previewing how the session summary changes. That preview uses the same performance-engine path as the persisted session view rather than a separate set of formulas.
 
 ---
 
-## Analysis — pick a run, see everything about it
+## Analysis — choose a run and understand how it was delivered
 
-This is where the actual investigation happens. Select a run from the row of buttons, and the whole page fills in with that run's data.
+Analysis is run-focused. Select a run and the page follows that selection through its headline evidence and traces.
 
-![Run selector, with tags visible only on the selected run](/docs/session-analysis-run-selector.png)
+The main charting includes the recorded G-force trace and, when the evidence is valid enough to support it, the derived speed/acceleration view. Data-quality state is carried alongside those charts so a derived curve is not presented with the same confidence as a direct recorded value.
 
-Notice only the *selected* run shows its full tag control — the others just show a small tag icon if they've got one, so the row doesn't turn into visual noise once you've tagged half your session.
+The page also exposes run comparison and the physics views that are useful for explaining the effort, including impulse and power when their required inputs exist. Mass-dependent values are withheld when rider/bike mass is unavailable rather than being filled with guessed inputs.
 
-### Attaching video
+### Optional run video
 
-Attaching video is entirely optional, per run, and off by default — plenty of sessions won't have one, and that's not a missing feature, it's the intended state. A low-key "+ Add video" link sits on this page for any run that doesn't have one yet; upload a clip from your phone, an action cam, whatever your mate happened to be holding, and it attaches to that specific run.
+Video is supplementary evidence, not a requirement. A run can have no video at all and the Analysis page remains complete.
 
-**How the sync actually works.** The light tower fires a brief white flash at the very start of every gate sequence — well before the green "go" light, timed so it never interferes with the moment you're actually reacting to. The app scans your uploaded clip for that flash and uses it to line the video up against the G-force trace automatically. You don't drag anything into place by hand. If the flash isn't visible in your clip for whatever reason — bad framing, the camera started late — sync detection just fails gracefully and you get a plain video player instead of a broken or misaligned one. Nothing else about the run breaks.
+When you attach a clip, the browser can look for the optional hardware synchronisation cue: the external Lights unit shows a **full-white background for about 120 ms at gate-zero** when that feature is enabled. The detector treats the **leading edge** of that finite white pulse as the alignment point. It is not a GoPro flash and the web app does not pretend to control the camera.
 
-**Once it's synced**, the video plays as a hero player at the top of the page with three layers of information built around it:
+If a trustworthy cue is found, the attached video can be shown in the synchronised run-video experience with recorded telemetry aligned to the run clock. If no trustworthy cue is found, attachment still succeeds and the clip falls back to ordinary playback. A failed sync must not make the sensor analysis unusable.
 
-- A couple of **persistent stat pills** in the corner — reaction time, peak speed, and technique score — visible the whole time, not just at one instant.
-- A **live telemetry readout** below the video that updates as you scrub or play — the actual G-force and speed value at whatever instant you're currently watching.
-- **Momentary callouts** that appear only when the video passes a specific instant worth flagging — peak G-force, or a wheel lift, timed to when they actually happened in the footage rather than sitting on screen the whole time as clutter.
+---
 
-Underneath the video is a merged scrub bar — the G-force trace itself doubles as the seek control, so dragging through the chart moves the video and vice versa. It spans the whole clip, not just the timed portion, since the run-up to the gate has real viewing value too.
+## Technique scores — useful interpretation, not raw evidence
 
-![Live telemetry readout and the merged scrub bar underneath the video](/docs/session-analysis-video-hero.png)
+Technique scoring is derived interpretation. The current detailed breakdown presents six dimensions:
 
-### The G-force chart
-
-The chart everyone checks first:
-
-![G-force chart for a single run](/docs/session-analysis-gforce.png)
-
-What you actually want to see: an early peak (ideally in the first half-second to a second), one clean dominant peak rather than several smaller bumps, and a gradual taper afterward rather than a cliff-edge drop. That shape means you front-loaded your power into the snap. Several similar-height peaks usually means uneven pedal strokes rather than one clean drive.
-
-Rough feel for the numbers: 2.0–2.5G is solid club-level output, 2.5–3.0G is strong, and above 3.0G is pushing toward the edge of what the sensor measures reliably — treat very high spikes with a little healthy skepticism.
-
-### Speed, jerk, impulse, power
-
-Below the G-force chart:
-
-- **Speed & Acceleration** — a dual-axis chart. Speed should build in a rough S-curve; peak acceleration should land noticeably *before* peak speed. If they're happening at the same instant, something about the run doesn't add up.
-- **Jerk** — how fast your force output is changing. It's a smoothness read. Two riders can post identical peak G with very different jerk profiles — the smoother one is usually the more efficient one.
-- **Impulse** — cumulative force over the run. Gate starts reward front-loading: getting half your total force out in under half a second beats spreading the same total evenly across two seconds.
-- **Power** — only shows up if you've entered your weight and bike weight in your profile. Without real mass numbers, a power estimate is just a guess dressed up as a figure, so the system doesn't show one at all rather than show a misleading one.
-
-### Two technique scoring systems, on purpose
-
-You'll actually see technique scored twice on this page, in two different places, and that's not a bug.
-
-There's a compact **Technique Scores** ring showing four weighted components — Reaction (30%), Explosiveness (25%), Smoothness (25%), Efficiency (20%) — rolled into one overall number. This is the original scoring model, well-validated, and it's what most of the rest of the app (goals, leaderboards, trend charts) still references.
-
-Further down is the newer, more granular **Detailed Technique Breakdown** — six dimensions instead of four, each benchmarked against your declared rider level:
-
-![Detailed technique breakdown, six dimensions](/docs/session-analysis-technique.png)
-
-| Dimension | What it's actually measuring |
+| Dimension | Evidence basis |
 |---|---|
-| Launch Quality | Reaction time and initial drive, together |
-| Explosiveness | Peak power and acceleration |
-| Speed Carry | How well you maintain velocity through the run |
-| Smoothness | Force-application consistency (from the jerk trace) |
-| Impulse Timing | How quickly you deliver force |
-| Repeatability | Run-to-run consistency |
+| Launch Quality | Reaction time and initial drive |
+| Explosiveness | Peak G-force / acceleration evidence |
+| Speed Carry | Derived speed behaviour |
+| Smoothness | Derived jerk analysis |
+| Impulse Timing | Derived G-force integration |
+| Repeatability | Run-to-run reaction-time spread |
 
-Both systems pull from the same underlying data, so if a number looks slightly different between them, it's not an error — they're just measuring slightly different things, or measuring the same thing in a slightly different way. They'll consolidate into one system eventually; for now, the four-component score is the one everything else in the app leans on, and the six-dimension breakdown is there when you want a finer-grained read on *why*.
+The UI labels whether a dimension is based more directly on measured evidence or on a derived calculation. That distinction matters more than memorising a fixed score band from documentation.
 
-Every score here — in both systems — is benchmarked against your **declared rider level**, not one flat scale. A 230ms reaction time is "excellent" for an intermediate rider and merely "good" for an expert. The actual bands:
-
-| Level | Reaction — Excellent | Reaction — Good | Reaction — Needs work above | Peak G — Good | Peak G — Excellent |
-|---|---|---|---|---|---|
-| Grom | < 280ms | < 380ms | 520ms | 1.2G | 1.8G |
-| Rider / Intermediate | < 230ms | < 320ms | 430ms | 1.8G | 2.4G |
-| Expert | < 200ms | < 280ms | 380ms | 2.1G | 2.8G |
-| Elite | < 180ms | < 250ms | 340ms | 2.3G | 3.0G |
-
-> **Worth knowing:** these thresholds aren't fixed forever. They start as reasonable seed values based on coaching experience and the (fairly thin) published BMX gate-start literature, and they're designed to be replaced automatically once enough real rider data accumulates. If your numbers look oddly harsh or generous compared to how a session actually felt, that's worth mentioning to your coach — the benchmarks are provisional by design, not gospel.
-
-### Phase analysis and splits
-
-The system also breaks your run into three phases — **drive** (the initial explosive force), **transition** (converting that force into speed), and **velocity** (holding onto the speed you built). Weak drive phase shows up as low peak G or a late peak. Weak transition despite decent G-force usually points at technique or body position rather than raw power. Weak velocity phase means you built speed and then bled it off too fast.
-
-If you've got a few runs at consistent distances, the acceleration splits table shows time and distance to hit specific speed targets (30, 40, 50 km/h) — handy for tracking whether your acceleration efficiency is actually improving over multiple sessions, not just this one.
+Do not treat an old static threshold table as a permanent contract. Rider context and the performance engine own the current scoring/benchmark logic; the session page is designed to surface the evidence and confidence behind the interpretation rather than make a documentation snapshot authoritative forever.
 
 ---
 
-## Deep Dive — comparisons, targets, and notes
+## Deep Dive — inspect the evidence before the diagnosis
 
-This page exists for the moments when you want to line things up side by side rather than look at one run in isolation.
+Deep Dive deliberately starts with evidence quality. If calibration looks suspect, or mass-dependent analytics cannot be supported, that warning comes before the detailed interpretation.
 
-![Run comparison table](/docs/session-deepdive-comparison.png)
+From there you can inspect the selected run's recorded G-force signal directly, compare early-force stability across runs when enough runs exist, and then work through the deeper force, phase, technique, and coach-style diagnostic views. Benchmark context and follow-up recommendations come after the underlying evidence rather than ahead of it.
 
-Pick any two runs and get a straight metric-by-metric comparison — reaction time, max G, peak speed, technique score, elapsed time — with the winner on each row flagged. Directly below, **Performance Targets** shows your progress against personalised goals for your rider level:
-
-![Performance targets panel](/docs/session-deepdive-targets.png)
-
-Further down: G-force stability across the session (how consistent your first half-second of force application was, run to run), a data drill-down for raw export, session notes (pre-session plans, in-session observations, post-session reflection, coach feedback — private to your account, no effect on analytics), and a one-click comparison against your previous session. There's also a report generator here if you want a shareable PDF for a coach or parent.
-
-Most sessions, you genuinely won't need this page. It's here for when something's interesting enough to warrant digging, not for routine after-every-session checking.
+This page also holds the supporting record: rider session notes, comparison with the previous session when one exists, and report-related actions. Private session notes remain rider-owned; sending a report to a linked coach deliberately strips those private notes from the shared report payload.
 
 ---
 
-## Data quality — what gets hidden, and why
+## Reports are available across the session workspace
 
-Every run carries a validity flag from the firmware. If it's `false`, speed-derived metrics simply don't render — not because the system is being cautious for the sake of it, but because a confidently-wrong number is worse than an honest gap. Reaction time and raw G-force always show, because they're direct sensor readings, not calculations built on top of something that might be shaky.
+The session layout owns the report flow, so reporting is not confined to one old “report generator” section of a page. From the session workspace you can build supported report types with different detail levels, optionally include charts, diagnostics, appendices, and goal context, then print/save the result or use the supported data export.
 
-If you don't have the breakbeam timing module, speed is estimated from IMU integration rather than measured directly. You'll see a data quality badge (Excellent/Good/Fair/Poor) and a bias correction value — under 0.5 m/s² is excellent, above 3.0 m/s² means treat the speed numbers as approximate at best. High bias correction usually means the device wasn't calibrated properly, or wasn't mounted securely, before that run.
-
-With the breakbeam module fitted, elapsed time becomes a precision measurement (±1ms), which anchors the whole speed curve to something real rather than an estimate — every downstream number gets meaningfully more trustworthy.
+For an active coaching link, the rider can explicitly send a generated report through the coaching share route. That sharing action is separate from private session notes and from the coach's narrower read-only access to rider-owned data.
 
 ---
 
-## What's actually worth your attention
+## Data quality — distinguish recorded evidence from derived values
 
-**Every session:** glance at reaction time, consistency, max G, and the shape of the G-force chart. Thirty seconds, unless something looks off.
+A useful way to read the whole session workspace is by evidence layer:
 
-**When something feels different:** check the data quality badge and bias correction first — rule out a mounting or calibration issue before you start second-guessing your technique. Then look at the speed curve shape, then the jerk profile.
+**Recorded evidence** includes values and traces captured from the run itself, such as reaction timing and acceleration/G-force evidence. Start here when something looks wrong.
 
-**Occasionally:** speed splits, phase analysis, power (if you've got mass data entered) — these are for when you're specifically investigating something, not routine checks.
+**Derived physics** includes values calculated from recorded evidence and setup context, such as speed estimates, impulse, power, jerk, or other physics diagnostics. These can be hidden or downgraded when the inputs do not support a trustworthy result.
 
----
+**Interpretation** includes technique dimensions, strengths/limiters, recommendations, benchmark context, and narrative. These are there to explain patterns in the evidence, not to replace the evidence.
 
-## Honest limitations
-
-Not everything on these pages is equally trustworthy, and it's worth knowing which is which.
-
-**Direct measurements** — reaction time, raw acceleration, pitch and roll, and (with the breakbeam) elapsed time. Trust these the most; they're what the sensor actually recorded.
-
-**Calculated metrics** — peak speed, power, efficiency. Reliable for comparing your own runs against each other. With the breakbeam fitted, reliable enough to trust as absolute figures too. Without it, treat them as directional.
-
-**Interpreted insights** — technique scores, weakness flags, phase classifications. Pattern recognition applied to formulas. Useful as a prompt for a conversation with your coach, not as a verdict. The system can tell you *what* the data looks like. It can't tell you *why*, and it's not trying to.
+That ordering is intentional throughout the renovated session pages: preserve the source evidence, show whether a derived value is supportable, then present interpretation at the appropriate level of confidence.
 
 ---
 
-_For help with a specific section, use the Help buttons scattered throughout these pages — each one gives you a level-appropriate explanation, whether you want the quick version or the full methodology._
+## What to check routinely
+
+For a normal session, start on Overview and look for the session headline, progression, context, and any quality warning. Move to Analysis when one run deserves attention or you want to compare traces. Open Deep Dive when you need to inspect the raw signal, understand why a derived metric is missing or questionable, or work through the detailed diagnostic evidence.
+
+If a number surprises you, check its evidence quality before changing your training around it. The session workspace is designed so that a missing or qualified derived result is preferable to a confident-looking value that the available evidence cannot support.
+
+---
+
+_For help with a specific section, use the contextual Help controls in the app or the Help & Troubleshooting page._
