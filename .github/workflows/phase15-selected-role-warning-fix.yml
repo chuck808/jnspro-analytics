@@ -1,0 +1,43 @@
+name: Phase 15 selected-role warning fix
+
+on:
+  push:
+    branches:
+      - phase15-release-hardening-audit
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+
+      - name: Patch selected role reactivity
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/routes/(protected)/(admin)/admin/users/[id]/+page.svelte')
+          text = path.read_text()
+          old = "\tlet selectedRole = $state(data.profile?.role ?? 'user');"
+          new = "\tlet selectedRole = $derived(data.profile?.role ?? 'user');"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one selectedRole initializer, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+
+      - name: Commit warning fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'src/routes/(protected)/(admin)/admin/users/[id]/+page.svelte'
+          git commit -m 'fix: keep admin role selection reactive to page data'
+          git push origin HEAD:phase15-release-hardening-audit
