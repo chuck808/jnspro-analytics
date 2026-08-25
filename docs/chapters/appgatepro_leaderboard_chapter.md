@@ -10,7 +10,6 @@ The Compare page deliberately separates peer benchmarking from competitive ranki
 
 **Competitive ranking** asks: _where does my all-time best eligible evidence rank among riders who chose to compete?_ It is optional and is kept separate from the peer benchmark so a competitive rank is never presented as if it were a population percentile.
 
-![Compare page](/docs/leaderboard-page.png)
 
 ---
 
