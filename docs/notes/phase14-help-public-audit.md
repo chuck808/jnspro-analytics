@@ -1,6 +1,6 @@
 # Phase 14 — Help and public/supporting pages audit
 
-Status: implementation slice in review.
+Status: implementation complete; CI verified. Live browser/database verification remains environment-dependent and is listed below.
 
 ## Scope reviewed
 
@@ -9,10 +9,10 @@ Status: implementation slice in review.
 - Public landing page
 - Public `/about`
 - Public `/privacy` and `/terms` at a consistency level only
-- Linked `/docs` guide as a separate follow-up surface
+- Linked `/docs` guide and generated docs bundle
 - Carried-forward Admin Home `Avg Sessions/User` SVG-path defect
 
-## Corrections in this slice
+## Corrections completed
 
 ### Help accuracy
 
@@ -35,51 +35,72 @@ The updated FAQ now describes current behavior and keeps evidence-quality caveat
 
 The public Contact page looked functional but had no route action/backend. Its own footnote described it as a demo form. The enhanced POST therefore had no legitimate delivery path.
 
-The page now submits to the existing `/api/feedback` endpoint, which already supports unauthenticated feedback and feeds the canonical Admin feedback inbox. Contact topics map onto the existing feedback taxonomy (`bug`, `feature`, `question`, `feedback`). The UI reports success only after the endpoint accepts the message, shows an inline failure state otherwise, and points directly to `support@jnsprosystems.com` as fallback.
+The page now submits to the existing `/api/feedback` endpoint, which supports unauthenticated feedback and feeds the canonical Admin feedback inbox. Contact topics map onto the existing feedback taxonomy (`bug`, `feature`, `question`, `feedback`). The UI reports success only after the endpoint accepts the message, shows an inline failure state otherwise, and points directly to `support@jnsprosystems.com` as fallback.
+
+The endpoint attributes an authenticated submission to the signed-in user and otherwise stores `user_id = null` with the submitted email. No database, RLS, feedback-table, or Admin-inbox schema behavior was changed.
 
 The unsupported `24–48 hours` response-time promise was removed rather than replaced by another arbitrary SLA.
 
-## Reviewed, no change in this slice
+### Full `/docs` guide
+
+The stale guide follow-up is complete in both its markdown sources and generated application bundle.
+
+- Upload now describes the shared device/manual JSON ingest path, source-evidence deduplication, required run/gate rollback, optional timeseries degradation, and non-blocking rider/bike profile linkage.
+- Compare now separates anonymised peer benchmarking from opt-in competitive ranking, documents the all-time ranking model, removes Week/Month claims, and describes cohort/sample-size and eligibility boundaries.
+- Session now reflects the renovated Overview / Analysis / Deep Dive responsibilities, evidence-first diagnostics, six technique dimensions, report/privacy boundary, and the Phase 12 video-sync contract: an optional ~120 ms full-white Lights-unit pulse at gate-zero whose leading edge is the sync anchor.
+
+`src/lib/docs/contents.ts` was regenerated from `docs/chapters/*.md` with the repository's canonical `scripts/generate-docs.py`; the generated file was not hand-edited.
+
+### Admin Home cleanup
+
+The independently reproduced malformed SVG path for the `Avg Sessions/User` stat icon was replaced with a valid bar-chart path. No unrelated Admin Home formatting or behavior was changed.
+
+## Reviewed, no change
 
 ### About
 
-The About page is aligned with the current product philosophy: preserve evidence and context, expose uncertainty, support rather than replace rider/coach judgement, and progressively disclose analytical complexity.
+The About page remains aligned with the current product philosophy: preserve evidence and context, expose uncertainty, support rather than replace rider/coach judgement, and progressively disclose analytical complexity.
 
 ### Privacy / Terms
 
-No legal copy is being edited merely for stylistic consistency. A legal/privacy change needs a concrete product or policy contradiction, not a Phase 14 language preference.
+No demonstrable application-code contradiction was found that justified a legal-copy edit in this phase. The existing consent language is broad enough to cover user-directed sharing, account deletion and CSV portability remain supported, and the product continues to treat private session notes separately from coach-shared reports.
+
+Legal copy was therefore left unchanged rather than edited for stylistic consistency.
 
 ### Public landing page
 
-The overall product journey and direct-Wi-Fi/SD fallback language are current. Several hardware/validation claims require explicit device-side evidence before they should be strengthened or removed, notably `UCI-compliant`, `200Hz IMU`, `±1ms` reaction accuracy, and the exact metrics-per-run claim. They are recorded for hardware validation rather than silently rewritten from application-code inference.
+The overall product journey and direct-Wi-Fi/SD fallback language are current. Several hardware/validation claims still require explicit device-side evidence before they should be strengthened or removed, notably `UCI-compliant`, `200Hz IMU`, `±1ms` reaction accuracy, and the exact metrics-per-run claim. They remain recorded for hardware validation rather than being rewritten from application-code inference.
 
-## Separate follow-up: `/docs`
+## Verification completed
 
-The linked full guide is materially stale and needs its own correction slice. Examples already confirmed:
+GitHub CI on the completed implementation passed the required `verify` job:
 
-- Upload chapter describes manual SD as the whole normal journey and says a required run can fail while the rest of a session still imports; Phase 11 instead uses a shared Wi-Fi/manual ingest path and rolls back the session on required run/gate failure.
-- Leaderboard chapter still exposes Week/Month filters, raw-rank/percentile framing, and old opt-in assumptions that Phase 10 replaced with separate peer benchmarking and all-time competitive ranking.
-- Session chapter contains pre-Phase-6/7 Analysis/Deep-Dive hierarchy and older video-sync wording.
+- dependency install with the frozen lockfile;
+- `pnpm check`;
+- `pnpm test`;
+- `pnpm build`.
 
-Because `src/lib/docs/contents.ts` is generated from `docs/chapters/*.md`, that follow-up must update the chapter sources and regenerate the output together rather than hand-edit the generated file.
+The repository's separate informational lint job still fails at its Prettier stage across the existing formatting backlog. This job is intentionally `continue-on-error` and is not a Phase 14 merge gate. Phase 14 changed files appear among that broader backlog, so no repository-wide formatting pass was folded into this audit.
 
-## Carried-forward cleanup
+Static/source verification also confirmed:
 
-`src/routes/(protected)/(admin)/admin/+page.svelte` still contains the independently reproduced malformed SVG path for the `Avg Sessions/User` stat icon. It predates the Admin Home hierarchy PR and remains a small explicit cleanup item. It should be fixed without unrelated Admin formatting changes.
+- Help uses the current support address and current product semantics;
+- Contact subject mapping and success/error behavior match `/api/feedback`;
+- `/api/feedback` supports unauthenticated and authenticated attribution as described;
+- generated docs contain the corrected Upload, Compare, and Session chapters;
+- the Admin `Avg Sessions/User` icon now uses the repaired path;
+- Privacy/Terms/About were re-read after the implementation slices rather than assumed from the earlier audit note.
 
-## Verification target for this slice
+## Live verification still environment-dependent
 
-- `svelte-check`
-- `tsc --noEmit`
-- `vitest`
-- production build in CI
-- Help desktop/mobile and FAQ expansion
-- Help stale-claim string check
-- Help support links use `support@jnsprosystems.com`
-- unauthenticated Contact success creates a real `feedback` row with `user_id = null` and submitted email
-- authenticated Contact success records the signed-in user through the existing endpoint
-- bug / feature / question / general topic mapping
-- forced Contact endpoint failure stays on the form and shows an error instead of false success
-- Contact mobile
+The branch's Vercel preview currently fails before application startup because the preview environment is missing required Supabase/device-ingest environment variables. That is separate from the application changes; GitHub CI supplies format-valid placeholders and completes check/test/build successfully.
 
-No database, RLS, feedback-table, or Admin-inbox behavior is changed by this slice.
+Because the branch preview is not runnable in that environment, these interactive checks have not been claimed as completed:
+
+- Help desktop/mobile rendering and FAQ expansion;
+- Contact desktop/mobile rendering;
+- a real unauthenticated Contact submission creating a `feedback` row;
+- a real authenticated Contact submission recording the signed-in user;
+- forced live endpoint failure presentation.
+
+Those are deployment/live-environment verification items, not known implementation gaps in the Phase 14 source.
