@@ -37,6 +37,22 @@
 	);
 
 	let firstName = $derived(user?.name?.split(' ')[0] ?? null);
+	let sidebarExpanded = $state(false);
+
+	$effect(() => {
+		const sidebar = document.getElementById('sidebar');
+		if (!sidebar) return;
+
+		const syncExpanded = () => {
+			sidebarExpanded = !sidebar.classList.contains('-translate-x-full');
+		};
+
+		syncExpanded();
+		const observer = new MutationObserver(syncExpanded);
+		observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+
+		return () => observer.disconnect();
+	});
 
 	function toggleMobileMenu() {
 		const sidebar = document.getElementById('sidebar');
@@ -54,6 +70,7 @@
 		onclick={toggleMobileMenu}
 		aria-label="Toggle sidebar"
 		aria-controls="sidebar"
+		aria-expanded={sidebarExpanded}
 		class="rounded-lg p-2 text-[#9a8f7a] transition-colors hover:bg-[#221c18]
                hover:text-[#f0ece4] focus:ring-2
                focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[color:var(--theme-surface)] focus:outline-none md:hidden"
