@@ -1,0 +1,61 @@
+name: Phase 15 final signoff helper
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-final-signoff-helper.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Mark Phase 15 complete
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          status = Path('docs/RENOVATION_STATUS.md')
+          text = status.read_text()
+          replacements = {
+              '- **Phase 15 — Final consolidation and release hardening: FINAL VERIFICATION**': '- **Phase 15 — Final consolidation and release hardening: DONE**',
+              '## Final verification state': '## Final verification',
+              'Independent live/browser verification has exercised many of the repaired interaction paths, including Admin Maintenance failure recovery, Coach Application failure feedback, Admin role updates, protected navigation state, three modal focus/Escape flows, and Run Tag Escape/focus restoration. The final verification pass still needs to cover the newest shared-surface changes before Phase 15 is marked DONE: video/image async error announcement, the global Feedback dialog flow, and the public mobile navigation focus/Escape behavior.': 'Independent live/browser verification has exercised the repaired interaction paths, including Admin Maintenance failure recovery, Coach Application failure feedback, Admin role updates, protected and public navigation state/focus behavior, Session Comparison/Social Share/Goal Adjustment modal focus/Escape flows, Run Tag Escape/focus restoration, video/image async error announcements, and the global Feedback dialog including its public-header backdrop layer and post-success focus/Escape path. No outstanding Phase 15 issue remains from the final verification pass.',
+              '## Next exact step\n\nComplete independent/live verification of the newest shared-surface fixes, update the roadmap and PR #9 to the final verified state, run one final diff/CI sanity pass, then mark Phase 15 DONE and PR #9 ready for merge.': '## Next exact step\n\nPhase 15 is complete. PR #9 can proceed through normal review and merge; any future work should start from the post-Phase-15 `master` state rather than reopening the renovation hardening scope.'
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Status replacement expected once, found {count}: {old[:80]}')
+              text = text.replace(old, new)
+          status.write_text(text)
+
+          roadmap = Path('docs/RENOVATION_ROADMAP.md')
+          text = roadmap.read_text()
+          replacements = {
+              '## Release 2 — Make It Feel Like One Product — FINAL VERIFICATION': '## Release 2 — Make It Feel Like One Product — COMPLETE',
+              '### Phase 15 — Final consolidation and release hardening — FINAL VERIFICATION': '### Phase 15 — Final consolidation and release hardening — DONE',
+              'Current checkpoint: consumer-backed dead-code and obsolete-route cleanup is complete; concrete mutation-recovery, copy-consistency, navigation, modal, upload-feedback, and keyboard-accessibility defects found in the bounded hardening sweep have been corrected. Small local focus helpers were deliberately not extracted into a shared abstraction because the interaction ownership differs and extraction would add coupling without meaningful maintenance benefit. Required CI is at 0 Svelte errors / 0 warnings with 128/128 tests and a passing production build. Final completion is waiting only on the newest independent live/browser checks and final PR/diff sign-off.': 'Final checkpoint: consumer-backed dead-code and obsolete-route cleanup is complete; concrete mutation-recovery, copy-consistency, navigation, modal, upload-feedback, and keyboard-accessibility defects found in the bounded hardening sweep were corrected. Small local focus helpers were deliberately not extracted into a shared abstraction because the interaction ownership differs and extraction would add coupling without meaningful maintenance benefit. Final independent verification covered the newest shared surfaces, including video/image error announcements, public mobile navigation, and the global Feedback dialog backdrop/focus/Escape paths. Required CI is at 0 Svelte errors / 0 warnings with 128/128 tests and a passing production build. Phase 15 and Release 2 are complete.'
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Roadmap replacement expected once, found {count}: {old[:80]}')
+              text = text.replace(old, new)
+          roadmap.write_text(text)
+          PY
+      - name: Commit final renovation signoff
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RENOVATION_STATUS.md docs/RENOVATION_ROADMAP.md
+          git diff --cached --check
+          git commit -m "docs: mark Phase 15 complete"
+          git push origin HEAD:phase15-release-hardening-audit
