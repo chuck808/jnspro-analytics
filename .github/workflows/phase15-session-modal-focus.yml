@@ -1,0 +1,43 @@
+name: Phase 15 session modal focus patch
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-session-modal-focus.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Patch dialog focus
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/components/SessionComparisonModal.svelte')
+          text = path.read_text()
+          old_fn = "\tfunction close() {\n\t\topen = false;\n\t}\n"
+          new_fn = "\tfunction focusOnMount(node: HTMLElement) {\n\t\tnode.focus();\n\t}\n\n\tfunction close() {\n\t\topen = false;\n\t}\n"
+          old_dialog = "\t\t\taria-labelledby=\"comparison-title\"\n\t\t\tonkeydown={(e) => e.key === 'Escape' && close()}"
+          new_dialog = "\t\t\taria-labelledby=\"comparison-title\"\n\t\t\tuse:focusOnMount\n\t\t\tonkeydown={(e) => e.key === 'Escape' && close()}"
+          if text.count(old_fn) != 1:
+              raise SystemExit(f'Expected one close function match, found {text.count(old_fn)}')
+          if text.count(old_dialog) != 1:
+              raise SystemExit(f'Expected one dialog match, found {text.count(old_dialog)}')
+          path.write_text(text.replace(old_fn, new_fn).replace(old_dialog, new_dialog))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/components/SessionComparisonModal.svelte
+          git diff --cached --check
+          git commit -m "fix: focus session comparison dialog on open"
+          git push origin HEAD:phase15-release-hardening-audit
