@@ -3,6 +3,7 @@
 
 	let menuOpen = $state(false);
 	let scrolled = $state(false);
+	let menuButton: HTMLButtonElement;
 
 	onMount(() => {
 		const onScroll = () => {
@@ -16,7 +17,12 @@
 		menuOpen = !menuOpen;
 	}
 	function closeMenu() {
+		const wasOpen = menuOpen;
 		menuOpen = false;
+		if (wasOpen) menuButton?.focus();
+	}
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
 	}
 </script>
 
@@ -36,7 +42,14 @@
 		<a href="/auth/sign-up" class="btn-amber">Join the beta</a>
 	</div>
 
-	<button class="hamburger" onclick={toggleMenu} aria-label="Menu">
+	<button
+		bind:this={menuButton}
+		class="hamburger"
+		onclick={toggleMenu}
+		aria-label="Menu"
+		aria-expanded={menuOpen}
+		aria-controls="public-mobile-menu"
+	>
 		<span class="ham-line" class:open={menuOpen}></span>
 		<span class="ham-line mid" class:open={menuOpen}></span>
 		<span class="ham-line" class:open={menuOpen}></span>
@@ -45,6 +58,7 @@
 
 {#if menuOpen}
 	<div
+		id="public-mobile-menu"
 		class="mobile-menu"
 		onclick={closeMenu}
 		onkeydown={(e) => e.key === 'Escape' && closeMenu()}
@@ -52,6 +66,7 @@
 		aria-modal="true"
 		aria-label="Navigation menu"
 		tabindex="-1"
+		use:focusOnMount
 	>
 		<a href="/about" class="mob-link" onclick={closeMenu}>About</a>
 		<a href="/docs" class="mob-link" onclick={closeMenu}>Docs</a>
