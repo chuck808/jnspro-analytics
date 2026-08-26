@@ -5,7 +5,7 @@
 	let isSubmitting = $state(false);
 	let isSuccess = $state(false);
 	let feedbackButton: HTMLButtonElement;
-	let modalContent: HTMLDivElement;
+	let modalContent = $state<HTMLDivElement>();
 	let formData = $state({
 		type: 'bug',
 		subject: '',
