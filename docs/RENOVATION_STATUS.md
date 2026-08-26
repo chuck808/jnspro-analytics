@@ -20,9 +20,9 @@
 - Phase 12 — Video experience: DONE
 - Phase 13 — Coach workspace: DONE
 - Phase 14 — Admin, research, help and public/supporting pages: DONE
-- **Phase 15 — Final consolidation and release hardening: IN PROGRESS**
+- **Phase 15 — Final consolidation and release hardening: FINAL VERIFICATION**
 
-Phase 14 was merged to `master` in PR #8 at merge commit `d558a803ac8e04abcf4ffaa4e45658cca0150600` after independent verification of Help, Contact, `/docs`, Compare/session/upload guide accuracy, generated docs integrity, and the Admin Home icon cleanup.
+Phase 14 was merged to `master` in PR #8 at merge commit `d558a803ac8e04abcf4ffaa4e45658cca0150600`. Phase 15 is being completed in PR #9 from that exact boundary.
 
 ## Current product architecture
 
@@ -47,13 +47,13 @@ Coach access is explicitly shared by the rider side. Coach views are intentional
 
 ### Admin and research workspace
 
-Admin is organised around operations, access, platform evidence, research/export and feedback. Research/export surfaces must preserve canonical eligibility and anonymisation/privacy boundaries rather than reimplementing statistics locally.
+Admin is organised around operations, access, platform evidence, research/export and feedback. Research/export surfaces preserve canonical eligibility and anonymisation/privacy boundaries rather than reimplementing statistics locally.
 
 ### Public and documentation surfaces
 
 Public Home, About, Contact, Privacy, Terms and the linked `/docs` guide have been audited for product consistency. Privacy/Terms are not rewritten merely for tone; changes require a demonstrable product/policy contradiction. Hardware-validation claims that cannot be proven from this analytics repository remain device-side validation questions.
 
-## Core invariants that must survive Phase 15
+## Core invariants preserved through Phase 15
 
 - `shouldExcludeFromStats()` remains the canonical normal-statistics eligibility policy.
 - Excluded runs stay in the historical record even when omitted from normal statistics.
@@ -65,38 +65,53 @@ Public Home, About, Contact, Privacy, Terms and the linked `/docs` guide have be
 - Video remains optional supplementary evidence; sensor analytics are complete without it.
 - The intended hardware sync cue is the optional ~120 ms full-white Lights-unit pulse at gate-zero, anchored to its leading edge.
 - Peer benchmarking and competitive ranking are separate concepts; competitive ranking is opt-in and all-time.
-- Rider/parent ownership is the default; coach sharing must remain explicit and narrower than owner access.
-- Derived and research-facing values must be reproducible from canonical evidence and clearly distinguished from recorded measurements.
+- Rider/parent ownership is the default; coach sharing remains explicit and narrower than owner access.
+- Derived and research-facing values remain reproducible from canonical evidence and clearly distinguished from recorded measurements.
 
-## Phase 15 — exact starting point
+## Phase 15 consolidation and hardening completed
 
-Phase 15 is a consolidation and release-hardening pass, not another redesign phase. Work in small verified slices and remove something only when its lack of consumers or obsolete contract is demonstrated from the current repository.
+Phase 15 stayed a consolidation pass rather than becoming another redesign. The branch now includes:
 
-Initial audit order:
+- consumer-backed removal of dead reusable components, orphaned helpers, obsolete duplicate routes, stale documentation assets, the unlinked runtime docs editor, and the false Help-FAQ management stack;
+- preservation of low-cost compatibility behavior where it still has a purpose, including the `/feedback` redirect;
+- correction of the Admin role-selector Svelte 5 reactivity warning, leaving `svelte-check` at zero diagnostics;
+- recoverable mutation/error handling for Admin Maintenance and improved action-result semantics across Admin/coach surfaces;
+- correction of unsupported or contradictory Leaderboard Administration copy without inventing legal/compliance claims;
+- accessibility hardening across protected/public navigation, Admin result feedback, video/image upload errors, run-tag controls, global feedback, and live modal flows;
+- focus-on-open and immediate-Escape behavior for Session Comparison, Social Share, Goal Adjustment Suggestions, global Feedback, and the public mobile navigation where applicable;
+- explicit focus return for controls whose popup/dialog flow owns the opener;
+- removal of stale Help/docs/support claims and unused screenshots inherited from prior phases.
 
-1. identify dead components, unreferenced assets and legacy compatibility paths with no remaining consumer;
-2. find repeated presentation primitives that can be consolidated without changing product behaviour;
-3. audit accessibility and responsive behaviour on the renovated primary surfaces;
-4. audit terminology/copy consistency across authenticated, coach/admin, public and docs surfaces;
-5. audit empty/error/loading states, especially network/database boundaries;
-6. run the full static/unit/browser/live-data verification matrix where the environment permits;
-7. update architecture/supporting documentation so it describes the final system rather than old migration bridges.
+### Presentation primitive judgment
 
-The first documentation hardening item was this file itself: it had stopped at Phase 9/10 and incorrectly described Phase 10 as the next phase after Phases 10–14 had already landed.
+Repeated presentation patterns were reviewed, including the small local focus-on-mount actions introduced during modal hardening. No additional extraction was made solely to satisfy a consolidation checkbox: these helpers are tiny, local to different ownership/dismissal models, and sharing them now would add coupling without reducing meaningful behavioral duplication. Consolidation remains appropriate only when it lowers real maintenance cost without obscuring interaction ownership.
 
-## Verification baseline entering Phase 15
+## Final verification state
 
-At the Phase 14 merge boundary:
+Required GitHub CI on the current Phase 15 implementation repeatedly verifies the branch in small slices. The current strict baseline is:
 
-- `svelte-check`: clean apart from the longstanding unrelated warning reported by independent verification;
-- TypeScript: clean;
-- Vitest: 128/128 passing;
-- production build: passed in the required GitHub CI verify job;
-- repository-wide Prettier/lint remains a known non-blocking historical backlog and should not be conflated with Phase 15 correctness work.
+- `svelte-check`: **0 errors / 0 warnings** in the raw CI Typecheck log;
+- TypeScript: clean in independent/local verification during the phase;
+- Vitest: **128/128 passing**;
+- production build: passing in the required GitHub CI verify job;
+- repository-wide Prettier/lint: still the known non-blocking historical backlog and not treated as Phase 15 correctness work.
+
+Independent live/browser verification has exercised many of the repaired interaction paths, including Admin Maintenance failure recovery, Coach Application failure feedback, Admin role updates, protected navigation state, three modal focus/Escape flows, and Run Tag Escape/focus restoration. The final verification pass still needs to cover the newest shared-surface changes before Phase 15 is marked DONE: video/image async error announcement, the global Feedback dialog flow, and the public mobile navigation focus/Escape behavior.
 
 ## Known environment boundary
 
-Branch previews have lacked required Supabase/device-ingest environment variables in Vercel, so a failed preview build is not automatically evidence of an application regression. GitHub CI currently supplies format-valid placeholders for static/test/build verification. Live database/browser claims should only be made when the target environment actually starts and the relevant data boundary is exercised.
+Branch previews have lacked required Supabase/device-ingest environment variables in Vercel, so a failed preview build is not automatically evidence of an application regression. GitHub CI supplies format-valid placeholders for static/test/build verification. Live database/browser claims are made only where the relevant environment and data boundary have actually been exercised.
+
+## Deliberate deferrals / non-blockers
+
+- Historical database tables/migrations are not destructively cleaned up merely because their old UI consumer was removed.
+- Repository-wide formatting debt is separate from Phase 15 correctness.
+- Device-specific hardware validation claims remain outside this analytics repository unless device-side evidence is available.
+- No broad visual refactor or speculative shared-component extraction is required before release when the current implementation is already coherent and verified.
+
+## Next exact step
+
+Complete independent/live verification of the newest shared-surface fixes, update the roadmap and PR #9 to the final verified state, run one final diff/CI sanity pass, then mark Phase 15 DONE and PR #9 ready for merge.
 
 ## Working rule
 
