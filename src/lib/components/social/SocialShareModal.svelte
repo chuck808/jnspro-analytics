@@ -115,6 +115,10 @@
 		return (cardPreviewWrapper.clientWidth || 600) / 1200;
 	});
 
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
+	}
+
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) onclose();
 	}
@@ -127,6 +131,7 @@
 	role="dialog"
 	aria-modal="true"
 	aria-label="Share achievement"
+	use:focusOnMount
 	onkeydown={(e) => e.key === 'Escape' && onclose()}
 	tabindex="-1"
 >

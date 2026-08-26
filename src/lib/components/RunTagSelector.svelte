@@ -22,6 +22,7 @@
 	let isOpen = $state(false);
 	let selectedTags = $state<RunTag[]>([]);
 	let saving = $state(false);
+	let triggerButton: HTMLButtonElement;
 
 	// Sync selectedTags when currentTags changes
 	$effect(() => {
@@ -42,6 +43,13 @@
 	function close() {
 		isOpen = false;
 		selectedTags = [...currentTags]; // Reset on cancel
+	}
+
+	function handleEscape(e: KeyboardEvent) {
+		if (e.key !== 'Escape' || !isOpen) return;
+		e.preventDefault();
+		close();
+		triggerButton.focus();
 	}
 
 	const hasChanges = $derived(
@@ -77,10 +85,13 @@
 	<!-- Tag button -->
 	<button
 		type="button"
+		bind:this={triggerButton}
 		onclick={() => (isOpen = !isOpen)}
+		onkeydown={handleEscape}
 		class="tag-button"
 		aria-label="Tag run {runNumber}"
 		aria-expanded={isOpen}
+		aria-controls="run-tags-{runId}"
 	>
 		<span class="tag-icon">🏷️</span>
 		{#if !compact}
@@ -90,10 +101,10 @@
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
-		<div class="dropdown-menu">
+		<div id="run-tags-{runId}" class="dropdown-menu">
 			<div class="dropdown-header">
 				<h4>Tag Run {runNumber}</h4>
-				<button type="button" onclick={close} class="close-button" aria-label="Close"> ✕ </button>
+				<button type="button" onclick={close} onkeydown={handleEscape} class="close-button" aria-label="Close"> ✕ </button>
 			</div>
 
 			<form
@@ -122,6 +133,7 @@
 							<input
 								type="checkbox"
 								checked={isSelected}
+								onkeydown={handleEscape}
 								onchange={() => toggleTag(option.value)}
 							/>
 							<span class="tag-content">
@@ -136,10 +148,10 @@
 				</div>
 
 				<div class="dropdown-footer">
-					<button type="button" onclick={close} class="cancel-button" disabled={saving}>
+					<button type="button" onclick={close} onkeydown={handleEscape} class="cancel-button" disabled={saving}>
 						Cancel
 					</button>
-					<button type="submit" class="save-button" disabled={!hasChanges || saving}>
+					<button type="submit" onkeydown={handleEscape} class="save-button" disabled={!hasChanges || saving}>
 						{saving ? 'Saving...' : 'Save Tags'}
 					</button>
 				</div>

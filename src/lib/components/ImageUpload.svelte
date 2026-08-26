@@ -264,7 +264,7 @@
 
 	<!-- Error Message -->
 	{#if errorMessage}
-		<div class="rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+		<div role="alert" class="rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
 			{errorMessage}
 		</div>
 	{/if}

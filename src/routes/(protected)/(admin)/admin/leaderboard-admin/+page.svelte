@@ -12,7 +12,7 @@
 	<div>
 		<h2 class="text-lg font-bold text-[#f0ece4]">Leaderboard Administration</h2>
 		<p class="mt-0.5 text-sm text-[#9a8f7a]">
-			Monitor participation, privacy compliance, and leaderboard health
+			Monitor participation, privacy controls, and leaderboard health
 		</p>
 	</div>
 
@@ -116,11 +116,11 @@
 				</div>
 
 				<div class="rounded-lg bg-[#0a0809] p-4">
-					<p class="mb-1 text-sm font-medium text-[#f0ece4]">Privacy Compliance</p>
+					<p class="mb-1 text-sm font-medium text-[#f0ece4]">Privacy Controls</p>
 					<p class="text-xs text-[#9a8f7a]">
-						✓ All participants opted in voluntarily<br />
-						✓ Display names anonymized<br />
-						✓ GDPR compliant
+						✓ Participation is opt-in<br />
+						✓ Public ranking uses display names instead of account emails<br />
+						• Name moderation and flagging are not implemented yet
 					</p>
 				</div>
 			</div>
@@ -146,8 +146,8 @@
 			<div class="flex-1">
 				<h3 class="mb-2 text-sm font-semibold text-[#f0ece4]">Leaderboard Features</h3>
 				<p class="mb-3 text-sm text-[#9a8f7a]">
-					The leaderboard system provides privacy-preserving competitive features with full user
-					control.
+					The leaderboard system provides privacy-aware competitive features with user-controlled
+					participation.
 				</p>
 				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 					<div class="rounded-lg bg-[#0a0809] p-3">
@@ -156,15 +156,15 @@
 					</div>
 					<div class="rounded-lg bg-[#0a0809] p-3">
 						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Privacy Protection</p>
-						<p class="text-xs text-[#9a8f7a]">Anonymous display names, no personal data</p>
+						<p class="text-xs text-[#9a8f7a]">Public ranking does not expose account email addresses</p>
 					</div>
 					<div class="rounded-lg bg-[#0a0809] p-3">
-						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Fair Categories</p>
-						<p class="text-xs text-[#9a8f7a]">Age groups and experience levels for comparison</p>
+						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ All-time Competition</p>
+						<p class="text-xs text-[#9a8f7a]">Competitive ranking is all-time; peer benchmarking is separate on Compare</p>
 					</div>
 					<div class="rounded-lg bg-[#0a0809] p-3">
-						<p class="mb-1 text-sm font-medium text-[#f0ece4]">✓ Moderation</p>
-						<p class="text-xs text-[#9a8f7a]">Display name review and flagging system</p>
+						<p class="mb-1 text-sm font-medium text-[#f0ece4]">Moderation Status</p>
+						<p class="text-xs text-[#9a8f7a]">Display-name review and flagging are not implemented yet</p>
 					</div>
 				</div>
 			</div>

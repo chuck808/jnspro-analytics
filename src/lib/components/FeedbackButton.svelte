@@ -1,7 +1,11 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+
 	let isOpen = $state(false);
 	let isSubmitting = $state(false);
 	let isSuccess = $state(false);
+	let feedbackButton: HTMLButtonElement;
+	let modalContent = $state<HTMLDivElement>();
 	let formData = $state({
 		type: 'bug',
 		subject: '',
@@ -16,6 +20,7 @@
 
 	function closeModal() {
 		isOpen = false;
+		feedbackButton?.focus();
 		if (isSuccess) {
 			formData = {
 				type: 'bug',
@@ -39,6 +44,8 @@
 
 			if (response.ok) {
 				isSuccess = true;
+				await tick();
+				modalContent?.focus();
 				setTimeout(() => {
 					closeModal();
 				}, 2000);
@@ -52,21 +59,25 @@
 		}
 	}
 
-	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
-			closeModal();
-		}
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape' || event.key === 'Enter') {
+		if (event.key === 'Escape') {
 			closeModal();
 		}
 	}
 </script>
 
 <!-- Floating Button -->
-<button class="feedback-btn" onclick={openModal} title="Report an issue or send feedback">
+<button
+	bind:this={feedbackButton}
+	class="feedback-btn"
+	onclick={openModal}
+	aria-label="Report an issue or send feedback"
+	title="Report an issue or send feedback"
+>
 	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
 		<path
 			stroke-linecap="round"
@@ -79,25 +90,28 @@
 
 <!-- Modal -->
 {#if isOpen}
-	<div
-		class="modal-backdrop"
-		onclick={handleBackdropClick}
-		onkeydown={handleKeyDown}
-		role="button"
-		tabindex="-1"
-	>
+	<div class="modal-backdrop">
+		<button
+			type="button"
+			class="modal-backdrop-dismiss"
+			onclick={closeModal}
+			aria-label="Close feedback dialog"
+			tabindex="-1"
+		></button>
 		<div
+			bind:this={modalContent}
 			class="modal-content"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
+			onkeydown={handleKeyDown}
 			role="dialog"
 			aria-modal="true"
-			tabindex="0"
+			aria-labelledby="feedback-modal-title"
+			tabindex="-1"
+			use:focusOnMount
 		>
 			{#if !isSuccess}
 				<div class="modal-header">
 					<div>
-						<h2 class="modal-title">Report an Issue</h2>
+						<h2 id="feedback-modal-title" class="modal-title">Report an Issue</h2>
 						<p class="modal-subtitle">Help us improve AppGatePro during beta testing</p>
 					</div>
 					<button class="close-btn" onclick={closeModal} aria-label="Close modal">
@@ -176,7 +190,7 @@
 					</div>
 				</form>
 			{:else}
-				<div class="success-message">
+				<div role="status" class="success-message">
 					<div class="success-icon">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
 							<path
@@ -233,7 +247,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		z-index: 100;
+		z-index: 300;
 		background: rgba(8, 7, 7, 0.8);
 		backdrop-filter: blur(4px);
 		display: flex;
@@ -252,7 +266,17 @@
 		}
 	}
 
+	.modal-backdrop-dismiss {
+		position: absolute;
+		inset: 0;
+		border: 0;
+		background: transparent;
+		cursor: default;
+	}
+
 	.modal-content {
+		position: relative;
+		z-index: 1;
 		background: #131010;
 		border: 1px solid rgba(245, 166, 35, 0.2);
 		border-radius: 16px;

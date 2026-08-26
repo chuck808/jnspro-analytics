@@ -111,7 +111,7 @@ At sign-off:
 
 For Svelte work, **`svelte-check` is required**; plain `tsc` does not type-check `.svelte` files sufficiently.
 
-## Release 2 — Make It Feel Like One Product — IN PROGRESS
+## Release 2 — Make It Feel Like One Product — COMPLETE
 
 ### Phase 1 — Shared authenticated shell — DONE
 
@@ -154,7 +154,7 @@ Session navigation retains `Overview -> Analysis -> Deep Dive`.
 
 Stale/duplicate sidebar destinations were removed. Coach/Admin context badges were later removed after the contextual shell was verified live.
 
-Known seam: Admin -> Feedback currently points to `/feedback`, which is outside `/admin`, so path-based workspace detection returns to the Rider shell. Decide what that page actually is before changing the route/workspace model.
+Resolved later: `/feedback` is intentionally retained as a lightweight 308 compatibility redirect to `/admin/feedback`; the Admin workspace owns the live feedback UI.
 
 ### Phase 3 — Rider Home — DONE
 
@@ -194,7 +194,7 @@ Sessions is now a **trustworthy chronological training record**, not a second an
 
 A Svelte PageData widening issue in `sortDir` was fixed at the server contract by explicitly typing it as `'asc' | 'desc'`.
 
-### Phase 5 — Single-session Overview — IN PROGRESS
+### Phase 5 — Single-session Overview — DONE
 
 Goal: answer **"what happened in this session?"** before asking the rider to study analytics.
 
@@ -221,65 +221,66 @@ Constraints retained:
 
 Test-fixture note: synthetic DB sessions without `chart_data` can make physics-derived hero values such as peak speed disappear because `analyseRun()` returns `physics: null`; real device-ingested sessions carry the raw trace. See `docs/notes/session-overview-test-fixtures.md`.
 
-Next exact starting point after this slice passes checks: verify ordinary/PB/no-speed/exclusion/mobile rendering again, then decide whether the current first-time `SessionSetupStrip` prominence and goal/setup cards need any final Overview-level copy/spacing polish before marking Phase 5 complete.
 
-## Remaining renovation phases
+## Completed renovation phases
 
-The exact implementation boundaries may move as the live code is inspected, but preserve this order of intent unless a correctness issue requires interruption.
+The following phase descriptions preserve the intent that guided implementation; current status is authoritative over their original future-tense wording.
 
-### Phase 6 — Session Analysis
+### Phase 6 — Session Analysis — DONE
 
 Reorganise the middle analytical layer around questions and comparisons rather than chart accumulation. Preserve useful charts; remove/rework only those that duplicate an answer without adding understanding.
 
-### Phase 7 — Session Deep Dive
+### Phase 7 — Session Deep Dive — DONE
 
 Make the expert layer coherent for experienced riders/coaches: detailed traces, derived metrics, methodology/provenance where useful, and optional synchronised video evidence when available.
 
-### Phase 8 — Progress / longitudinal analytics
+### Phase 8 — Progress / longitudinal analytics — DONE
 
 Turn `/analytics` into a clear longitudinal progression workspace rather than a collection of charts. Separate recent direction, longer-term progression, consistency/fatigue/context and drill-downs.
 
-### Phase 9 — Goals
+### Phase 9 — Goals — DONE
 
 Align Goals presentation with the evidence model already rebuilt in Release 1. Clarify PB-style ratchet semantics (likely "Best so far"), milestone/history presentation, prediction/adaptation, and completed-goal history.
 
-### Phase 10 — Compare / leaderboard
+### Phase 10 — Compare / leaderboard — DONE
 
 Present percentile/benchmarking in a way that reinforces the intended model: riders are compared using onboarding/category baselines rather than simply ranking a young rider against elite raw reaction times. Keep admin baseline-reset capability in mind as population evidence grows.
 
-### Phase 11 — Upload and session enrichment
+### Phase 11 — Upload and session enrichment — DONE
 
 Review manual upload, direct Wi-Fi upload and post-session enrichment as one user journey. Preserve low-friction upload. Context such as weather, track feeling and notes should be encouraged without becoming a barrier before data reaches the system.
 
 Variable inputs such as warm-up/testing/equipment conditions must continue to support exclusion from analytics so they do not contaminate statistical evidence.
 
-### Phase 12 — Video experience
+### Phase 12 — Video experience — DONE
 
 Video is optional supplementary evidence. Review upload/linking/synchronisation and presentation without making video primary.
 
 Current intended sync cue: the external hardware lights show a **full-white background for 120 ms** when enabled. Synchronisation is based on that cue, **not a GoPro flash**.
 
-### Phase 13 — Coach workspace
+### Phase 13 — Coach workspace — DONE
 
 Evolve the recently-added coach area into a useful workflow rather than requiring the coach to wait for riders to manually send individual reports. Preserve rider/parent ownership and explicit sharing/consent. Coach access should be useful but deliberately narrower than rider ownership.
 
 Remember the hardware system already has a live dashboard and produces a per-device session report during live club sessions; this analytics application is primarily for deeper understanding and longitudinal history, not a replacement for that live dashboard.
 
-### Phase 14 — Admin, research, help and public/supporting pages
+### Phase 14 — Admin, research, help and public/supporting pages — DONE
 
 Make Admin operationally coherent; resolve the `/feedback` workspace question; bring Help, About, Home/public pages and other supporting surfaces into the same visual/product language instead of feeling bolted on.
 
 Research goal: support controlled access to anonymised historical BMX racing data for legitimate research requests while preserving privacy and evidence quality.
 
-### Phase 15 — Final consolidation and release hardening
+### Phase 15 — Final consolidation and release hardening — DONE
 
 - remove dead components/legacy compatibility paths once no consumers remain;
-- consolidate repeated presentation primitives;
+- consolidate repeated presentation primitives where that reduces real maintenance cost;
 - accessibility/responsive pass;
 - terminology/copy consistency;
 - empty/error/loading states;
 - full static/unit/browser/live-data audit;
 - update documentation to describe the final architecture rather than historical migrations/bridges that are no longer relevant.
+
+Final checkpoint: consumer-backed dead-code and obsolete-route cleanup is complete; concrete mutation-recovery, copy-consistency, navigation, modal, upload-feedback, and keyboard-accessibility defects found in the bounded hardening sweep were corrected. Small local focus helpers were deliberately not extracted into a shared abstraction because the interaction ownership differs and extraction would add coupling without meaningful maintenance benefit. Final independent verification covered the newest shared surfaces, including video/image error announcements, public mobile navigation, and the global Feedback dialog backdrop/focus/Escape paths. Required CI is at 0 Svelte errors / 0 warnings with 128/128 tests and a passing production build. Phase 15 and Release 2 are complete.
 
 ## Deliberate non-goals / do not accidentally undo
 

@@ -6,6 +6,7 @@
 
 	let showCreateForm = $state(false);
 	let isSubmitting = $state(false);
+	let actionError = $state<string | null>(null);
 
 	// Form state
 	let formData = $state({
@@ -36,40 +37,72 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		isSubmitting = true;
+		actionError = null;
 
-		const response = await fetch('/api/admin/maintenance', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(formData)
-		});
+		try {
+			const response = await fetch('/api/admin/maintenance', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(formData)
+			});
 
-		if (response.ok) {
+			if (!response.ok) {
+				throw new Error(`Maintenance create failed: ${response.status}`);
+			}
+
 			showCreateForm = false;
 			formData = { title: '', description: '', start_time: '', end_time: '' };
 			await invalidate('admin:maintenance');
+		} catch (error) {
+			console.error('Error scheduling maintenance:', error);
+			actionError = 'Could not schedule maintenance. Please try again.';
+		} finally {
+			isSubmitting = false;
 		}
-
-		isSubmitting = false;
 	}
 
 	async function toggleSchedule(id: string, currentStatus: boolean) {
-		await fetch('/api/admin/maintenance', {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id, is_active: !currentStatus })
-		});
-		await invalidate('admin:maintenance');
+		actionError = null;
+
+		try {
+			const response = await fetch('/api/admin/maintenance', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, is_active: !currentStatus })
+			});
+
+			if (!response.ok) {
+				throw new Error(`Maintenance update failed: ${response.status}`);
+			}
+
+			await invalidate('admin:maintenance');
+		} catch (error) {
+			console.error('Error updating maintenance schedule:', error);
+			actionError = 'Could not update the maintenance schedule. Please try again.';
+		}
 	}
 
 	async function deleteSchedule(id: string) {
 		if (!confirm('Are you sure you want to delete this maintenance schedule?')) return;
 
-		await fetch('/api/admin/maintenance', {
-			method: 'DELETE',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id })
-		});
-		await invalidate('admin:maintenance');
+		actionError = null;
+
+		try {
+			const response = await fetch('/api/admin/maintenance', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id })
+			});
+
+			if (!response.ok) {
+				throw new Error(`Maintenance delete failed: ${response.status}`);
+			}
+
+			await invalidate('admin:maintenance');
+		} catch (error) {
+			console.error('Error deleting maintenance schedule:', error);
+			actionError = 'Could not delete the maintenance schedule. Please try again.';
+		}
 	}
 </script>
 
@@ -91,6 +124,15 @@
 			{showCreateForm ? 'Cancel' : '+ Schedule Maintenance'}
 		</button>
 	</div>
+
+	{#if actionError}
+		<div
+			role="alert"
+			class="rounded-lg border border-[#ff4444]/30 bg-[#ff4444]/10 px-4 py-3 text-sm text-[#ff7777]"
+		>
+			{actionError}
+		</div>
+	{/if}
 
 	<!-- Create Form -->
 	{#if showCreateForm}

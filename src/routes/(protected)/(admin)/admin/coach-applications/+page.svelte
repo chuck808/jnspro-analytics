@@ -37,7 +37,7 @@
 	</div>
 
 	{#if (form as any)?.reviewError}
-		<div class="rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
+		<div role="alert" class="rounded-lg border border-red-800 bg-red-900/20 p-3 text-sm text-red-400">
 			{(form as any).reviewError}
 		</div>
 	{/if}
@@ -96,8 +96,11 @@
 									}
 									savingId = application.id;
 									return async ({ update }) => {
-										await update();
-										savingId = null;
+										try {
+											await update();
+										} finally {
+											savingId = null;
+										}
 									};
 								}}
 							>
@@ -125,8 +128,11 @@
 									}
 									savingId = application.id;
 									return async ({ update }) => {
-										await update();
-										savingId = null;
+										try {
+											await update();
+										} finally {
+											savingId = null;
+										}
 									};
 								}}
 							>
