@@ -110,7 +110,6 @@
 			<form
 				method="POST"
 				action="?/updateRunTags"
-				onkeydown={handleEscape}
 				use:enhance={() => {
 					saving = true;
 					return async ({ result, update }) => {
@@ -134,6 +133,7 @@
 							<input
 								type="checkbox"
 								checked={isSelected}
+								onkeydown={handleEscape}
 								onchange={() => toggleTag(option.value)}
 							/>
 							<span class="tag-content">
@@ -148,10 +148,10 @@
 				</div>
 
 				<div class="dropdown-footer">
-					<button type="button" onclick={close} class="cancel-button" disabled={saving}>
+					<button type="button" onclick={close} onkeydown={handleEscape} class="cancel-button" disabled={saving}>
 						Cancel
 					</button>
-					<button type="submit" class="save-button" disabled={!hasChanges || saving}>
+					<button type="submit" onkeydown={handleEscape} class="save-button" disabled={!hasChanges || saving}>
 						{saving ? 'Saving...' : 'Save Tags'}
 					</button>
 				</div>
