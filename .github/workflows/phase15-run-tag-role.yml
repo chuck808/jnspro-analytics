@@ -1,0 +1,43 @@
+name: Phase 15 run tag role patch
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-run-tag-role.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Patch run tag group semantics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/components/RunTagSelector.svelte')
+          text = path.read_text()
+          old_menu = '\t\t<div id="run-tags-{runId}" class="dropdown-menu" onkeydown={handleEscape}>'
+          new_menu = '\t\t<div\n\t\t\tid="run-tags-{runId}"\n\t\t\tclass="dropdown-menu"\n\t\t\trole="group"\n\t\t\taria-labelledby="run-tags-title-{runId}"\n\t\t\tonkeydown={handleEscape}\n\t\t>'
+          old_heading = '\t\t\t\t<h4>Tag Run {runNumber}</h4>'
+          new_heading = '\t\t\t\t<h4 id="run-tags-title-{runId}">Tag Run {runNumber}</h4>'
+          for old, new, label in [(old_menu, new_menu, 'dropdown'), (old_heading, new_heading, 'heading')]:
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected one {label} match, found {text.count(old)}')
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/components/RunTagSelector.svelte
+          git diff --cached --check
+          git commit -m "fix: label run tag keyboard group"
+          git push origin HEAD:phase15-release-hardening-audit
