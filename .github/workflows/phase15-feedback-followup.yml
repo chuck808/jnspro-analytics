@@ -1,0 +1,47 @@
+name: Phase 15 feedback dialog follow-up
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-feedback-followup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Fix Feedback dialog stacking and success focus
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/components/FeedbackButton.svelte')
+          text = path.read_text()
+          replacements = [
+              ('<script lang="ts">\n\tlet isOpen', '<script lang="ts">\n\timport { tick } from \'svelte\';\n\n\tlet isOpen', 'tick import'),
+              ('\tlet feedbackButton: HTMLButtonElement;\n', '\tlet feedbackButton: HTMLButtonElement;\n\tlet modalContent: HTMLDivElement;\n', 'dialog binding'),
+              ('\t\t\tif (response.ok) {\n\t\t\t\tisSuccess = true;\n\t\t\t\tsetTimeout(() => {', '\t\t\tif (response.ok) {\n\t\t\t\tisSuccess = true;\n\t\t\t\tawait tick();\n\t\t\t\tmodalContent?.focus();\n\t\t\t\tsetTimeout(() => {', 'success focus restoration'),
+              ('\t\t<div\n\t\t\tclass="modal-content"', '\t\t<div\n\t\t\tbind:this={modalContent}\n\t\t\tclass="modal-content"', 'dialog element binding'),
+              ('\t\tz-index: 100;\n\t\tbackground: rgba(8, 7, 7, 0.8);', '\t\tz-index: 300;\n\t\tbackground: rgba(8, 7, 7, 0.8);', 'modal stacking layer'),
+          ]
+          for old, new, label in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one {label} match, found {count}')
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+      - name: Commit Feedback dialog fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/components/FeedbackButton.svelte
+          git diff --cached --check
+          git commit -m "fix: close Feedback dialog reliably"
+          git push origin HEAD:phase15-release-hardening-audit
