@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+
 	let isOpen = $state(false);
 	let isSubmitting = $state(false);
 	let isSuccess = $state(false);
 	let feedbackButton: HTMLButtonElement;
+	let modalContent: HTMLDivElement;
 	let formData = $state({
 		type: 'bug',
 		subject: '',
@@ -41,6 +44,8 @@
 
 			if (response.ok) {
 				isSuccess = true;
+				await tick();
+				modalContent?.focus();
 				setTimeout(() => {
 					closeModal();
 				}, 2000);
@@ -94,6 +99,7 @@
 			tabindex="-1"
 		></button>
 		<div
+			bind:this={modalContent}
 			class="modal-content"
 			onkeydown={handleKeyDown}
 			role="dialog"
@@ -241,7 +247,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		z-index: 100;
+		z-index: 300;
 		background: rgba(8, 7, 7, 0.8);
 		backdrop-filter: blur(4px);
 		display: flex;
