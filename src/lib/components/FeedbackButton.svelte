@@ -58,8 +58,12 @@
 		}
 	}
 
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
+	}
+
 	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape' || event.key === 'Enter') {
+		if (event.key === 'Escape') {
 			closeModal();
 		}
 	}
@@ -79,25 +83,21 @@
 
 <!-- Modal -->
 {#if isOpen}
-	<div
-		class="modal-backdrop"
-		onclick={handleBackdropClick}
-		onkeydown={handleKeyDown}
-		role="button"
-		tabindex="-1"
-	>
+	<div class="modal-backdrop" onclick={handleBackdropClick}>
 		<div
 			class="modal-content"
 			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
+			onkeydown={handleKeyDown}
 			role="dialog"
 			aria-modal="true"
-			tabindex="0"
+			aria-labelledby="feedback-modal-title"
+			tabindex="-1"
+			use:focusOnMount
 		>
 			{#if !isSuccess}
 				<div class="modal-header">
 					<div>
-						<h2 class="modal-title">Report an Issue</h2>
+						<h2 id="feedback-modal-title" class="modal-title">Report an Issue</h2>
 						<p class="modal-subtitle">Help us improve AppGatePro during beta testing</p>
 					</div>
 					<button class="close-btn" onclick={closeModal} aria-label="Close modal">
