@@ -176,6 +176,10 @@
 		return `${sign}${delta.absolute.toFixed(2)}`;
 	}
 
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
+	}
+
 	function close() {
 		open = false;
 	}
@@ -196,6 +200,7 @@
 			tabindex="-1"
 			aria-modal="true"
 			aria-labelledby="comparison-title"
+			use:focusOnMount
 			onkeydown={(e) => e.key === 'Escape' && close()}
 		>
 			<!-- Header -->
