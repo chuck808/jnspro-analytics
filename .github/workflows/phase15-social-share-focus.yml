@@ -1,0 +1,43 @@
+name: Phase 15 social share focus patch
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-social-share-focus.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Patch social share dialog focus
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/components/social/SocialShareModal.svelte')
+          text = path.read_text()
+          old_fn = "\tfunction handleBackdropClick(e: MouseEvent) {\n\t\tif (e.target === e.currentTarget) onclose();\n\t}\n"
+          new_fn = "\tfunction focusOnMount(node: HTMLElement) {\n\t\tnode.focus();\n\t}\n\n\tfunction handleBackdropClick(e: MouseEvent) {\n\t\tif (e.target === e.currentTarget) onclose();\n\t}\n"
+          old_dialog = "\taria-label=\"Share achievement\"\n\tonkeydown={(e) => e.key === 'Escape' && onclose()}\n\ttabindex=\"-1\""
+          new_dialog = "\taria-label=\"Share achievement\"\n\tuse:focusOnMount\n\tonkeydown={(e) => e.key === 'Escape' && onclose()}\n\ttabindex=\"-1\""
+          if text.count(old_fn) != 1:
+              raise SystemExit(f'Expected one backdrop handler match, found {text.count(old_fn)}')
+          if text.count(old_dialog) != 1:
+              raise SystemExit(f'Expected one dialog match, found {text.count(old_dialog)}')
+          path.write_text(text.replace(old_fn, new_fn).replace(old_dialog, new_dialog))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/components/social/SocialShareModal.svelte
+          git diff --cached --check
+          git commit -m "fix: focus social share dialog on open"
+          git push origin HEAD:phase15-release-hardening-audit
