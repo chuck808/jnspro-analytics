@@ -52,12 +52,6 @@
 		}
 	}
 
-	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
-			closeModal();
-		}
-	}
-
 	function focusOnMount(node: HTMLElement) {
 		node.focus();
 	}
@@ -83,10 +77,16 @@
 
 <!-- Modal -->
 {#if isOpen}
-	<div class="modal-backdrop" onclick={handleBackdropClick}>
+	<div class="modal-backdrop">
+		<button
+			type="button"
+			class="modal-backdrop-dismiss"
+			onclick={closeModal}
+			aria-label="Close feedback dialog"
+			tabindex="-1"
+		></button>
 		<div
 			class="modal-content"
-			onclick={(e) => e.stopPropagation()}
 			onkeydown={handleKeyDown}
 			role="dialog"
 			aria-modal="true"
@@ -252,7 +252,17 @@
 		}
 	}
 
+	.modal-backdrop-dismiss {
+		position: absolute;
+		inset: 0;
+		border: 0;
+		background: transparent;
+		cursor: default;
+	}
+
 	.modal-content {
+		position: relative;
+		z-index: 1;
 		background: #131010;
 		border: 1px solid rgba(245, 166, 35, 0.2);
 		border-radius: 16px;
