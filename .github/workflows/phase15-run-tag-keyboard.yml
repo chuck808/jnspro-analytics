@@ -1,0 +1,52 @@
+name: Phase 15 run tag keyboard patch
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-run-tag-keyboard.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Patch run tag keyboard behavior
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/components/RunTagSelector.svelte')
+          text = path.read_text()
+          old_state = "\tlet saving = $state(false);\n"
+          new_state = "\tlet saving = $state(false);\n\tlet triggerButton: HTMLButtonElement;\n"
+          old_close = "\tfunction close() {\n\t\tisOpen = false;\n\t\tselectedTags = [...currentTags]; // Reset on cancel\n\t}\n"
+          new_close = "\tfunction close() {\n\t\tisOpen = false;\n\t\tselectedTags = [...currentTags]; // Reset on cancel\n\t}\n\n\tfunction handleEscape(e: KeyboardEvent) {\n\t\tif (e.key !== 'Escape' || !isOpen) return;\n\t\te.preventDefault();\n\t\tclose();\n\t\ttriggerButton.focus();\n\t}\n"
+          old_button = "\t\ttype=\"button\"\n\t\tonclick={() => (isOpen = !isOpen)}\n\t\tclass=\"tag-button\"\n\t\taria-label=\"Tag run {runNumber}\"\n\t\taria-expanded={isOpen}\n"
+          new_button = "\t\ttype=\"button\"\n\t\tbind:this={triggerButton}\n\t\tonclick={() => (isOpen = !isOpen)}\n\t\tonkeydown={handleEscape}\n\t\tclass=\"tag-button\"\n\t\taria-label=\"Tag run {runNumber}\"\n\t\taria-expanded={isOpen}\n\t\taria-controls=\"run-tags-{runId}\"\n"
+          old_menu = "\t\t<div class=\"dropdown-menu\">"
+          new_menu = "\t\t<div id=\"run-tags-{runId}\" class=\"dropdown-menu\" onkeydown={handleEscape}>"
+          for old, new, label in [
+              (old_state, new_state, 'state'),
+              (old_close, new_close, 'close handler'),
+              (old_button, new_button, 'trigger button'),
+              (old_menu, new_menu, 'dropdown menu'),
+          ]:
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected one {label} match, found {text.count(old)}')
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/components/RunTagSelector.svelte
+          git diff --cached --check
+          git commit -m "fix: support Escape in run tag selector"
+          git push origin HEAD:phase15-release-hardening-audit
