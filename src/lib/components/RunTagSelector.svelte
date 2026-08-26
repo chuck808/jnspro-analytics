@@ -101,21 +101,16 @@
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
-		<div
-			id="run-tags-{runId}"
-			class="dropdown-menu"
-			role="group"
-			aria-labelledby="run-tags-title-{runId}"
-			onkeydown={handleEscape}
-		>
+		<div id="run-tags-{runId}" class="dropdown-menu">
 			<div class="dropdown-header">
-				<h4 id="run-tags-title-{runId}">Tag Run {runNumber}</h4>
-				<button type="button" onclick={close} class="close-button" aria-label="Close"> ✕ </button>
+				<h4>Tag Run {runNumber}</h4>
+				<button type="button" onclick={close} onkeydown={handleEscape} class="close-button" aria-label="Close"> ✕ </button>
 			</div>
 
 			<form
 				method="POST"
 				action="?/updateRunTags"
+				onkeydown={handleEscape}
 				use:enhance={() => {
 					saving = true;
 					return async ({ result, update }) => {
