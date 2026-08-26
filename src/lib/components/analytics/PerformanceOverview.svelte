@@ -19,61 +19,55 @@
 		isMobile: _isMobile
 	}: Props = $props();
 
-	// Generate headline based on cross-session intelligence
 	let headline = $derived.by(() => {
 		if (!crossSessionReport || sessionCount < 3) {
-			return { text: 'Building your performance baseline', color: '#9a8f7a', confidence: 'low' };
+			return {
+				text: 'Building your performance baseline',
+				accent: 'var(--text-subtle)',
+				confidence: 'low'
+			};
 		}
 
 		const patterns = crossSessionReport.patterns || {};
-
-		// Check for improving consistency
 		if (patterns.consistency?.trend === 'improving') {
 			return {
 				text: `Consistency improving — ${Math.abs(patterns.consistency.changePercent || 0).toFixed(1)}% better`,
-				color: '#3de8c8',
+				accent: 'var(--accent)',
 				confidence: 'high'
 			};
 		}
-
-		// Check for declining consistency
 		if (patterns.consistency?.trend === 'declining') {
 			return {
-				text: `Consistency variable — focus on technique`,
-				color: '#ff4444',
+				text: 'Consistency is variable — technique is the current limiter',
+				accent: '#ff6b5f',
 				confidence: 'high'
 			};
 		}
-
-		// Check speed trends
 		if (patterns.speed?.trend === 'improving') {
 			return {
 				text: `Peak speed improving — ${Math.abs(patterns.speed.changePercent || 0).toFixed(1)}% faster`,
-				color: '#3de8c8',
+				accent: 'var(--accent)',
 				confidence: 'medium'
 			};
 		}
-
-		// Stable performance
 		return {
-			text: 'Performance holding steady — maintain current approach',
-			color: '#f5a623',
+			text: 'Performance is holding steady',
+			accent: '#f5a623',
 			confidence: 'medium'
 		};
 	});
 
-	// Extract top recommendations
-	let topRecommendations = $derived.by(() => {
-		if (!crossSessionReport?.recommendations) return [];
-		return crossSessionReport.recommendations.slice(0, 3);
-	});
+	let topRecommendations = $derived.by(() =>
+		(crossSessionReport?.recommendations ?? [])
+			.filter((recommendation: string) => recommendation?.trim().length > 0)
+			.slice(0, 2)
+	);
 
-	// Session quality trend data for mini chart
 	let sessionQualityData = $derived.by(() => {
 		if (!crossSessionReport?.sessions) return [];
-		return crossSessionReport.sessions.map((s: any) => ({
-			date: new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-			quality: s.sessionQuality || 0
+		return crossSessionReport.sessions.slice(-10).map((session: any) => ({
+			date: new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+			quality: session.sessionQuality || 0
 		}));
 	});
 
@@ -89,130 +83,110 @@
 
 	function getRatingColor(rating: string): string {
 		switch (rating) {
-			case 'excellent':
-				return '#3de8c8';
-			case 'good':
-				return '#f5a623';
-			case 'caution':
-				return '#ffcc44';
-			case 'poor':
-				return '#ff4444';
-			default:
-				return '#6b5f4d';
+			case 'excellent': return '#3de8c8';
+			case 'good': return '#f5a623';
+			case 'caution': return '#ffcc44';
+			case 'poor': return '#ff6b5f';
+			default: return 'var(--text-subtle)';
 		}
 	}
 
 	function getRatingLabel(rating: string): string {
 		switch (rating) {
-			case 'excellent':
-				return 'Excellent';
-			case 'good':
-				return 'Good';
-			case 'caution':
-				return 'Caution';
-			case 'poor':
-				return 'Needs Attention';
-			default:
-				return 'Unknown';
+			case 'excellent': return 'Excellent';
+			case 'good': return 'Good';
+			case 'caution': return 'Caution';
+			case 'poor': return 'Needs attention';
+			default: return 'Unrated';
 		}
 	}
 
 	function getConfidenceBadge(level: string) {
 		switch (level) {
-			case 'high':
-				return { label: 'High Confidence', color: '#3de8c8', bg: '#3de8c820' };
-			case 'medium':
-				return { label: 'Medium Confidence', color: '#f5a623', bg: '#f5a62320' };
-			case 'low':
-				return { label: 'Building Baseline', color: '#9a8f7a', bg: '#9a8f7a20' };
-			default:
-				return { label: 'Unknown', color: '#6b5f4d', bg: '#6b5f4d20' };
+			case 'high': return 'High confidence';
+			case 'medium': return 'Medium confidence';
+			case 'low': return 'Building baseline';
+			default: return 'Evidence developing';
 		}
 	}
 </script>
 
-<div class="space-y-5">
-	<!-- Headline + Confidence -->
-	<div class="rounded-xl border border-[#221c18] bg-[#131010] p-6">
-		{#if headline}
-			{@const badge = getConfidenceBadge(headline.confidence)}
-			<div class="mb-4 flex items-start justify-between gap-4">
-				<div class="flex-1">
-					<p class="mb-2 text-xs tracking-wide text-[#6b5f4d] uppercase">Performance Status</p>
-					<h2 class="mb-2 text-2xl font-bold" style="color:{headline.color}">{headline.text}</h2>
-				</div>
-				<div
-					class="rounded-full px-3 py-1.5 text-xs font-medium"
-					style="background:{badge.bg}; color:{badge.color}"
-				>
-					{badge.label}
-				</div>
+<div class="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]">
+	<div class="grid lg:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.75fr)]">
+		<div class="p-5 sm:p-7 lg:p-8">
+			<div class="flex flex-wrap items-center gap-2">
+				<span class="themed-accent text-xs font-semibold tracking-[0.18em] uppercase">Current state</span>
+				<span class="themed-text-subtle">·</span>
+				<span class="themed-text-subtle text-xs">{getConfidenceBadge(headline.confidence)}</span>
 			</div>
-		{/if}
 
-		<!-- Recommendations -->
-		{#if topRecommendations.length > 0}
-			<div class="mt-4 border-t border-[#221c18] pt-4">
-				<p class="mb-2 text-xs font-semibold tracking-wider text-[#f5a623] uppercase">
-					Recommended Actions
-				</p>
-				<ul class="space-y-2">
-					{#each topRecommendations as rec}
-						<li class="flex items-start gap-2 text-sm text-[#f0ece4]">
-							<span class="mt-0.5 text-[#3de8c8]">→</span>
-							<span>{rec}</span>
-						</li>
-					{/each}
-				</ul>
-			</div>
-		{/if}
+			<h2 class="themed-text-primary mt-4 max-w-3xl text-2xl font-bold leading-tight sm:text-3xl lg:text-4xl">
+				{headline.text}
+			</h2>
+			<p class="themed-text-secondary mt-3 max-w-2xl text-sm leading-6">
+				This is your current training picture from {sessionCount} eligible session{sessionCount === 1 ? '' : 's'}. It is kept separate from the longer-term trend below.
+			</p>
 
-		<!-- Mini Session Quality Trend Chart (if enough data) -->
-		{#if sessionQualityData.length >= 3}
-			<div class="mt-4 border-t border-[#221c18] pt-4">
-				<p class="mb-3 text-xs font-semibold tracking-wider text-[#6b5f4d] uppercase">
-					Session Quality Trend
-				</p>
-				<div class="flex h-16 items-end gap-1">
-					{#each sessionQualityData.slice(-10) as point}
-						<div class="flex flex-1 flex-col items-center gap-1">
-							<div
-								class="w-full rounded-t transition-all"
-								style="height:{(point.quality / 10) * 100}%; background:{point.quality >= 7
-									? '#3de8c8'
-									: point.quality >= 5
-										? '#f5a623'
-										: '#ff4444'}"
-							></div>
-							<span class="text-[10px] text-[#6b5f4d]">{point.date.split(' ')[0]}</span>
+			{#if sessionQualityData.length >= 3}
+				<div class="mt-7 max-w-2xl">
+					<div class="mb-2 flex items-end justify-between gap-4">
+						<div>
+							<p class="themed-text-primary text-xs font-semibold tracking-[0.14em] uppercase">Recent session quality</p>
+							<p class="themed-text-subtle mt-1 text-xs">A compact context signal, not a performance score.</p>
 						</div>
-					{/each}
+						<span class="themed-text-subtle text-xs">latest {sessionQualityData.length}</span>
+					</div>
+					<div class="flex h-20 items-end gap-1.5" aria-label="Recent session quality history">
+						{#each sessionQualityData as point}
+							<div class="group flex h-full flex-1 items-end" title={`${point.date}: ${point.quality.toFixed(1)}/10`}>
+								<div
+									class="w-full rounded-sm bg-[color:var(--accent)] opacity-70 transition-opacity group-hover:opacity-100"
+									style={`height:${Math.max(8, Math.min(100, (point.quality / 10) * 100))}%`}
+								></div>
+							</div>
+						{/each}
+					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+			{/if}
 
-	<!-- Personal Bests with BMX threshold ratings -->
-	<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-		{#each [{ label: 'Best Reaction', value: fmtReaction(personalBests.reaction_ms), sub: 'all time', ratingKey: 'reactionTimeSec' }, { label: 'Best Peak Speed', value: fmtSpeed(personalBests.peak_speed_ms), sub: 'estimated · all time', ratingKey: 'peakSpeedKmh' }, { label: 'Best Max G', value: fmtG(personalBests.max_g), sub: 'all time', ratingKey: 'peakG' }] as pb}
-			{@const rating = latestSessionRatings?.find((r) => r.metric === pb.ratingKey)}
-			<div class="rounded-xl border border-[#221c18] bg-[#131010] p-5">
-				<div class="mb-2 flex items-center justify-between">
-					<p class="text-xs tracking-wider text-[#6b5f4d] uppercase">{pb.label}</p>
-					{#if rating}
-						<span
-							class="rounded-full px-2 py-0.5 text-xs font-medium"
-							style="background:{getRatingColor(rating.rating)}20; color:{getRatingColor(
-								rating.rating
-							)}"
-						>
-							{getRatingLabel(rating.rating)}
-						</span>
-					{/if}
+			{#if topRecommendations.length > 0}
+				<div class="mt-7 border-t border-[color:var(--border)] pt-5">
+					<p class="themed-text-subtle text-xs font-semibold tracking-[0.14em] uppercase">What to carry into the next session</p>
+					<div class="mt-3 grid gap-3 sm:grid-cols-2">
+						{#each topRecommendations as recommendation, index}
+							<div class="flex gap-3">
+								<span class="themed-accent mt-0.5 text-sm font-bold">0{index + 1}</span>
+								<p class="themed-text-primary text-sm leading-6">{recommendation}</p>
+							</div>
+						{/each}
+					</div>
 				</div>
-				<p class="text-3xl font-bold text-[#f5a623]">{pb.value}</p>
-				<p class="mt-1 text-xs text-[#6b5f4d]">{pb.sub}</p>
+			{/if}
+		</div>
+
+		<aside class="border-t border-[color:var(--border)] bg-[color:var(--surface-raised,var(--surface))] p-5 sm:p-7 lg:border-t-0 lg:border-l lg:p-8">
+			<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">All-time reference</p>
+			<div class="mt-5 divide-y divide-[color:var(--border)]">
+				{#each [
+					{ label: 'Reaction', value: fmtReaction(personalBests.reaction_ms), provenance: 'measured · PB', ratingKey: 'reactionTimeSec' },
+					{ label: 'Peak speed', value: fmtSpeed(personalBests.peak_speed_ms), provenance: 'estimated from IMU · PB', ratingKey: 'peakSpeedKmh' },
+					{ label: 'Peak G', value: fmtG(personalBests.max_g), provenance: 'measured · PB', ratingKey: 'peakG' }
+				] as pb}
+					{@const rating = latestSessionRatings?.find((item) => item.metric === pb.ratingKey)}
+					<div class="py-4 first:pt-0 last:pb-0">
+						<div class="flex items-start justify-between gap-3">
+							<p class="themed-text-secondary text-sm">{pb.label}</p>
+							{#if rating}
+								<span class="text-[11px] font-semibold" style={`color:${getRatingColor(rating.rating)}`}>
+									{getRatingLabel(rating.rating)}
+								</span>
+							{/if}
+						</div>
+						<p class="themed-text-primary mt-1 text-2xl font-bold tabular-nums">{pb.value}</p>
+						<p class="themed-text-subtle mt-1 text-[11px]">{pb.provenance}</p>
+					</div>
+				{/each}
 			</div>
-		{/each}
+		</aside>
 	</div>
 </div>
