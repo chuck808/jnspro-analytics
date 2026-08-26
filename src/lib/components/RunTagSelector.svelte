@@ -101,9 +101,15 @@
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
-		<div id="run-tags-{runId}" class="dropdown-menu" onkeydown={handleEscape}>
+		<div
+			id="run-tags-{runId}"
+			class="dropdown-menu"
+			role="group"
+			aria-labelledby="run-tags-title-{runId}"
+			onkeydown={handleEscape}
+		>
 			<div class="dropdown-header">
-				<h4>Tag Run {runNumber}</h4>
+				<h4 id="run-tags-title-{runId}">Tag Run {runNumber}</h4>
 				<button type="button" onclick={close} class="close-button" aria-label="Close"> ✕ </button>
 			</div>
 
