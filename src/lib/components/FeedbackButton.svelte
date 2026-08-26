@@ -2,6 +2,7 @@
 	let isOpen = $state(false);
 	let isSubmitting = $state(false);
 	let isSuccess = $state(false);
+	let feedbackButton: HTMLButtonElement;
 	let formData = $state({
 		type: 'bug',
 		subject: '',
@@ -16,6 +17,7 @@
 
 	function closeModal() {
 		isOpen = false;
+		feedbackButton?.focus();
 		if (isSuccess) {
 			formData = {
 				type: 'bug',
@@ -64,7 +66,13 @@
 </script>
 
 <!-- Floating Button -->
-<button class="feedback-btn" onclick={openModal} title="Report an issue or send feedback">
+<button
+	bind:this={feedbackButton}
+	class="feedback-btn"
+	onclick={openModal}
+	aria-label="Report an issue or send feedback"
+	title="Report an issue or send feedback"
+>
 	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
 		<path
 			stroke-linecap="round"
@@ -176,7 +184,7 @@
 					</div>
 				</form>
 			{:else}
-				<div class="success-message">
+				<div role="status" class="success-message">
 					<div class="success-icon">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
 							<path
