@@ -34,6 +34,10 @@
 		}
 	}
 
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
+	}
+
 	// Handle backdrop click
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) {
@@ -71,6 +75,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="modal-title"
+		use:focusOnMount
 		tabindex="-1"
 	>
 		<!-- Modal Content -->
