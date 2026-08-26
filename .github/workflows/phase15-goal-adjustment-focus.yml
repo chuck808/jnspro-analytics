@@ -1,0 +1,43 @@
+name: Phase 15 goal adjustment focus patch
+
+on:
+  push:
+    branches: [phase15-release-hardening-audit]
+    paths:
+      - .github/workflows/phase15-goal-adjustment-focus.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase15-release-hardening-audit
+      - name: Patch goal adjustment dialog focus
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/components/goals/AdjustmentSuggestionModal.svelte')
+          text = path.read_text()
+          old_fn = "\t// Handle backdrop click\n\tfunction handleBackdropClick(e: MouseEvent) {"
+          new_fn = "\tfunction focusOnMount(node: HTMLElement) {\n\t\tnode.focus();\n\t}\n\n\t// Handle backdrop click\n\tfunction handleBackdropClick(e: MouseEvent) {"
+          old_dialog = "\t\taria-labelledby=\"modal-title\"\n\t\ttabindex=\"-1\""
+          new_dialog = "\t\taria-labelledby=\"modal-title\"\n\t\tuse:focusOnMount\n\t\ttabindex=\"-1\""
+          if text.count(old_fn) != 1:
+              raise SystemExit(f'Expected one backdrop handler match, found {text.count(old_fn)}')
+          if text.count(old_dialog) != 1:
+              raise SystemExit(f'Expected one dialog match, found {text.count(old_dialog)}')
+          path.write_text(text.replace(old_fn, new_fn).replace(old_dialog, new_dialog))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/components/goals/AdjustmentSuggestionModal.svelte
+          git diff --cached --check
+          git commit -m "fix: focus goal adjustment dialog on open"
+          git push origin HEAD:phase15-release-hardening-audit
