@@ -182,23 +182,21 @@
 </script>
 
 {#if open}
-	<div
-		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
-		role="button"
-		tabindex="0"
-		onclick={(e) => e.target === e.currentTarget && close()}
-		onkeydown={(e) =>
-			(e.key === 'Escape' || (e.key === 'Enter' && e.target === e.currentTarget)) && close()}
-		aria-label="Close comparison modal"
-	>
+	<div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4">
+		<button
+			type="button"
+			tabindex="-1"
+			class="absolute inset-0 cursor-default"
+			aria-label="Close session comparison"
+			onclick={close}
+		></button>
 		<div
-			class="my-8 w-full max-w-5xl"
+			class="relative my-8 w-full max-w-5xl"
 			role="dialog"
 			tabindex="-1"
 			aria-modal="true"
 			aria-labelledby="comparison-title"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.key === 'Escape' && close()}
 		>
 			<!-- Header -->
 			<div class="rounded-t-xl border-b border-[#221c18] bg-[#131010] px-5 py-4">
