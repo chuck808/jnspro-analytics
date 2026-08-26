@@ -234,7 +234,7 @@
 {/if}
 
 {#if errorMessage}
-	<p class="mt-1 text-xs text-red-400">{errorMessage}</p>
+	<p role="alert" class="mt-1 text-xs text-red-400">{errorMessage}</p>
 {/if}
 
 <input
