@@ -20,7 +20,7 @@
 - Phase 12 — Video experience: DONE
 - Phase 13 — Coach workspace: DONE
 - Phase 14 — Admin, research, help and public/supporting pages: DONE
-- **Phase 15 — Final consolidation and release hardening: FINAL VERIFICATION**
+- **Phase 15 — Final consolidation and release hardening: DONE**
 
 Phase 14 was merged to `master` in PR #8 at merge commit `d558a803ac8e04abcf4ffaa4e45658cca0150600`. Phase 15 is being completed in PR #9 from that exact boundary.
 
@@ -86,7 +86,7 @@ Phase 15 stayed a consolidation pass rather than becoming another redesign. The 
 
 Repeated presentation patterns were reviewed, including the small local focus-on-mount actions introduced during modal hardening. No additional extraction was made solely to satisfy a consolidation checkbox: these helpers are tiny, local to different ownership/dismissal models, and sharing them now would add coupling without reducing meaningful behavioral duplication. Consolidation remains appropriate only when it lowers real maintenance cost without obscuring interaction ownership.
 
-## Final verification state
+## Final verification
 
 Required GitHub CI on the current Phase 15 implementation repeatedly verifies the branch in small slices. The current strict baseline is:
 
@@ -96,7 +96,7 @@ Required GitHub CI on the current Phase 15 implementation repeatedly verifies th
 - production build: passing in the required GitHub CI verify job;
 - repository-wide Prettier/lint: still the known non-blocking historical backlog and not treated as Phase 15 correctness work.
 
-Independent live/browser verification has exercised many of the repaired interaction paths, including Admin Maintenance failure recovery, Coach Application failure feedback, Admin role updates, protected navigation state, three modal focus/Escape flows, and Run Tag Escape/focus restoration. The final verification pass still needs to cover the newest shared-surface changes before Phase 15 is marked DONE: video/image async error announcement, the global Feedback dialog flow, and the public mobile navigation focus/Escape behavior.
+Independent live/browser verification has exercised the repaired interaction paths, including Admin Maintenance failure recovery, Coach Application failure feedback, Admin role updates, protected and public navigation state/focus behavior, Session Comparison/Social Share/Goal Adjustment modal focus/Escape flows, Run Tag Escape/focus restoration, video/image async error announcements, and the global Feedback dialog including its public-header backdrop layer and post-success focus/Escape path. No outstanding Phase 15 issue remains from the final verification pass.
 
 ## Known environment boundary
 
@@ -111,7 +111,7 @@ Branch previews have lacked required Supabase/device-ingest environment variable
 
 ## Next exact step
 
-Complete independent/live verification of the newest shared-surface fixes, update the roadmap and PR #9 to the final verified state, run one final diff/CI sanity pass, then mark Phase 15 DONE and PR #9 ready for merge.
+Phase 15 is complete. PR #9 can proceed through normal review and merge; any future work should start from the post-Phase-15 `master` state rather than reopening the renovation hardening scope.
 
 ## Working rule
 

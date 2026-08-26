@@ -111,7 +111,7 @@ At sign-off:
 
 For Svelte work, **`svelte-check` is required**; plain `tsc` does not type-check `.svelte` files sufficiently.
 
-## Release 2 — Make It Feel Like One Product — FINAL VERIFICATION
+## Release 2 — Make It Feel Like One Product — COMPLETE
 
 ### Phase 1 — Shared authenticated shell — DONE
 
@@ -270,7 +270,7 @@ Make Admin operationally coherent; resolve the `/feedback` workspace question; b
 
 Research goal: support controlled access to anonymised historical BMX racing data for legitimate research requests while preserving privacy and evidence quality.
 
-### Phase 15 — Final consolidation and release hardening — FINAL VERIFICATION
+### Phase 15 — Final consolidation and release hardening — DONE
 
 - remove dead components/legacy compatibility paths once no consumers remain;
 - consolidate repeated presentation primitives where that reduces real maintenance cost;
@@ -280,7 +280,7 @@ Research goal: support controlled access to anonymised historical BMX racing dat
 - full static/unit/browser/live-data audit;
 - update documentation to describe the final architecture rather than historical migrations/bridges that are no longer relevant.
 
-Current checkpoint: consumer-backed dead-code and obsolete-route cleanup is complete; concrete mutation-recovery, copy-consistency, navigation, modal, upload-feedback, and keyboard-accessibility defects found in the bounded hardening sweep have been corrected. Small local focus helpers were deliberately not extracted into a shared abstraction because the interaction ownership differs and extraction would add coupling without meaningful maintenance benefit. Required CI is at 0 Svelte errors / 0 warnings with 128/128 tests and a passing production build. Final completion is waiting only on the newest independent live/browser checks and final PR/diff sign-off.
+Final checkpoint: consumer-backed dead-code and obsolete-route cleanup is complete; concrete mutation-recovery, copy-consistency, navigation, modal, upload-feedback, and keyboard-accessibility defects found in the bounded hardening sweep were corrected. Small local focus helpers were deliberately not extracted into a shared abstraction because the interaction ownership differs and extraction would add coupling without meaningful maintenance benefit. Final independent verification covered the newest shared surfaces, including video/image error announcements, public mobile navigation, and the global Feedback dialog backdrop/focus/Escape paths. Required CI is at 0 Svelte errors / 0 warnings with 128/128 tests and a passing production build. Phase 15 and Release 2 are complete.
 
 ## Deliberate non-goals / do not accidentally undo
 
