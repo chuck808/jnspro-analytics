@@ -88,12 +88,12 @@ Repeated presentation patterns were reviewed, including the small local focus-on
 
 ## Final verification
 
-Required GitHub CI on the final helper-free head `d0abd4cd757c36ff69cf558e12a9a3088e45fc12` verifies the Phase 15 implementation. The strict baseline is:
+Required GitHub CI on the final helper-free head `481c8bc8f8234f9c74cfe78b2536e9b2b2359a18` verifies the Phase 15 implementation. The strict baseline is:
 
 - `svelte-check`: **0 errors / 0 warnings** in the raw CI Typecheck log;
 - TypeScript: clean in independent/local verification during the phase;
 - Vitest: **128/128 passing**;
-- production build: passing in required GitHub CI run `32963130320`;
+- production build: passing in required GitHub CI run `32963279102`;
 - repository-wide Prettier/lint: still the known non-blocking historical backlog and not treated as Phase 15 correctness work.
 
 Independent live/browser verification exercised the repaired interaction paths, including Admin Maintenance failure recovery, Coach Application failure feedback, Admin role updates, protected and public navigation state/focus behavior, Session Comparison/Social Share/Goal Adjustment modal focus/Escape flows, Run Tag Escape/focus restoration, video/image async error announcements, and the global Feedback dialog including its public-header backdrop layer and post-success focus/Escape path. No outstanding Phase 15 issue remains from the final verification pass.
