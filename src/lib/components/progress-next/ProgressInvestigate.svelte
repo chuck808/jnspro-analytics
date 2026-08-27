@@ -5,6 +5,7 @@
 	}
 
 	interface SessionAnalysisLike {
+		sessionId: string;
 		timestamp: string;
 		diagnostics?: Diagnostic[];
 	}
@@ -16,19 +17,30 @@
 	let { sessionAnalyses }: Props = $props();
 
 	const patterns = $derived.by(() => {
-		const map = new Map<string, { title: string; count: number; lastSeen: string; tone: Diagnostic['tone'] }>();
+		const map = new Map<
+			string,
+			{
+				title: string;
+				count: number;
+				lastSeen: string;
+				lastSeenSessionId: string;
+				tone: Diagnostic['tone'];
+			}
+		>();
 		for (const session of sessionAnalyses) {
 			for (const diagnostic of session.diagnostics ?? []) {
 				const existing = map.get(diagnostic.title);
 				if (existing) {
 					existing.count += 1;
 					existing.lastSeen = session.timestamp;
+					existing.lastSeenSessionId = session.sessionId;
 					if (diagnostic.tone === 'warning') existing.tone = 'warning';
 				} else {
 					map.set(diagnostic.title, {
 						title: diagnostic.title,
 						count: 1,
 						lastSeen: session.timestamp,
+						lastSeenSessionId: session.sessionId,
 						tone: diagnostic.tone
 					});
 				}
@@ -63,7 +75,7 @@
 							<i style={`width:${Math.max(8, (pattern.count / maxCount) * 100)}%`}></i>
 						</div>
 					</div>
-					<a href="/sessions">Explore</a>
+					<a href={`/sessions/${pattern.lastSeenSessionId}/analysis`} aria-label={`Open latest session evidence for ${pattern.title}`}>Evidence</a>
 				</article>
 			{/each}
 		</div>
