@@ -54,4 +54,4 @@
 		</div>
 		<ProgressStartPerformance {sessions} />
 	</div>
-{/if>
+{/if}
