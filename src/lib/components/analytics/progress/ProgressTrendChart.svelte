@@ -64,9 +64,24 @@
 		const teal = '#3de8c8';
 
 		if (activeView === 'consistency') {
+			const barColors = sessions.map((session) => {
+				const cv = session.reaction_cv ?? 10;
+				if (cv < 2) return `${teal}CC`;
+				if (cv < 5) return `${amber}CC`;
+				return '#e4564f99';
+			});
 			chartInstance = new Chart(chartEl, {
 				type: 'bar',
-				data: { labels, datasets: [{ label: 'Reaction CV %', data: sessions.map((s) => s.reaction_cv), backgroundColor: sessions.map((s) => (s.reaction_cv ?? 10) < 2 ? `${teal}CC` : (s.reaction_cv ?? 10) < 5 ? `${amber}CC` : '#e4564f99', borderRadius: 5, maxBarThickness: 34 }] },
+				data: {
+					labels,
+					datasets: [{
+						label: 'Reaction CV %',
+						data: sessions.map((session) => session.reaction_cv),
+						backgroundColor: barColors,
+						borderRadius: 5,
+						maxBarThickness: 34
+					}]
+				},
 				options: { ...base, plugins: { ...base.plugins, legend: { display: false } }, scales: { ...base.scales, y: { ...base.scales?.y, title: { display: !isMobile, text: 'CV %', color: axis } } } } as any
 			});
 			return;
