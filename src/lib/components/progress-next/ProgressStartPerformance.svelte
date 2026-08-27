@@ -37,21 +37,24 @@
 			.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
 	}
 
-	function bars(values: number[], lowerIsBetter = false) {
-		if (!values.length) return [];
+	function sparkPoints(values: number[]) {
+		if (!values.length) return '';
+		if (values.length === 1) return '4,22 96,22';
 		const min = Math.min(...values);
 		const max = Math.max(...values);
-		const spread = Math.max(max - min, Math.abs(max || 1) * 0.08);
-		return values.map((value) => {
-			const normal = (value - min) / spread;
-			const score = lowerIsBetter ? 1 - normal : normal;
-			return 28 + Math.max(0, Math.min(1, score)) * 72;
-		});
+		const spread = Math.max(max - min, Math.abs(max || 1) * 0.04);
+		return values
+			.map((value, index) => {
+				const x = 4 + (index / (values.length - 1)) * 92;
+				const y = 36 - ((value - min) / spread) * 28;
+				return `${x.toFixed(1)},${Math.max(6, Math.min(36, y)).toFixed(1)}`;
+			})
+			.join(' ');
 	}
 
-	const reactionBars = $derived(bars(series('best_reaction_ms'), true));
-	const speedBars = $derived(bars(series('best_peak_speed_ms')));
-	const forceBars = $derived(bars(series('best_max_g')));
+	const reactionSeries = $derived(series('best_reaction_ms'));
+	const speedSeries = $derived(series('best_peak_speed_ms'));
+	const forceSeries = $derived(series('best_max_g'));
 </script>
 
 <section class="start-layer" aria-labelledby="start-performance-heading">
@@ -71,25 +74,28 @@
 			<div class="metric-head"><span>Reaction</span><small>measured</small></div>
 			<strong>{fmtReaction(latest?.best_reaction_ms)}</strong>
 			<p>PB {fmtReaction(personalBests.reaction_ms)}</p>
-			<div class="micro" aria-hidden="true">
-				{#each reactionBars as height}<i style={`height:${height}%`}></i>{/each}
-			</div>
+			<svg class="micro-line" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
+				<line x1="4" y1="36" x2="96" y2="36"></line>
+				<polyline points={sparkPoints(reactionSeries)}></polyline>
+			</svg>
 		</article>
 		<article class="metric speed">
 			<div class="metric-head"><span>Peak speed</span><small>validated IMU</small></div>
 			<strong>{fmtSpeed(latest?.best_peak_speed_ms)}</strong>
 			<p>PB {fmtSpeed(personalBests.peak_speed_ms)}</p>
-			<div class="micro" aria-hidden="true">
-				{#each speedBars as height}<i style={`height:${height}%`}></i>{/each}
-			</div>
+			<svg class="micro-line" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
+				<line x1="4" y1="36" x2="96" y2="36"></line>
+				<polyline points={sparkPoints(speedSeries)}></polyline>
+			</svg>
 		</article>
 		<article class="metric force">
 			<div class="metric-head"><span>Peak force</span><small>measured max G</small></div>
 			<strong>{fmtG(latest?.best_max_g)}</strong>
 			<p>PB {fmtG(personalBests.max_g)}</p>
-			<div class="micro" aria-hidden="true">
-				{#each forceBars as height}<i style={`height:${height}%`}></i>{/each}
-			</div>
+			<svg class="micro-line" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
+				<line x1="4" y1="36" x2="96" y2="36"></line>
+				<polyline points={sparkPoints(forceSeries)}></polyline>
+			</svg>
 		</article>
 	</div>
 </section>
@@ -116,7 +122,8 @@
 	.metric-head small { color: #5f778d; font-size: .54rem; font-weight: 500; }
 	.metric strong { display: block; margin-top: .55rem; color: #f7fbff; font-size: clamp(1.25rem, 2.5vw, 2rem); line-height: 1; letter-spacing: -.035em; }
 	.metric p { margin: .28rem 0 0; color: #70879b; font-size: .57rem; }
-	.micro { display: flex; align-items: end; gap: .2rem; height: 1.7rem; margin-top: .7rem; }
-	.micro i { flex: 1; min-width: .16rem; max-width: 1.1rem; border-radius: .18rem .18rem .05rem .05rem; background: var(--tone); opacity: .75; }
+	.micro-line { display: block; width: 100%; height: 2.25rem; margin-top: .5rem; overflow: visible; color: var(--tone); }
+	.micro-line line { stroke: #1d3a51; stroke-width: 1; vector-effect: non-scaling-stroke; }
+	.micro-line polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 	@media (max-width: 700px) { .metric-grid { grid-template-columns: 1fr; } header { align-items: flex-start; } }
 </style>
