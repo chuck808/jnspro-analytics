@@ -69,6 +69,11 @@ export interface FatigueProgression {
 	optimalSetLengthTrend: TrendResult;
 }
 
+export interface SessionQualityPoint {
+	date: string | Date;
+	sessionQuality: number;
+}
+
 export interface CrossSessionReport {
 	status: 'insufficient-data' | 'ready';
 	sessionCount: number;
@@ -79,6 +84,9 @@ export interface CrossSessionReport {
 	performance: PerformanceProgression;
 	consistency: ConsistencyTrends;
 	fatigue: FatigueProgression;
+
+	// Recent per-session quality evidence, retained for narrative/visual consumers.
+	sessionQualityHistory: SessionQualityPoint[];
 
 	// Condition-segmented patterns — null when insufficient context data
 	contextualPatterns: ContextualPatterns | null;

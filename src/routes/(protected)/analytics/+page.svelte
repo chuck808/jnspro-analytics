@@ -367,52 +367,31 @@
 			</a>
 		</section>
 	{:else}
-		<section class="themed-card rounded-xl p-6">
-			<div class="flex flex-wrap items-start justify-between gap-5">
-				<div class="max-w-3xl">
-					<p class="themed-accent text-xs font-semibold tracking-[0.18em] uppercase">Progress</p>
-					<h1 class="themed-text-primary mt-2 text-2xl font-bold sm:text-3xl">
-						{crossSessionReport?.headline ?? 'Your training record is taking shape'}
-					</h1>
-					<p class="themed-text-secondary mt-2 text-sm leading-6">
-						{data.sessionCount} eligible session{data.sessionCount === 1 ? '' : 's'} in your longitudinal record. Recent form, longer-term progression, repeatability and context are kept separate so one session is not mistaken for a trend.
-					</p>
-				</div>
-				<div class="flex flex-wrap gap-2">
-					<ExportButton sessions={data.sessions} variant="secondary" />
-					{#if data.sessionCount >= 3}
-						<button onclick={() => (showProgressOptions = true)} class="min-h-[44px] rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--bg)]">
-							Progress report
-						</button>
-					{/if}
-				</div>
+		<header class="flex flex-wrap items-end justify-between gap-5">
+			<div class="max-w-3xl">
+				<p class="themed-accent text-xs font-semibold tracking-[0.18em] uppercase">
+					Progress · {data.sessionCount} eligible session{data.sessionCount === 1 ? '' : 's'}
+				</p>
+				<h1 class="themed-text-primary mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+					Your training story
+				</h1>
+				<p class="themed-text-secondary mt-2 max-w-2xl text-sm leading-6">
+					Start with where you are now, then follow the evidence into direction, repeatability and context.
+				</p>
 			</div>
-
-			<div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-				<div class="themed-nested-card rounded-lg p-4">
-					<p class="themed-text-subtle text-xs">Sessions</p>
-					<p class="themed-text-primary mt-1 text-xl font-bold">{data.sessionCount}</p>
-				</div>
-				<div class="themed-nested-card rounded-lg p-4">
-					<p class="themed-text-subtle text-xs">Reaction PB</p>
-					<p class="themed-text-primary mt-1 text-xl font-bold">{data.personalBests?.reaction_ms ? `${(data.personalBests.reaction_ms / 1000).toFixed(3)}s` : '—'}</p>
-				</div>
-				<div class="themed-nested-card rounded-lg p-4">
-					<p class="themed-text-subtle text-xs">Top speed</p>
-					<p class="themed-text-primary mt-1 text-xl font-bold">{data.personalBests?.peak_speed_ms ? `${(data.personalBests.peak_speed_ms * 3.6).toFixed(1)} km/h` : '—'}</p>
-				</div>
-				<div class="themed-nested-card rounded-lg p-4">
-					<p class="themed-text-subtle text-xs">Peak G</p>
-					<p class="themed-text-primary mt-1 text-xl font-bold">{data.personalBests?.max_g ? `${data.personalBests.max_g.toFixed(2)}G` : '—'}</p>
-				</div>
+			<div class="flex flex-wrap gap-2">
+				<ExportButton sessions={data.sessions} variant="secondary" />
+				{#if data.sessionCount >= 3}
+					<button onclick={() => (showProgressOptions = true)} class="min-h-[44px] rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--bg)]">
+						Progress report
+					</button>
+				{/if}
 			</div>
-		</section>
+		</header>
 
 		<section class="space-y-4" aria-labelledby="where-now-heading">
-			<div>
-				<p class="themed-text-subtle text-xs font-semibold tracking-[0.16em] uppercase">Where am I now?</p>
-				<h2 id="where-now-heading" class="themed-text-primary mt-1 text-xl font-bold">Recent form, in context</h2>
-				<p class="themed-text-secondary mt-1 max-w-3xl text-sm">A current snapshot, not a verdict on your direction of travel.</p>
+			<div class="sr-only">
+				<h2 id="where-now-heading">Recent form, in context</h2>
 			</div>
 			<PerformanceOverview
 				sessionCount={data.sessionCount}
