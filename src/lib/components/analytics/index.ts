@@ -1,5 +1,5 @@
 // Analytics components
-export { default as PerformanceOverview } from './PerformanceOverview.svelte';
+export { default as PerformanceOverview } from './ProgressStoryOverview.svelte';
 export { default as PerformancePatternsSection } from './PerformancePatternsSection.svelte';
 export { default as TechniqueQualityTrend } from './TechniqueQualityTrend.svelte';
 export { default as DataQualityTrend } from './DataQualityTrend.svelte';
