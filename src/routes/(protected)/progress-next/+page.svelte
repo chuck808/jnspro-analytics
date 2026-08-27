@@ -9,6 +9,9 @@
 	import ProgressPatterns from '$lib/components/progress-next/ProgressPatterns.svelte';
 	import ProgressInvestigate from '$lib/components/progress-next/ProgressInvestigate.svelte';
 	import ProgressStrengthsLimiters from '$lib/components/progress-next/ProgressStrengthsLimiters.svelte';
+	import ProgressDeepEvidence from '$lib/components/progress-next/ProgressDeepEvidence.svelte';
+	import ProgressGoals from '$lib/components/progress-next/ProgressGoals.svelte';
+	import ProgressReports from '$lib/components/progress-next/ProgressReports.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -18,6 +21,7 @@
 	const latestSessionQuality = $derived(latestSessionAnalysis?.intelligence?.sessionQuality ?? null);
 	const latestReactionCv = $derived(latestSession?.reaction_cv ?? null);
 	const latestRideScores = $derived(data.sessionAnalyses.at(-1)?.insightPack?.scores ?? null);
+	const latestSessionId = $derived(latestSession?.id ?? null);
 
 	const dateWindow = $derived.by(() => {
 		if (data.sessions.length === 0) return 'No sessions yet';
@@ -90,11 +94,17 @@
 				</div>
 			</section>
 
-			<div class="next-layer" aria-hidden="true">
-				<span>Next layer</span>
-				<div></div>
-				<strong>Deep evidence · Goals · Reports</strong>
-			</div>
+			<section class="final-grid" aria-label="Deep evidence, goals and reports">
+				<div class="deep-slot">
+					<ProgressDeepEvidence {latestSessionId} sessionCount={data.sessionCount} />
+				</div>
+				<div class="goals-slot">
+					<ProgressGoals goalTargets={data.goalTargets} />
+				</div>
+				<div class="reports-slot">
+					<ProgressReports coachLinks={data.coachLinks ?? []} />
+				</div>
+			</section>
 		{/if}
 	</div>
 </div>
@@ -192,26 +202,22 @@
 		align-items: stretch;
 	}
 
+	.final-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.25fr) minmax(17rem, 0.72fr) minmax(18rem, 0.78fr);
+		gap: 0.75rem;
+		margin-top: 0.75rem;
+		align-items: stretch;
+	}
+
 	.patterns-slot,
 	.investigate-slot,
-	.strengths-slot {
+	.strengths-slot,
+	.deep-slot,
+	.goals-slot,
+	.reports-slot {
 		min-width: 0;
 	}
-
-	.next-layer {
-		display: grid;
-		grid-template-columns: auto minmax(3rem, 1fr) auto;
-		align-items: center;
-		gap: 0.8rem;
-		margin-top: 0.85rem;
-		font-size: 0.58rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: #536c81;
-	}
-
-	.next-layer div { height: 1px; background: #183047; }
-	.next-layer strong { color: #70879b; font-weight: 650; }
 
 	.empty-state {
 		display: grid;
@@ -231,8 +237,10 @@
 	.empty-state a { margin-top: 1.5rem; border-radius: 0.7rem; background: #4ba3ff; padding: 0.75rem 1rem; color: #04101a; font-size: 0.72rem; font-weight: 800; text-decoration: none; }
 
 	@media (max-width: 1180px) {
-		.lower-grid { grid-template-columns: 1fr 1fr; }
-		.patterns-slot { grid-column: 1 / -1; }
+		.lower-grid,
+		.final-grid { grid-template-columns: 1fr 1fr; }
+		.patterns-slot,
+		.deep-slot { grid-column: 1 / -1; }
 	}
 
 	@media (max-width: 980px) {
@@ -241,8 +249,10 @@
 	}
 
 	@media (max-width: 720px) {
-		.lower-grid { grid-template-columns: 1fr; }
-		.patterns-slot { grid-column: auto; }
+		.lower-grid,
+		.final-grid { grid-template-columns: 1fr; }
+		.patterns-slot,
+		.deep-slot { grid-column: auto; }
 	}
 
 	@media (max-width: 640px) {
@@ -251,7 +261,5 @@
 		.page-head { align-items: flex-start; flex-direction: column; }
 		.head-actions { justify-content: flex-start; width: 100%; }
 		.date-chip { flex: 1; justify-content: center; }
-		.next-layer { grid-template-columns: auto 1fr; }
-		.next-layer strong { display: none; }
 	}
 </style>
