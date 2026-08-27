@@ -79,9 +79,15 @@
 			<ProgressRiderDevelopment sessionAnalyses={data.sessionAnalyses} />
 
 			<section class="lower-grid" aria-label="Context, investigation, strengths and limiters">
-				<ProgressPatterns insights={data.correlationInsights ?? []} sessionCount={data.sessionCount} />
-				<ProgressInvestigate sessionAnalyses={data.sessionAnalyses} />
-				<ProgressStrengthsLimiters sessionAnalyses={data.sessionAnalyses} />
+				<div class="patterns-slot">
+					<ProgressPatterns insights={data.correlationInsights ?? []} sessionCount={data.sessionCount} />
+				</div>
+				<div class="investigate-slot">
+					<ProgressInvestigate sessionAnalyses={data.sessionAnalyses} />
+				</div>
+				<div class="strengths-slot">
+					<ProgressStrengthsLimiters sessionAnalyses={data.sessionAnalyses} />
+				</div>
 			</section>
 
 			<div class="next-layer" aria-hidden="true">
@@ -186,6 +192,12 @@
 		align-items: stretch;
 	}
 
+	.patterns-slot,
+	.investigate-slot,
+	.strengths-slot {
+		min-width: 0;
+	}
+
 	.next-layer {
 		display: grid;
 		grid-template-columns: auto minmax(3rem, 1fr) auto;
@@ -220,7 +232,7 @@
 
 	@media (max-width: 1180px) {
 		.lower-grid { grid-template-columns: 1fr 1fr; }
-		.lower-grid > :first-child { grid-column: 1 / -1; }
+		.patterns-slot { grid-column: 1 / -1; }
 	}
 
 	@media (max-width: 980px) {
@@ -230,7 +242,7 @@
 
 	@media (max-width: 720px) {
 		.lower-grid { grid-template-columns: 1fr; }
-		.lower-grid > :first-child { grid-column: auto; }
+		.patterns-slot { grid-column: auto; }
 	}
 
 	@media (max-width: 640px) {
