@@ -38,13 +38,25 @@
 <div class="progress-next-shell">
 	<div class="workspace">
 		<header class="page-head">
-			<div>
+			<div class="head-copy">
 				<p class="eyebrow">Progress · clean-sheet preview</p>
 				<h1>Your performance journey</h1>
 				<span>See the story first. Open the evidence when you need it.</span>
 			</div>
-			<div class="head-actions">
-				<a class="reference" href="/analytics">Reference view</a>
+			<div class="head-utility">
+				<div class="head-actions" aria-label="Progress actions">
+					<a class="action action-primary" href="/analytics" aria-label="Open the Progress report builder and sharing options">
+						<span aria-hidden="true">↗</span>
+						Report &amp; share
+					</a>
+					{#if latestSessionId}
+						<a class="action action-evidence" href={`/sessions/${latestSessionId}/analysis`}>
+							<span aria-hidden="true">◎</span>
+							Latest evidence
+						</a>
+					{/if}
+					<a class="action action-reference" href="/analytics">Reference view</a>
+				</div>
 				<div class="date-chip" aria-label="Session history date range">{dateWindow}</div>
 			</div>
 		</header>
@@ -134,6 +146,8 @@
 		margin-bottom: 1.1rem;
 	}
 
+	.head-copy { min-width: 0; }
+
 	.eyebrow {
 		margin: 0;
 		font-size: 0.62rem;
@@ -150,36 +164,69 @@
 		letter-spacing: -0.035em;
 	}
 
-	.page-head > div > span {
+	.head-copy > span {
 		display: block;
 		margin-top: 0.42rem;
 		font-size: 0.72rem;
 		color: #7f93a8;
 	}
 
+	.head-utility {
+		display: grid;
+		justify-items: end;
+		gap: 0.5rem;
+	}
+
 	.head-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.65rem;
+		gap: 0.5rem;
 		flex-wrap: wrap;
 		justify-content: flex-end;
 	}
 
-	.reference,
+	.action,
 	.date-chip {
 		display: inline-flex;
 		min-height: 2.4rem;
 		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
 		border: 1px solid #203b53;
 		border-radius: 0.7rem;
 		background: rgba(12, 29, 45, 0.82);
 		padding: 0 0.85rem;
 		font-size: 0.66rem;
+		font-weight: 700;
 		color: #b7c7d5;
 		text-decoration: none;
+		transition: border-color 120ms ease, background 120ms ease, color 120ms ease, transform 120ms ease;
 	}
 
-	.reference:hover { border-color: #4ba3ff; color: #fff; }
+	.action:hover { transform: translateY(-1px); }
+	.action:focus-visible { outline: 2px solid #4ba3ff; outline-offset: 2px; }
+
+	.action-primary {
+		border-color: rgba(141, 229, 30, 0.45);
+		background: linear-gradient(135deg, rgba(141, 229, 30, 0.18), rgba(48, 101, 39, 0.13));
+		color: #dfffb4;
+	}
+
+	.action-primary:hover { border-color: #8de51e; background: rgba(141, 229, 30, 0.22); color: #fff; }
+	.action-evidence { border-color: rgba(75, 163, 255, 0.42); color: #bdddff; }
+	.action-evidence:hover { border-color: #4ba3ff; background: rgba(75, 163, 255, 0.12); color: #fff; }
+	.action-reference { color: #7e93a7; font-weight: 600; }
+	.action-reference:hover { border-color: #4c667c; color: #d8e4ed; }
+
+	.date-chip {
+		min-height: 1.8rem;
+		border-color: transparent;
+		background: transparent;
+		padding: 0 0.15rem;
+		font-size: 0.56rem;
+		font-weight: 600;
+		color: #627a90;
+	}
 
 	.primary-grid {
 		display: grid;
@@ -260,7 +307,9 @@
 		.progress-next-shell { margin: -1rem; }
 		.workspace { padding: 1rem; }
 		.page-head { align-items: flex-start; flex-direction: column; }
+		.head-utility { width: 100%; justify-items: stretch; }
 		.head-actions { justify-content: flex-start; width: 100%; }
-		.date-chip { flex: 1; justify-content: center; }
+		.action { flex: 1 1 auto; }
+		.date-chip { justify-content: flex-start; }
 	}
 </style>
