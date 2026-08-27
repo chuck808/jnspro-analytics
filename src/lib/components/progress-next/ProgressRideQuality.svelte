@@ -1,13 +1,8 @@
 <script lang="ts">
 	import type { TechniqueScoreBreakdown } from '$lib/performance-engine/techniqueScoring';
+	import { progressDimensionPalette, type ProgressDimensionKey } from './progressDimensionPalette';
 
-	type ScoreKey =
-		| 'launchQuality'
-		| 'explosiveness'
-		| 'impulseTiming'
-		| 'speedCarry'
-		| 'smoothness'
-		| 'repeatability';
+	type ScoreKey = ProgressDimensionKey;
 
 	interface SessionScorePoint {
 		insightPack: {
@@ -22,13 +17,13 @@
 
 	let { scores, sessionAnalyses = [] }: Props = $props();
 
-	const definitions: Array<{ key: ScoreKey; label: string; tone: string }> = [
-		{ key: 'launchQuality', label: 'Launch quality', tone: '#8de51e' },
-		{ key: 'explosiveness', label: 'Explosiveness', tone: '#35d4df' },
-		{ key: 'impulseTiming', label: 'Impulse timing', tone: '#4ba3ff' },
-		{ key: 'speedCarry', label: 'Speed carry', tone: '#31d2b2' },
-		{ key: 'smoothness', label: 'Smoothness', tone: '#bc78f2' },
-		{ key: 'repeatability', label: 'Repeatability', tone: '#f0a719' }
+	const definitions: Array<{ key: ScoreKey; label: string }> = [
+		{ key: 'launchQuality', label: 'Launch quality' },
+		{ key: 'explosiveness', label: 'Explosiveness' },
+		{ key: 'impulseTiming', label: 'Impulse timing' },
+		{ key: 'speedCarry', label: 'Speed carry' },
+		{ key: 'smoothness', label: 'Smoothness' },
+		{ key: 'repeatability', label: 'Repeatability' }
 	];
 
 	function valuesFor(key: ScoreKey) {
@@ -69,6 +64,7 @@
 				const history = valuesFor(definition.key);
 				return {
 					...definition,
+					tone: progressDimensionPalette[definition.key],
 					value,
 					history,
 					points: sparkPoints(history),
