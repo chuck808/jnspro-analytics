@@ -148,7 +148,7 @@
 					{/each}
 				</div>
 				<span class="sr-only">
-					Recent session quality values: {sessionQualityData.map((point) => `${point.date} ${point.quality.toFixed(1)} out of 10`).join(', ')}.
+					Recent session quality values: {sessionQualityData.map((point: { date: string; quality: number }) => `${point.date} ${point.quality.toFixed(1)} out of 10`).join(', ')}.
 				</span>
 			</div>
 		{/if}
