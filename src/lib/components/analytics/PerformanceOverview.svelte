@@ -68,6 +68,14 @@
 			.slice(0, 2)
 	);
 
+	let sessionQualityData = $derived.by(() => {
+		if (!crossSessionReport?.sessions) return [];
+		return crossSessionReport.sessions.slice(-10).map((session: any) => ({
+			date: new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+			quality: session.sessionQuality || 0
+		}));
+	});
+
 	function fmtReaction(ms: number | null) {
 		return ms !== null ? (ms / 1000).toFixed(3) + 's' : '—';
 	}
@@ -123,6 +131,27 @@
 			<h2>{headline.text}</h2>
 			<p>{headline.summary}</p>
 		</div>
+
+		{#if sessionQualityData.length >= 3}
+			<div class="quality-thread" aria-label="Recent session quality history">
+				<div class="quality-copy">
+					<strong>Recent session quality</strong>
+					<span>Context signal · latest {sessionQualityData.length}</span>
+				</div>
+				<div class="quality-bars" aria-hidden="true">
+					{#each sessionQualityData as point}
+						<span
+							class="quality-bar"
+							style={`height:${Math.max(10, Math.min(100, (point.quality / 10) * 100))}%`}
+							title={`${point.date}: ${point.quality.toFixed(1)}/10`}
+						></span>
+					{/each}
+				</div>
+				<span class="sr-only">
+					Recent session quality values: {sessionQualityData.map((point) => `${point.date} ${point.quality.toFixed(1)} out of 10`).join(', ')}.
+				</span>
+			</div>
+		{/if}
 
 		<div class="story-evidence">
 			<div class="evidence-label">
@@ -250,6 +279,37 @@
 		font-size: clamp(.92rem, 1.25vw, 1.08rem);
 		line-height: 1.7;
 		color: var(--text-secondary);
+	}
+
+	.quality-thread {
+		display: grid;
+		grid-template-columns: minmax(10rem, auto) minmax(12rem, 22rem);
+		align-items: end;
+		gap: 1.5rem;
+		margin-top: clamp(1.75rem, 3vw, 2.75rem);
+		max-width: 45rem;
+	}
+
+	.quality-copy strong,
+	.quality-copy span { display: block; }
+	.quality-copy strong { font-size: .74rem; color: var(--text-primary); }
+	.quality-copy span { margin-top: .2rem; font-size: .64rem; color: var(--text-subtle); }
+
+	.quality-bars {
+		display: flex;
+		align-items: end;
+		gap: .28rem;
+		height: 2.5rem;
+		padding-bottom: .15rem;
+		border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
+	}
+
+	.quality-bar {
+		flex: 1;
+		min-width: .2rem;
+		border-radius: 999px 999px .15rem .15rem;
+		background: color-mix(in srgb, var(--story-accent) 72%, var(--text-primary) 28%);
+		opacity: .72;
 	}
 
 	.story-evidence {
@@ -386,6 +446,7 @@
 	@media (max-width: 760px) {
 		.story-copy { grid-template-columns: 1fr; gap: 1rem; }
 		.story-copy h2 { max-width: 12ch; }
+		.quality-thread { grid-template-columns: 1fr; gap: .65rem; }
 		.metric-grid { grid-template-columns: 1fr; }
 		.metric { padding-inline: .25rem; background: transparent; }
 		.metric + .metric { border-top: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent); }
