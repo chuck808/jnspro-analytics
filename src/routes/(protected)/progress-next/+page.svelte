@@ -92,9 +92,9 @@
 	}
 
 	.workspace {
-		width: min(100%, 96rem);
-		margin: 0 auto;
-		padding: clamp(1.25rem, 2.4vw, 2.4rem);
+		width: 100%;
+		margin: 0;
+		padding: clamp(1.1rem, 1.8vw, 1.8rem);
 	}
 
 	.page-head {
@@ -161,10 +161,9 @@
 
 	.secondary-grid {
 		display: grid;
-		grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
-		gap: .75rem;
-		margin-top: .75rem;
-		align-items: stretch;
+		grid-template-columns: minmax(0, 1.25fr) minmax(22rem, 1fr);
+		gap: 0.75rem;
+		margin-top: 0.75rem;
 	}
 
 	.next-layer {
