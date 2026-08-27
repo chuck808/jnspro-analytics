@@ -6,6 +6,9 @@
 	import ProgressStartPerformance from '$lib/components/progress-next/ProgressStartPerformance.svelte';
 	import ProgressRideQuality from '$lib/components/progress-next/ProgressRideQuality.svelte';
 	import ProgressRiderDevelopment from '$lib/components/progress-next/ProgressRiderDevelopment.svelte';
+	import ProgressPatterns from '$lib/components/progress-next/ProgressPatterns.svelte';
+	import ProgressInvestigate from '$lib/components/progress-next/ProgressInvestigate.svelte';
+	import ProgressStrengthsLimiters from '$lib/components/progress-next/ProgressStrengthsLimiters.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -75,10 +78,16 @@
 
 			<ProgressRiderDevelopment sessionAnalyses={data.sessionAnalyses} />
 
+			<section class="lower-grid" aria-label="Context, investigation, strengths and limiters">
+				<ProgressPatterns insights={data.correlationInsights ?? []} sessionCount={data.sessionCount} />
+				<ProgressInvestigate sessionAnalyses={data.sessionAnalyses} />
+				<ProgressStrengthsLimiters sessionAnalyses={data.sessionAnalyses} />
+			</section>
+
 			<div class="next-layer" aria-hidden="true">
 				<span>Next layer</span>
 				<div></div>
-				<strong>Patterns · Investigate · Strengths & limiters</strong>
+				<strong>Deep evidence · Goals · Reports</strong>
 			</div>
 		{/if}
 	</div>
@@ -169,6 +178,14 @@
 		margin-top: 0.75rem;
 	}
 
+	.lower-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.12fr) minmax(17rem, 0.72fr) minmax(19rem, 0.9fr);
+		gap: 0.75rem;
+		margin-top: 0.75rem;
+		align-items: stretch;
+	}
+
 	.next-layer {
 		display: grid;
 		grid-template-columns: auto minmax(3rem, 1fr) auto;
@@ -201,9 +218,19 @@
 	.empty-state h2 { max-width: 35rem; margin: 0.8rem 0 0; color: #f7fbff; font-size: clamp(1.35rem, 3vw, 2.4rem); line-height: 1.15; letter-spacing: -0.03em; }
 	.empty-state a { margin-top: 1.5rem; border-radius: 0.7rem; background: #4ba3ff; padding: 0.75rem 1rem; color: #04101a; font-size: 0.72rem; font-weight: 800; text-decoration: none; }
 
+	@media (max-width: 1180px) {
+		.lower-grid { grid-template-columns: 1fr 1fr; }
+		.lower-grid > :first-child { grid-column: 1 / -1; }
+	}
+
 	@media (max-width: 980px) {
 		.primary-grid,
 		.secondary-grid { grid-template-columns: 1fr; }
+	}
+
+	@media (max-width: 720px) {
+		.lower-grid { grid-template-columns: 1fr; }
+		.lower-grid > :first-child { grid-column: auto; }
 	}
 
 	@media (max-width: 640px) {
