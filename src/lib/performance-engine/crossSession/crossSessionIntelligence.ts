@@ -29,6 +29,11 @@ export function analyseCrossSessionIntelligence(
 	options: CrossSessionOptions = {}
 ): CrossSessionReport {
 	const opts = { ...DEFAULT_OPTIONS, ...options };
+	const sortedSessions = sortByDate(sessions);
+	const sessionQualityHistory = sortedSessions
+		.filter((session) => session.sessionQuality !== null)
+		.slice(-10)
+		.map((session) => ({ date: session.date, sessionQuality: session.sessionQuality! }));
 
 	// Insufficient data check
 	if (sessions.length < opts.minSessions) {
@@ -51,6 +56,7 @@ export function analyseCrossSessionIntelligence(
 				dropOffTrend: createEmptyTrend(),
 				optimalSetLengthTrend: createEmptyTrend()
 			},
+			sessionQualityHistory,
 			contextualPatterns: null,
 			warnings: [`Need at least ${opts.minSessions} sessions for trend analysis`],
 			recommendations: [],
@@ -59,7 +65,6 @@ export function analyseCrossSessionIntelligence(
 	}
 
 	// Sort and limit to lookback window
-	const sortedSessions = sortByDate(sessions);
 	const lookbackSessions = sortedSessions.slice(-opts.lookbackSessions);
 	const confidence = getConfidence(lookbackSessions.length);
 
@@ -93,6 +98,7 @@ export function analyseCrossSessionIntelligence(
 		performance,
 		consistency,
 		fatigue,
+		sessionQualityHistory,
 		contextualPatterns: contextualPatterns.hasEnoughData ? contextualPatterns : null,
 		warnings,
 		recommendations,
