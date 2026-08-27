@@ -173,12 +173,12 @@
 	}
 
 	.ring-core strong { color: #f7fbff; font-size: 1.4rem; line-height: 1; }
-	.ring-core span { margin-top: .16rem; color: #7890a4; font-size: .48rem; text-transform: uppercase; letter-spacing: .08em; }
+	.ring-core span { margin-top: .16rem; color: #8196a8; font-size: .48rem; text-transform: uppercase; letter-spacing: .08em; }
 
 	.goal-copy { min-width: 0; }
-	.metric { display: block; color: #7d91a5; font-size: 0.55rem; }
+	.metric { display: block; color: #8ca0b1; font-size: 0.55rem; }
 	.current { display: block; margin-top: 0.16rem; color: #f4f9fd; font-size: 1.05rem; }
-	.deadline { display: block; margin-top: .14rem; color: #647d92; font-size: .5rem; }
+	.deadline { display: block; margin-top: .14rem; color: #8196a8; font-size: .5rem; }
 
 	.journey {
 		display: grid;
@@ -192,16 +192,16 @@
 
 	.journey div { min-width: 0; }
 	.journey span, .journey strong { display: block; }
-	.journey span { color: #5f788e; font-size: .46rem; text-transform: uppercase; letter-spacing: .08em; }
-	.journey strong { margin-top: .12rem; overflow: hidden; color: #a9bac9; font-size: .54rem; text-overflow: ellipsis; white-space: nowrap; }
-	.journey i { color: #35526a; font-size: .6rem; font-style: normal; }
+	.journey span { color: #8196a8; font-size: .46rem; text-transform: uppercase; letter-spacing: .08em; }
+	.journey strong { margin-top: .12rem; overflow: hidden; color: #b8c5d0; font-size: .54rem; text-overflow: ellipsis; white-space: nowrap; }
+	.journey i { color: #587087; font-size: .6rem; font-style: normal; }
 	.journey div:nth-of-type(2) strong { color: #f3f8fc; }
 	.journey div:nth-of-type(3) strong { color: #8de51e; }
 
 	.empty { display: grid; min-height: 8rem; place-items: center; align-content: center; text-align: center; padding: 0.7rem; }
 	.empty > span { color: #4ba3ff; font-size: 1.25rem; }
 	.empty strong { margin-top: 0.4rem; font-size: 0.75rem; }
-	.empty p { max-width: 19rem; margin: 0.32rem 0 0; color: #73889b; font-size: 0.56rem; line-height: 1.45; }
+	.empty p { max-width: 19rem; margin: 0.32rem 0 0; color: #8196a8; font-size: 0.56rem; line-height: 1.45; }
 	.empty a { margin-top: 0.6rem; color: #8de51e; font-size: 0.58rem; text-decoration: none; }
 
 	@media (max-width: 540px) {
