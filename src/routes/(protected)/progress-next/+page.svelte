@@ -3,6 +3,8 @@
 	import ProgressSnapshotRail from '$lib/components/progress-next/ProgressSnapshotRail.svelte';
 	import ProgressPrimaryChart, { type ProgressView } from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
 	import ProgressBreakdown from '$lib/components/progress-next/ProgressBreakdown.svelte';
+	import ProgressStartPerformance from '$lib/components/progress-next/ProgressStartPerformance.svelte';
+	import ProgressRideQuality from '$lib/components/progress-next/ProgressRideQuality.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -11,6 +13,7 @@
 	const latestSessionAnalysis = $derived(data.sessionAnalyses.at(-1)?.analysis ?? null);
 	const latestSessionQuality = $derived(latestSessionAnalysis?.intelligence?.sessionQuality ?? null);
 	const latestReactionCv = $derived(latestSession?.reaction_cv ?? null);
+	const latestRideScores = $derived(data.sessionAnalyses.at(-1)?.insightPack?.scores ?? null);
 
 	const dateWindow = $derived.by(() => {
 		if (data.sessions.length === 0) return 'No sessions yet';
@@ -64,10 +67,15 @@
 				/>
 			</section>
 
+			<section class="secondary-grid" aria-label="Start performance and ride quality">
+				<ProgressStartPerformance sessions={data.sessions} personalBests={data.personalBests} />
+				<ProgressRideQuality scores={latestRideScores} />
+			</section>
+
 			<div class="next-layer" aria-hidden="true">
 				<span>Next layer</span>
 				<div></div>
-				<strong>Start Performance · Ride Quality</strong>
+				<strong>Rider Development · Patterns · Investigate</strong>
 			</div>
 		{/if}
 	</div>
@@ -151,6 +159,14 @@
 		margin-top: 0.75rem;
 	}
 
+	.secondary-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+		gap: .75rem;
+		margin-top: .75rem;
+		align-items: stretch;
+	}
+
 	.next-layer {
 		display: grid;
 		grid-template-columns: auto minmax(3rem, 1fr) auto;
@@ -184,7 +200,8 @@
 	.empty-state a { margin-top: 1.5rem; border-radius: 0.7rem; background: #4ba3ff; padding: 0.75rem 1rem; color: #04101a; font-size: 0.72rem; font-weight: 800; text-decoration: none; }
 
 	@media (max-width: 980px) {
-		.primary-grid { grid-template-columns: 1fr; }
+		.primary-grid,
+		.secondary-grid { grid-template-columns: 1fr; }
 	}
 
 	@media (max-width: 640px) {
