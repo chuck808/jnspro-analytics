@@ -71,20 +71,32 @@
 		</div>
 	{:else}
 		<div class="goals">
-			{#each goals as [metric, goal]}
+			{#each goals as [metric, goal], index}
 				{@const percent = progress(metric, goal)}
-				<article>
-					<div class="goal-top">
-						<div>
-							<span class="metric">{label(metric)}</span>
-							<strong>{displayValue(metric, goal.current)}</strong>
+				<article class:featured={index === 0}>
+					<div
+						class="ring"
+						style={`--progress:${percent ?? 0}`}
+						aria-label={percent === null ? `${label(metric)} goal progress is still building` : `${label(metric)} goal is ${percent}% complete`}
+					>
+						<div class="ring-core">
+							<strong>{percent === null ? '—' : percent}</strong>
+							<span>{percent === null ? 'building' : '%'}</span>
 						</div>
-						{#if percent !== null}<b>{percent}%</b>{/if}
 					</div>
-					<div class="track" aria-hidden="true"><span style={`width: ${percent ?? 0}%`}></span></div>
-					<div class="goal-meta">
-						<span>Target {displayValue(metric, goal.target)}</span>
-						<span>{deadlineText(goal.deadline)}</span>
+
+					<div class="goal-copy">
+						<span class="metric">{label(metric)}</span>
+						<strong class="current">{displayValue(metric, goal.current)}</strong>
+						<span class="deadline">{deadlineText(goal.deadline)}</span>
+
+						<div class="journey" aria-label={`${label(metric)} goal evidence`}>
+							<div><span>Start</span><strong>{displayValue(metric, goal.start)}</strong></div>
+							<i aria-hidden="true">→</i>
+							<div><span>Now</span><strong>{displayValue(metric, goal.current)}</strong></div>
+							<i aria-hidden="true">→</i>
+							<div><span>Target</span><strong>{displayValue(metric, goal.target)}</strong></div>
+						</div>
 					</div>
 				</article>
 			{/each}
@@ -122,18 +134,80 @@
 	.heading-row > a:hover { text-decoration: underline; }
 
 	.goals { display: grid; gap: 0.55rem; margin-top: 0.85rem; }
-	article { border: 1px solid #183249; border-radius: 0.72rem; background: rgba(8, 25, 40, 0.76); padding: 0.7rem; }
-	.goal-top { display: flex; align-items: end; justify-content: space-between; gap: 0.6rem; }
+	article {
+		display: grid;
+		grid-template-columns: 5.3rem minmax(0, 1fr);
+		align-items: center;
+		gap: 0.85rem;
+		border: 1px solid #183249;
+		border-radius: 0.8rem;
+		background: rgba(8, 25, 40, 0.76);
+		padding: 0.8rem;
+	}
+
+	article.featured {
+		border-color: #27506e;
+		background: linear-gradient(145deg, rgba(13, 36, 55, .96), rgba(7, 24, 39, .88));
+	}
+
+	.ring {
+		--progress: 0;
+		display: grid;
+		width: 5rem;
+		aspect-ratio: 1;
+		place-items: center;
+		border-radius: 50%;
+		background: conic-gradient(#8de51e calc(var(--progress) * 1%), #153249 0);
+		box-shadow: 0 0 1.4rem rgba(141, 229, 30, .08);
+	}
+
+	.ring-core {
+		display: grid;
+		width: 3.9rem;
+		aspect-ratio: 1;
+		place-items: center;
+		align-content: center;
+		border: 1px solid #1d3c54;
+		border-radius: 50%;
+		background: #091b2b;
+	}
+
+	.ring-core strong { color: #f7fbff; font-size: 1.4rem; line-height: 1; }
+	.ring-core span { margin-top: .16rem; color: #7890a4; font-size: .48rem; text-transform: uppercase; letter-spacing: .08em; }
+
+	.goal-copy { min-width: 0; }
 	.metric { display: block; color: #7d91a5; font-size: 0.55rem; }
-	.goal-top strong { display: block; margin-top: 0.2rem; font-size: 1.02rem; color: #f4f9fd; }
-	.goal-top b { color: #8de51e; font-size: 0.78rem; }
-	.track { height: 0.28rem; margin-top: 0.6rem; overflow: hidden; border-radius: 999px; background: #122a3e; }
-	.track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #45a9ff, #8de51e); }
-	.goal-meta { display: flex; justify-content: space-between; gap: 0.55rem; margin-top: 0.42rem; color: #6f8498; font-size: 0.52rem; }
+	.current { display: block; margin-top: 0.16rem; color: #f4f9fd; font-size: 1.05rem; }
+	.deadline { display: block; margin-top: .14rem; color: #647d92; font-size: .5rem; }
+
+	.journey {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+		align-items: center;
+		gap: .35rem;
+		margin-top: .58rem;
+		padding-top: .52rem;
+		border-top: 1px solid #173149;
+	}
+
+	.journey div { min-width: 0; }
+	.journey span, .journey strong { display: block; }
+	.journey span { color: #5f788e; font-size: .46rem; text-transform: uppercase; letter-spacing: .08em; }
+	.journey strong { margin-top: .12rem; overflow: hidden; color: #a9bac9; font-size: .54rem; text-overflow: ellipsis; white-space: nowrap; }
+	.journey i { color: #35526a; font-size: .6rem; font-style: normal; }
+	.journey div:nth-of-type(2) strong { color: #f3f8fc; }
+	.journey div:nth-of-type(3) strong { color: #8de51e; }
 
 	.empty { display: grid; min-height: 8rem; place-items: center; align-content: center; text-align: center; padding: 0.7rem; }
 	.empty > span { color: #4ba3ff; font-size: 1.25rem; }
 	.empty strong { margin-top: 0.4rem; font-size: 0.75rem; }
 	.empty p { max-width: 19rem; margin: 0.32rem 0 0; color: #73889b; font-size: 0.56rem; line-height: 1.45; }
 	.empty a { margin-top: 0.6rem; color: #8de51e; font-size: 0.58rem; text-decoration: none; }
+
+	@media (max-width: 540px) {
+		article { grid-template-columns: 4.5rem minmax(0, 1fr); }
+		.ring { width: 4.2rem; }
+		.ring-core { width: 3.25rem; }
+		.journey { gap: .24rem; }
+	}
 </style>
