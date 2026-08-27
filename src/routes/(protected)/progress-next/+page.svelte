@@ -5,6 +5,7 @@
 	import ProgressBreakdown from '$lib/components/progress-next/ProgressBreakdown.svelte';
 	import ProgressStartPerformance from '$lib/components/progress-next/ProgressStartPerformance.svelte';
 	import ProgressRideQuality from '$lib/components/progress-next/ProgressRideQuality.svelte';
+	import ProgressRiderDevelopment from '$lib/components/progress-next/ProgressRiderDevelopment.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -72,10 +73,12 @@
 				<ProgressRideQuality scores={latestRideScores} />
 			</section>
 
+			<ProgressRiderDevelopment sessionAnalyses={data.sessionAnalyses} />
+
 			<div class="next-layer" aria-hidden="true">
 				<span>Next layer</span>
 				<div></div>
-				<strong>Rider Development · Patterns · Investigate</strong>
+				<strong>Patterns · Investigate · Strengths & limiters</strong>
 			</div>
 		{/if}
 	</div>
