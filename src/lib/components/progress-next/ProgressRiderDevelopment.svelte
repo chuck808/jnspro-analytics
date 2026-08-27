@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TechniqueScoreBreakdown } from '$lib/performance-engine/techniqueScoring';
+	import { progressDimensionPalette, type ProgressDimensionKey } from './progressDimensionPalette';
 
 	interface SessionScorePoint {
 		timestamp: string;
@@ -14,21 +15,15 @@
 
 	let { sessionAnalyses }: Props = $props();
 
-	type ScoreKey =
-		| 'launchQuality'
-		| 'explosiveness'
-		| 'speedCarry'
-		| 'smoothness'
-		| 'impulseTiming'
-		| 'repeatability';
+	type ScoreKey = ProgressDimensionKey;
 
-	const dimensions: Array<{ key: ScoreKey; label: string; tone: string }> = [
-		{ key: 'launchQuality', label: 'Launch Quality', tone: '#8de51e' },
-		{ key: 'explosiveness', label: 'Explosiveness', tone: '#59d25e' },
-		{ key: 'speedCarry', label: 'Speed Carry', tone: '#34d9ed' },
-		{ key: 'smoothness', label: 'Smoothness', tone: '#c178ff' },
-		{ key: 'impulseTiming', label: 'Impulse Timing', tone: '#ff9d2f' },
-		{ key: 'repeatability', label: 'Repeatability', tone: '#3dd5c5' }
+	const dimensions: Array<{ key: ScoreKey; label: string }> = [
+		{ key: 'launchQuality', label: 'Launch Quality' },
+		{ key: 'explosiveness', label: 'Explosiveness' },
+		{ key: 'speedCarry', label: 'Speed Carry' },
+		{ key: 'smoothness', label: 'Smoothness' },
+		{ key: 'impulseTiming', label: 'Impulse Timing' },
+		{ key: 'repeatability', label: 'Repeatability' }
 	];
 
 	function valuesFor(key: ScoreKey) {
@@ -67,7 +62,7 @@
 				const current = values.at(-1) ?? null;
 				return current === null
 					? null
-					: { ...dimension, values, current, delta: change(values), status: status(current) };
+					: { ...dimension, tone: progressDimensionPalette[dimension.key], values, current, delta: change(values), status: status(current) };
 			})
 			.filter((row): row is NonNullable<typeof row> => row !== null)
 	);
