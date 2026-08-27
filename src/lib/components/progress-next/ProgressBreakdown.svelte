@@ -46,6 +46,11 @@
 		return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 	}
 
+	function trajectoryLabel(label: string, count: number, metricLabel: string) {
+		if (count < 2) return `${label} trajectory is still building.`;
+		return `${label} trajectory across the latest ${count} supported sessions; current status is ${metricLabel}.`;
+	}
+
 	const recent = $derived(sessions.slice(-10));
 	const historyLabel = $derived.by(() => {
 		if (sessions.length === 0) return 'No session history';
@@ -118,6 +123,7 @@
 					{/if}
 					<small>{row.evidenceCount > 1 ? `last ${row.evidenceCount}` : 'building'}</small>
 				</span>
+				<span class="sr-only">{trajectoryLabel(row.label, row.evidenceCount, row.metric.label)}</span>
 				<span class="metric" data-tone={row.metric.tone}><strong>{row.metric.value}</strong><small>{row.metric.label}</small></span>
 				<span class="arrow" aria-hidden="true">›</span>
 			</button>
@@ -143,9 +149,9 @@
 
 	.heading { display:flex; align-items:start; justify-content:space-between; gap:1rem; }
 	.heading > div > span { font-size: .62rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #4ba3ff; }
-	.heading > small { color:#5f778d; font-size:.56rem; white-space:nowrap; }
+	.heading > small { color:#7890a4; font-size:.56rem; white-space:nowrap; }
 	h2 { margin: .28rem 0 0; font-size: 1.2rem; color: #f7fbff; letter-spacing: -.025em; }
-	.heading p { margin: .25rem 0 0; font-size: .68rem; line-height: 1.45; color: #73889b; }
+	.heading p { margin: .25rem 0 0; font-size: .68rem; line-height: 1.45; color: #8196a8; }
 
 	.rows { display: grid; gap: .5rem; margin-top: 1rem; }
 	button {
@@ -172,23 +178,24 @@
 	.glyph { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: .55rem; background: #122b42; color: #62b2ff; font-size: .68rem; font-weight: 850; }
 	.name strong, .name small, .metric strong, .metric small { display: block; }
 	.name strong { font-size: .74rem; color: #edf5fc; }
-	.name small { margin-top: .15rem; color: #687f94; font-size: .59rem; }
+	.name small { margin-top: .15rem; color: #7890a4; font-size: .59rem; }
 	.spark { display:grid; gap:.18rem; min-width:0; }
 	.spark svg { width:100%; height:1.7rem; overflow:visible; }
 	.spark line { stroke:#1f3b50; stroke-width:1; }
 	.spark polyline { fill:none; stroke:#62b2ff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
 	.spark i { display:block; width:100%; height:1px; background:#294359; }
-	.spark small { color:#566e82; font-size:.48rem; text-align:right; }
+	.spark small { color:#7890a4; font-size:.48rem; text-align:right; }
 	.metric { text-align: right; min-width:4.8rem; }
-	.metric strong { font-size: .72rem; color: #aab9c7; }
-	.metric small { margin-top: .14rem; font-size: .57rem; color: #63798e; }
+	.metric strong { font-size: .72rem; color: #b8c5d0; }
+	.metric small { margin-top: .14rem; font-size: .57rem; color: #7890a4; }
 	.metric[data-tone='good'] strong, .metric[data-tone='good'] small { color: #8fe12b; }
 	.metric[data-tone='attention'] strong, .metric[data-tone='attention'] small { color: #ff7354; }
-	.arrow { color: #63798e; font-size: 1.2rem; }
+	.arrow { color: #7890a4; font-size: 1.2rem; }
 
 	.footer { display: flex; gap: .55rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid #173047; }
-	.footer p { margin: 0; font-size: .61rem; line-height: 1.5; color: #657b8f; }
+	.footer p { margin: 0; font-size: .61rem; line-height: 1.5; color: #7890a4; }
 	.dot { flex: 0 0 auto; width: .42rem; height: .42rem; margin-top: .22rem; border-radius: 999px; background: #38d9ca; }
+	.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
 	@media (max-width: 1100px) {
 		button { grid-template-columns:2rem minmax(0,1fr) 4.4rem auto 1rem; }
