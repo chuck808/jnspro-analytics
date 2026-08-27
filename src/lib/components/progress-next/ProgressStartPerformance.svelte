@@ -37,7 +37,7 @@
 			.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
 	}
 
-	function sparkPoints(values: number[]) {
+	function sparkPoints(values: number[], lowerIsBetter = false) {
 		if (!values.length) return '';
 		if (values.length === 1) return '4,22 96,22';
 		const min = Math.min(...values);
@@ -46,7 +46,9 @@
 		return values
 			.map((value, index) => {
 				const x = 4 + (index / (values.length - 1)) * 92;
-				const y = 36 - ((value - min) / spread) * 28;
+				const normalised = (value - min) / spread;
+				const score = lowerIsBetter ? 1 - normalised : normalised;
+				const y = 36 - score * 28;
 				return `${x.toFixed(1)},${Math.max(6, Math.min(36, y)).toFixed(1)}`;
 			})
 			.join(' ');
@@ -76,7 +78,7 @@
 			<p>PB {fmtReaction(personalBests.reaction_ms)}</p>
 			<svg class="micro-line" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
 				<line x1="4" y1="36" x2="96" y2="36"></line>
-				<polyline points={sparkPoints(reactionSeries)}></polyline>
+				<polyline points={sparkPoints(reactionSeries, true)}></polyline>
 			</svg>
 		</article>
 		<article class="metric speed">
