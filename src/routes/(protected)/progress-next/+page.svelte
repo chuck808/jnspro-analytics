@@ -71,6 +71,7 @@
 					reactionTrend={data.trend.reaction}
 					speedTrend={data.trend.speed}
 					{latestReactionCv}
+					sessions={data.sessions}
 					onSelect={(nextView) => (view = nextView)}
 				/>
 			</section>
