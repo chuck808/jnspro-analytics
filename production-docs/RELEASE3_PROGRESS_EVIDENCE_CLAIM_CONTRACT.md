@@ -140,6 +140,40 @@ A valid presentation can therefore be:
 
 Measured facts do not need claim confidence.
 
+## Session length, evidence coverage, and demonstrated persistence are different
+
+Within a single session, especially for Consistency & Capacity evidence, three quantities must remain distinct:
+
+- **Physical session length** — the number of physical runs recorded in the session before analytical filtering.
+- **Evidence coverage** — the count and identity of runs that supplied usable observations to the specific calculation. Coverage may be complete, incomplete but contiguous, or incomplete and non-contiguous.
+- **Demonstrated persistence** — what the supported observations actually establish about performance remaining within the calculation's defined threshold over an identified run sequence.
+
+These quantities may happen to have the same numeric value. Numeric equality does not make them semantically interchangeable.
+
+Required pairwise rules:
+
+> **Evidence coverage must never be presented as demonstrated persistence.**
+>
+> **Demonstrated persistence must never be presented as physical session length.**
+>
+> **Evidence coverage must never be presented as physical session length.**
+
+A metric that makes a `Run N` claim must preserve physical run identity through analytical filtering. A filtered-array position must never be reconstructed or presented as a physical run number.
+
+For persistence/drop-off claims, preserve enough provenance to distinguish physical session length from the supported run-number sequence. A count alone is insufficient when missing evidence creates a gap.
+
+Canonical counterexample:
+
+- 6 physical runs were recorded.
+- Only physical runs `[1, 3, 4, 5, 6]` supplied usable evidence to the calculation.
+- No defined drop-off threshold was crossed in those 5 supported observations.
+
+This evidence supports the measured facts `6 physical runs`, `5 supported observations`, and the identified supported sequence `[1, 3, 4, 5, 6]`. It does **not** by itself authorize an unqualified `5`, `6`, `optimal 5`, `capacity 6`, or equivalent statement of demonstrated persistence/session length.
+
+When coverage is incomplete, the missing evidence must remain visible in the semantics: omit the stronger persistence claim, mark it as limited/building, or qualify it with the actual supported run identities/coverage as appropriate. Do not fill the gap by treating an unevaluated physical run as demonstrated performance.
+
+`optimal set length` and physiological `capacity` are not justified names for the current deterministic drop-off rule. Until a separately specified evidence model supports those concepts, rider-facing Progress language should describe the measured threshold behavior or performance persistence without implying physiological capacity or prescribing a set length.
+
 ## Minimum claim eligibility
 
 Default product grammar:
