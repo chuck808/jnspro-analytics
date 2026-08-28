@@ -29,9 +29,16 @@ export interface SessionIntelligenceReport {
 
 export function analyseSessionIntelligence(runs: RunData[]): SessionIntelligenceReport {
 	const repeat = analyseRepeatability(runs);
-	const speeds = runs
-		.map((r) => r.peakSpeed)
-		.filter((v): v is number => typeof v === 'number' && !isNaN(v));
+	const speedObservations = runs
+		.map((r, index) => ({
+			runNumber: r.runNumber ?? index + 1,
+			value: r.peakSpeed
+		}))
+		.filter(
+			(observation): observation is { runNumber: number; value: number } =>
+				typeof observation.value === 'number' && !isNaN(observation.value)
+		);
+	const speeds = speedObservations.map((observation) => observation.value);
 
 	// Fatigue uses peak speed as the primary signal (higher = better, so a
 	// declining second half flags fatigue). When speed is unavailable for the
@@ -49,15 +56,14 @@ export function analyseSessionIntelligence(runs: RunData[]): SessionIntelligence
 		fatigue = reactions.length >= 4 ? analyseFatigue(reactions.map((v) => -v)) : analyseFatigue([]);
 	}
 
-	// bestVsAvg and dropOff operate on the filtered speeds array (only runs with
-	// a valid speed value). If calibration is poor and some runs return null
-	// speed, those runs are silently excluded from the calculation. This is
-	// intentional — comparing valid and invalid speeds would produce meaningless
-	// gap percentages — but it means bestVsAvg reflects only the analytics-valid
-	// subset, not the full session. The caller should treat these results as
-	// conditional on speeds.length / runs.length when presenting to the user.
+	// bestVsAvg and dropOff operate on valid speed observations only. bestVsAvg
+	// needs only the numeric values; dropOff also receives preserved physical run
+	// numbers so a "Run N" result cannot become a filtered-array position.
 	const bestVsAvg = analyseBestVsAverage(speeds);
-	const dropOff = detectDropOff(speeds);
+	const dropOff = detectDropOff(
+		speeds,
+		speedObservations.map((observation) => observation.runNumber)
+	);
 	const setLength = suggestSetLength(dropOff, runs.length);
 	const quality = repeat.overall - (fatigue.trend === 'declining' ? 20 : 0);
 
