@@ -41,7 +41,8 @@ const RECENT_WINDOW = 5;
  * The canonical session summary remains the source of measured reaction facts.
  * Direction uses the same lower-is-better trend utility as the cross-session
  * engine, limited to its default five-session recent window. Evidence class is
- * determined from supported reaction observations, never total history alone.
+ * determined from supported average-reaction observations, never total history
+ * alone. Measured facts such as PB remain independent of that inference filter.
  */
 export function buildReactionEvidence(sessions: ReactionSessionPoint[]): ReactionEvidenceModel {
 	const supported = sessions.filter(
@@ -50,7 +51,7 @@ export function buildReactionEvidence(sessions: ReactionSessionPoint[]): Reactio
 	);
 	const recentSupported = supported.slice(-RECENT_WINDOW);
 	const latest = supported.at(-1) ?? null;
-	const bestValues = supported
+	const bestValues = sessions
 		.map((session) => session.best_reaction_ms)
 		.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
 
