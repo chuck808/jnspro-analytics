@@ -97,8 +97,12 @@ export function analyseSession(
 			.filter((r) => r.reactionTime !== null);
 
 		if (runData.length > 0) {
-			// Store the full SessionIntelligenceReport directly
-			intelligence = analyseSessionIntelligence(runData);
+			// Physical session length is deliberately passed separately from the
+			// reaction-filtered evidence array so downstream persistence semantics
+			// cannot mistake evidence coverage for session length.
+			intelligence = analyseSessionIntelligence(runData, {
+				physicalRunCount: analysedRuns.length
+			});
 		}
 	}
 
