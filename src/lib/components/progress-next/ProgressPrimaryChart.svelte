@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import type { ReactionEvidenceModel } from './reactionEvidence';
 
 	export type ProgressView = 'reaction' | 'speed' | 'consistency';
 
@@ -15,9 +16,10 @@
 		sessions: SessionPoint[];
 		view: ProgressView;
 		goalTargets?: Record<string, any>;
+		reactionEvidence?: ReactionEvidenceModel;
 	}
 
-	let { sessions, view, goalTargets = {} }: Props = $props();
+	let { sessions, view, goalTargets = {}, reactionEvidence }: Props = $props();
 	let canvas: HTMLCanvasElement | null = $state(null);
 	let chart: any = null;
 
@@ -27,17 +29,23 @@
 		return { title: 'Reaction progression', note: 'Best + average reaction · lower is better', accent: '#96de27' };
 	});
 
+	const canRender = $derived(view === 'reaction'
+		? (reactionEvidence?.history.length ?? 0) >= 2
+		: sessions.length >= 3);
+
 	function labelDate(value: string) {
 		return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 	}
 
 	async function draw() {
-		if (!canvas || sessions.length < 2) return;
+		if (!canvas || !canRender) return;
 		const { Chart, registerables } = await import('chart.js');
 		Chart.register(...registerables);
 		chart?.destroy();
 
-		const labels = sessions.map((session) => labelDate(session.timestamp));
+		const reactionHistory = reactionEvidence?.history ?? [];
+		const chartSessions = view === 'reaction' ? reactionHistory : sessions;
+		const labels = chartSessions.map((session) => labelDate(session.timestamp));
 		const commonDataset = {
 			borderWidth: 2.4,
 			pointRadius: 2.5,
@@ -82,14 +90,14 @@
 				{
 					...commonDataset,
 					label: 'Best reaction (s)',
-					data: sessions.map((session) => session.best_reaction_ms === null ? null : session.best_reaction_ms / 1000),
+					data: reactionHistory.map((session) => session.bestReactionMs === null ? null : session.bestReactionMs / 1000),
 					borderColor: '#96de27',
 					backgroundColor: 'rgba(150,222,39,.10)',
 					pointBackgroundColor: '#96de27'
 				},
 				{
 					label: 'Average reaction (s)',
-					data: sessions.map((session) => session.avg_reaction_ms === null ? null : session.avg_reaction_ms / 1000),
+					data: reactionHistory.map((session) => session.averageReactionMs / 1000),
 					borderColor: 'rgba(255,255,255,.34)',
 					borderDash: [5, 5],
 					borderWidth: 1.2,
@@ -99,7 +107,7 @@
 				}
 			];
 			const target = goalTargets.reactionTime?.target;
-			if (target) datasets.push({ label: 'Goal', data: Array(sessions.length).fill(target / 1000), borderColor: '#38d9ca', borderDash: [7, 6], borderWidth: 1.4, pointRadius: 0 });
+			if (target) datasets.push({ label: 'Goal', data: Array(reactionHistory.length).fill(target / 1000), borderColor: '#38d9ca', borderDash: [7, 6], borderWidth: 1.4, pointRadius: 0 });
 			yLabel = 'seconds';
 		}
 
@@ -122,7 +130,7 @@
 		});
 	}
 
-	$effect(() => { sessions.length; view; goalTargets; draw(); });
+	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; canRender; draw(); });
 	onDestroy(() => chart?.destroy());
 </script>
 
@@ -137,10 +145,15 @@
 	</div>
 
 	<div class="chart-stage">
-		{#if sessions.length < 3}
+		{#if !canRender}
 			<div class="empty">
-				<strong>Direction needs more evidence.</strong>
-				<span>Complete {3 - sessions.length} more eligible session{3 - sessions.length === 1 ? '' : 's'} to unlock longitudinal views.</span>
+				{#if view === 'reaction'}
+					<strong>Reaction history needs another supported observation.</strong>
+					<span>Two sessions with average reaction evidence unlock observed history. Direction is only described when enough supported evidence exists.</span>
+				{:else}
+					<strong>Direction needs more evidence.</strong>
+					<span>Complete {Math.max(0, 3 - sessions.length)} more eligible session{Math.max(0, 3 - sessions.length) === 1 ? '' : 's'} to unlock this longitudinal view.</span>
+				{/if}
 			</div>
 		{:else}
 			<canvas bind:this={canvas}></canvas>
