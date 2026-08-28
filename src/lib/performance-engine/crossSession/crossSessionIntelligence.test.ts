@@ -117,6 +117,24 @@ describe('analyseCrossSessionIntelligence', () => {
 		expect(report.overallTrend).toBe('stable');
 	});
 
+	it('keeps default confidence tied to the five-session recent window, not total history', () => {
+		const sessions = Array.from({ length: 12 }, (_, i) => makeSession(i));
+		const report = analyseCrossSessionIntelligence(sessions);
+
+		expect(report.sessionCount).toBe(12);
+		expect(report.lookbackSessions).toBe(5);
+		expect(report.confidence).toBe('moderate');
+	});
+
+	it('can report high confidence when an explicit ten-session lookback supplies that evidence window', () => {
+		const sessions = Array.from({ length: 12 }, (_, i) => makeSession(i));
+		const report = analyseCrossSessionIntelligence(sessions, { lookbackSessions: 10 });
+
+		expect(report.sessionCount).toBe(12);
+		expect(report.lookbackSessions).toBe(10);
+		expect(report.confidence).toBe('high');
+	});
+
 	it('respects the lookbackSessions option when computing trends', () => {
 		const sessions = Array.from({ length: 8 }, (_, i) => makeSession(i));
 		const report = analyseCrossSessionIntelligence(sessions, { lookbackSessions: 4 });
