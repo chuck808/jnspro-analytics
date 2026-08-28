@@ -81,12 +81,13 @@ export function analyseSession(
 	// Session Intelligence - use the full intelligence analysis
 	let intelligence: SessionAnalysis['intelligence'] = null;
 	if (reactionTimes.length > 0) {
-		// Field names must match the RunData interface in repeatability.ts.
-		// Preserve the physical run number before filtering so downstream analyses
-		// that make a "Run N" claim do not confuse filtered-array position with run identity.
+		// Field names must match the RunData interface in repeatability.ts:
+		// { reactionTime, peakSpeed, peakG } — not reactionMs/maxG.
+		// Using the wrong names caused reaction time to be silently dropped from
+		// repeatability scoring (the .filter Boolean pass left an empty array).
 		const runData = analysedRuns
 			.map((r) => ({
-				runNumber: r.runNumber,
+				runNumber: r.runNumber ?? undefined,
 				reactionTime: r.reactionMs,
 				peakSpeed:
 					r.physics?.measuredPeakSpeedKmh ??
@@ -122,84 +123,131 @@ export function analyseSession(
 	};
 }
 
-export function analyseRun(run: RunLike, rider: RiderContext, totalMassKg?: number): RunAnalysis {
-	const gate = run.gate_runs;
-	const reactionMs = gate?.reaction_time_ms ?? null;
-	const maxG = gate?.max_g ?? null;
-	const analyticsValid = gate?.analytics_valid ?? false;
-	const elapsedTimeMs = run.elapsed_time_ms ?? null;
-	const chartData = run.chart_data ?? [];
-	const sampleIntervalMs = run.sample_interval_ms ?? 10;
+export function analyseRun(
+	run: RunLike,
+	rider: RiderContext,
+	totalMassKg?: number | null
+): RunAnalysis {
+	const chartData = Array.isArray(run.chart_data) ? run.chart_data : [];
+	const elapsedMs = typeof run.elapsed_time_ms === 'number' ? run.elapsed_time_ms : 2000;
+	const gate = run.gate_runs ?? null;
+	const reactionMs = typeof gate?.reaction_time_ms === 'number' ? gate.reaction_time_ms : null;
+	const maxG =
+		typeof gate?.max_g === 'number' ? gate.max_g : chartData.length ? Math.max(...chartData) : null;
+	const analyticsValid = gate?.analytics_valid ?? chartData.length > 1;
 
-	const dataQuality = assessDataQuality(run);
-	const diagnostics = runPhysicsDiagnostics(run, rider);
-
-	let physics: RunAnalysis['physics'] = null;
-	if (chartData.length > 0) {
-		const speedKmh = computeSpeedCurve(chartData, sampleIntervalMs);
-		const measuredPeakSpeedKmh = gate?.peak_speed_ms != null ? gate.peak_speed_ms * 3.6 : null;
-		const measuredAvgSpeedKmh = gate?.avg_speed_ms_calc != null ? gate.avg_speed_ms_calc * 3.6 : null;
-		const measuredEndSpeedKmh = gate?.speed_ms != null ? gate.speed_ms * 3.6 : null;
-		const rawCurvePeak = max(speedKmh);
-		const scale =
-			measuredPeakSpeedKmh != null && rawCurvePeak != null && rawCurvePeak > 0
-				? measuredPeakSpeedKmh / rawCurvePeak
-				: 1;
-		const scaledSpeedKmh = speedKmh.map((v) => v * scale);
-		const peakSpeedKmh = measuredPeakSpeedKmh ?? max(scaledSpeedKmh);
-		const distanceM =
-			elapsedTimeMs != null ? estimateDistance(scaledSpeedKmh, sampleIntervalMs) : null;
-		const peakGValue = maxG ?? max(chartData);
-		const powerW =
-			peakGValue != null && totalMassKg != null
-				? estimatePower(peakGValue, totalMassKg, peakSpeedKmh ?? 0)
-				: null;
-		const impulse = analyseImpulse(chartData, sampleIntervalMs);
-		const jerk = computeJerk(chartData, sampleIntervalMs);
-		const speedSplits = calculateSpeedSplits(scaledSpeedKmh, sampleIntervalMs);
-		const speedProfile = classifySpeedProfile(scaledSpeedKmh);
-
-		physics = {
-			speedKmh: scaledSpeedKmh,
-			measuredPeakSpeedKmh,
-			measuredAvgSpeedKmh,
-			measuredEndSpeedKmh,
-			speedCurveEstimated: true,
-			peakSpeedKmh,
-			distanceM,
-			powerW,
-			impulse,
-			jerk,
-			speedSplits,
-			speedProfile
+	if (!chartData.length) {
+		return {
+			runNumber: run.run_number ?? null,
+			elapsedMs,
+			reactionMs,
+			maxG,
+			analyticsValid: false,
+			physics: null,
+			technique: null,
+			diagnostics: [
+				{
+					code: 'NO_CHART_DATA',
+					severity: 'warning',
+					area: 'data',
+					message: 'This run has no chart_data trace, so physics analysis is unavailable.',
+					suggestion: 'Check that the uploaded session includes device trace data.'
+				}
+			]
 		};
 	}
 
-	const technique = scoreTechnique({
-		reactionMs,
-		maxG,
+	// Firmware-measured ground truth. computeSpeedCurve() integrates chart_data
+	// (IMU linear acceleration), which CRITICAL_FINDING.md diagnosed as unreliable
+	// for absolute magnitude — it's used below only for shape-dependent figures
+	// (splits, distances, power, impulse, technique) that have no firmware
+	// equivalent. Any single-number speed display should use these instead.
+	const measuredPeakSpeedKmh = gate?.peak_speed_ms ? round(gate.peak_speed_ms * 3.6, 1) : null;
+	const measuredAvgSpeedKmh = gate?.avg_speed_ms_calc
+		? round(gate.avg_speed_ms_calc * 3.6, 1)
+		: null;
+	const measuredEndSpeedKmh = gate?.speed_ms ? round(gate.speed_ms * 3.6, 1) : null;
+	const curve = computeSpeedCurve(
 		chartData,
-		sampleIntervalMs
-	});
+		elapsedMs,
+		gate?.bias_correction_ms2 ?? 0,
+		measuredPeakSpeedKmh
+	);
+	const technique = scoreTechnique(reactionMs, chartData, curve, rider.riderLevel);
+	const jerk = computeJerk(chartData, elapsedMs);
+	const power = estimatePower(chartData, curve, totalMassKg);
+	const impulse = analyseImpulse(chartData, elapsedMs, totalMassKg);
+
+	// Legacy-migrated features now in Performance Engine.
+	// Splits/distances have no firmware equivalent (chart_data-integration only),
+	// but the threshold cutoff (e.g. "was 60km/h even reached") should use the
+	// measured peak when we have it rather than the estimated curve's peak.
+	const peakSpeedKmh =
+		measuredPeakSpeedKmh ?? (curve.speeds.length > 0 ? Math.max(...curve.speeds) : 0);
+	const speedSplits = peakSpeedKmh > 0 ? calculateSpeedSplits(curve, peakSpeedKmh) : [];
+	const speedProfile = classifySpeedProfile(gate?.time_to_peak_speed_ms ?? null, elapsedMs);
+	const dataQuality = assessDataQuality(gate?.bias_correction_ms2);
+
+	const physics = {
+		timesS: curve.times,
+		accelerationG: curve.accels,
+		speedKmh: curve.speeds,
+		speedCurveEstimated: true as const,
+		measuredPeakSpeedKmh,
+		measuredAvgSpeedKmh,
+		measuredEndSpeedKmh,
+		distanceM: curve.distances,
+		jerkSeries: jerk?.series ?? [],
+		impulseSeries: impulse?.series ?? [],
+		powerSeries: power?.series ?? [],
+		jerk: jerk
+			? {
+					meanAbsolute: jerk.meanAbsolute,
+					smoothnessScore: jerk.smoothnessScore,
+					insight: jerk.insight
+				}
+			: null,
+		impulse: impulse
+			? {
+					totalImpulseNs: impulse.totalImpulseNs,
+					timeToHalfImpulseS: impulse.timeToHalfImpulseS,
+					timeToNinetyPctImpulseS: impulse.timeToNinetyPctImpulseS,
+					frontLoadedScore: impulse.frontLoadedScore,
+					impulseEfficiency: impulse.impulseEfficiency
+				}
+			: null,
+		power: power
+			? { peakW: power.peakW, averageW: power.averageW, estimated: true as const }
+			: null,
+		speedSplits,
+		speedProfile,
+		dataQuality: {
+			rating: dataQuality.rating,
+			label: dataQuality.label,
+			color: dataQuality.color,
+			badge: dataQuality.badge,
+			description: dataQuality.description,
+			bias: dataQuality.bias
+		}
+	};
+
+	const diagnostics = runPhysicsDiagnostics(physics);
 
 	return {
-		runNumber: run.run_number,
+		runNumber: run.run_number ?? null,
+		elapsedMs,
 		reactionMs,
 		maxG,
 		analyticsValid,
-		dataQuality,
-		diagnostics,
 		physics,
-		technique
+		technique,
+		diagnostics
 	};
 }
 
-function getTotalMassKg(rider: RiderContext): number | undefined {
-	if (rider.riderWeightKg == null || rider.bikeWeightKg == null) return undefined;
-	return rider.riderWeightKg + rider.bikeWeightKg;
-}
-
-function estimateDistance(speedKmh: number[], sampleIntervalMs: number): number {
-	const dtSeconds = sampleIntervalMs / 1000;
-	return speedKmh.reduce((sum, kmh) => sum + (kmh / 3.6) * dtSeconds, 0);
+function getTotalMassKg(rider: RiderContext): number | null {
+	const riderWeight = rider.riderWeightKg ?? 0;
+	const bikeWeight = rider.bikeWeightKg ?? 0;
+	const total = riderWeight + bikeWeight;
+	return total > 0 ? total : null;
 }
