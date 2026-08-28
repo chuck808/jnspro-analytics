@@ -22,6 +22,44 @@ describe('buildReactionEvidence', () => {
 		expect(model.presentation.statement).toContain('reaction baseline');
 	});
 
+	it('does not claim measured reaction evidence when none exists', () => {
+		const empty = buildReactionEvidence([]);
+		const unsupported = buildReactionEvidence([
+			{
+				...makeSession(0),
+				best_reaction_ms: null,
+				avg_reaction_ms: null,
+				reaction_cv: null
+			}
+		]);
+
+		for (const model of [empty, unsupported]) {
+			expect(model.state).toBe('measured');
+			expect(model.bestReactionMs).toBeNull();
+			expect(model.supportedSessionCount).toBe(0);
+			expect(model.presentation.statement).toBe(
+				'No supported reaction measurement is available yet. Reaction history will appear as usable evidence is recorded.'
+			);
+		}
+	});
+
+	it('keeps measured best-reaction evidence distinct from average-reaction history', () => {
+		const model = buildReactionEvidence([
+			{
+				...makeSession(0),
+				best_reaction_ms: 180,
+				avg_reaction_ms: null,
+				reaction_cv: null
+			}
+		]);
+
+		expect(model.bestReactionMs).toBe(180);
+		expect(model.supportedSessionCount).toBe(0);
+		expect(model.presentation.statement).toBe(
+			'Measured reaction evidence is available, but average-reaction history is still building.'
+		);
+	});
+
 	it('shows exactly two supported sessions as observed history without a trend claim', () => {
 		const model = buildReactionEvidence([makeSession(0), makeSession(1)]);
 
