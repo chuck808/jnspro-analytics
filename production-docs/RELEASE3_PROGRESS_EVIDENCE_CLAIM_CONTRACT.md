@@ -145,7 +145,7 @@ Measured facts do not need claim confidence.
 Within a single session, especially for Consistency & Capacity evidence, three quantities must remain distinct:
 
 - **Physical session length** — the number of physical runs recorded in the session before analytical filtering.
-- **Evidence coverage** — the count and identity of runs that supplied usable observations to the specific calculation. Coverage may be complete, incomplete but contiguous, or incomplete and non-contiguous.
+- **Evidence coverage** — the count and identity of runs that supplied usable observations to the specific calculation. Coverage may be complete, incomplete but contiguous, or incomplete and non-contiguous. Here, `incomplete but contiguous` specifically means the supported physical run sequence is unbroken **from Run 1**; a later internally consecutive sequence such as `[2, 3, 4, 5, 6]` remains incomplete/non-contiguous for persistence semantics because the start of the physical session is unsupported.
 - **Demonstrated persistence** — what the supported observations actually establish about performance remaining within the calculation's defined threshold over an identified run sequence.
 
 These quantities may happen to have the same numeric value. Numeric equality does not make them semantically interchangeable.
@@ -173,6 +173,8 @@ This evidence supports the measured facts `6 physical runs`, `5 supported observ
 When coverage is incomplete, the missing evidence must remain visible in the semantics: omit the stronger persistence claim, mark it as limited/building, or qualify it with the actual supported run identities/coverage as appropriate. Do not fill the gap by treating an unevaluated physical run as demonstrated performance.
 
 `optimal set length` and physiological `capacity` are not justified names for the current deterministic drop-off rule. Until a separately specified evidence model supports those concepts, rider-facing Progress language should describe the measured threshold behavior or performance persistence without implying physiological capacity or prescribing a set length.
+
+The legacy `setLength` field remains outside the `/progress-next` persistence contract. It is still consumed by existing session, report, social-detection, and legacy analytics surfaces, so those consumers require a separate compatibility/truth audit before the field is renamed, reinterpreted, or removed. `/progress-next` must consume `performancePersistence` rather than presenting legacy `setLength` values as persistence, capacity, or physical session length.
 
 ## Minimum claim eligibility
 
