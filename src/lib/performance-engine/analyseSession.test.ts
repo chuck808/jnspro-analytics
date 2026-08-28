@@ -133,3 +133,53 @@ describe('analyseSession — drop-off run provenance', () => {
 		expect(analysis.intelligence?.setLength.optimal).toBe(5);
 	});
 });
+
+describe('analyseSession — performance persistence evidence', () => {
+	it('keeps physical session length separate from a gapped supported sequence', () => {
+		const session: SessionLike = {
+			runs: [
+				makeRunAtSpeed(1, 30),
+				makeRun({ run_number: 2, chart_data: [] }),
+				makeRunAtSpeed(3, 31),
+				makeRunAtSpeed(4, 30),
+				makeRunAtSpeed(5, 31),
+				makeRunAtSpeed(6, 30)
+			]
+		};
+
+		const persistence = analyseSession(session, {}).intelligence?.performancePersistence;
+
+		expect(persistence).toEqual({
+			physicalRunCount: 6,
+			supportedRunCount: 5,
+			supportedRunNumbers: [1, 3, 4, 5, 6],
+			coverage: 'incomplete-non-contiguous',
+			dropOffRun: null,
+			demonstratedThroughRun: null
+		});
+	});
+
+	it('can state demonstrated persistence only through a contiguous supported prefix', () => {
+		const session: SessionLike = {
+			runs: [
+				makeRunAtSpeed(1, 30),
+				makeRunAtSpeed(2, 31),
+				makeRunAtSpeed(3, 30),
+				makeRunAtSpeed(4, 31),
+				makeRunAtSpeed(5, 30),
+				makeRun({ run_number: 6, chart_data: [] })
+			]
+		};
+
+		const persistence = analyseSession(session, {}).intelligence?.performancePersistence;
+
+		expect(persistence).toEqual({
+			physicalRunCount: 6,
+			supportedRunCount: 5,
+			supportedRunNumbers: [1, 2, 3, 4, 5],
+			coverage: 'incomplete-contiguous',
+			dropOffRun: null,
+			demonstratedThroughRun: 5
+		});
+	});
+});
