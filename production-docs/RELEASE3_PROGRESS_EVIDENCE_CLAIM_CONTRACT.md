@@ -2,6 +2,8 @@
 
 Status: proposed implementation contract
 
+Companion architecture contract: [`docs/notes/progress-clean-sheet-blueprint.md`](../docs/notes/progress-clean-sheet-blueprint.md). The clean-sheet blueprint governs the visual/component architecture and layered Progress workspace; this document governs the evidence, inference, and rider-facing claim semantics used within that architecture.
+
 ## Governing philosophy
 
 > **Measurements become knowledge only when they are understood in context.**
