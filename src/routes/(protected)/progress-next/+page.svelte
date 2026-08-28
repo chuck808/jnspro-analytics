@@ -12,6 +12,7 @@
 	import ProgressDeepEvidence from '$lib/components/progress-next/ProgressDeepEvidence.svelte';
 	import ProgressGoals from '$lib/components/progress-next/ProgressGoals.svelte';
 	import ProgressReports from '$lib/components/progress-next/ProgressReports.svelte';
+	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -22,6 +23,7 @@
 	const latestReactionCv = $derived(latestSession?.reaction_cv ?? null);
 	const latestRideScores = $derived(data.sessionAnalyses.at(-1)?.insightPack?.scores ?? null);
 	const latestSessionId = $derived(latestSession?.id ?? null);
+	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
 
 	const dateWindow = $derived.by(() => {
 		if (data.sessions.length === 0) return 'No sessions yet';
@@ -77,7 +79,7 @@
 			/>
 
 			<section class="primary-grid" aria-label="Primary Progress evidence">
-				<ProgressPrimaryChart sessions={data.sessions} {view} goalTargets={data.goalTargets} />
+				<ProgressPrimaryChart sessions={data.sessions} {view} goalTargets={data.goalTargets} {reactionEvidence} />
 				<ProgressBreakdown
 					{view}
 					reactionTrend={data.trend.reaction}
