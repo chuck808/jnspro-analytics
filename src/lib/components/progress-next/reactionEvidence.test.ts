@@ -68,4 +68,24 @@ describe('buildReactionEvidence', () => {
 		expect(model.state).toBe('observed-history');
 		expect(model.finding).toBeNull();
 	});
+
+	it('keeps a measured PB even when that session cannot support average-reaction inference', () => {
+		const sessions = [
+			makeSession(0, 250),
+			makeSession(1, 230),
+			{
+				...makeSession(2, 220),
+				best_reaction_ms: 150,
+				avg_reaction_ms: null,
+				reaction_cv: null
+			}
+		];
+
+		const model = buildReactionEvidence(sessions);
+
+		expect(model.bestReactionMs).toBe(150);
+		expect(model.supportedSessionCount).toBe(2);
+		expect(model.state).toBe('observed-history');
+		expect(model.finding).toBeNull();
+	});
 });
