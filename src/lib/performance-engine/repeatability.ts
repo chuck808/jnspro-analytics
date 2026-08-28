@@ -19,6 +19,7 @@ function score(stdDev: number, tol: MetricTolerance): number {
 }
 
 export interface RunData {
+	runNumber?: number;
 	reactionTime?: number | null;
 	peakSpeed?: number | null;
 	peakG?: number | null;
