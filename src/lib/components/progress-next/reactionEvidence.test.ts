@@ -18,6 +18,8 @@ describe('buildReactionEvidence', () => {
 		expect(model.state).toBe('measured');
 		expect(model.supportedSessionCount).toBe(1);
 		expect(model.finding).toBeNull();
+		expect(model.presentation.label).toBe('Measured');
+		expect(model.presentation.statement).toContain('reaction baseline');
 	});
 
 	it('shows exactly two supported sessions as observed history without a trend claim', () => {
@@ -26,6 +28,8 @@ describe('buildReactionEvidence', () => {
 		expect(model.state).toBe('observed-history');
 		expect(model.history).toHaveLength(2);
 		expect(model.finding).toBeNull();
+		expect(model.presentation.label).toBe('Observed history');
+		expect(model.presentation.statement).toBe('2 supported sessions show reaction history. No trend claim yet.');
 	});
 
 	it('treats four supported sessions as an early signal', () => {
@@ -35,6 +39,9 @@ describe('buildReactionEvidence', () => {
 		expect(model.supportedSessionCount).toBe(4);
 		expect(model.windowSize).toBe(4);
 		expect(model.finding?.direction).toBe('improving');
+		expect(model.presentation.label).toBe('Early signal');
+		expect(model.presentation.statement).toContain('appears');
+		expect(model.presentation.statement).toContain('latest 4 supported sessions');
 	});
 
 	it('treats seven supported sessions as a supported finding over the recent five-session window', () => {
@@ -44,6 +51,9 @@ describe('buildReactionEvidence', () => {
 		expect(model.supportedSessionCount).toBe(7);
 		expect(model.windowSize).toBe(5);
 		expect(model.finding?.direction).toBe('improving');
+		expect(model.presentation.label).toBe('Supported finding');
+		expect(model.presentation.statement).not.toContain('appears');
+		expect(model.presentation.statement).toContain('latest 5 supported sessions');
 	});
 
 	it('does not turn twelve-session maturity into a wider or higher-authority reaction window', () => {
@@ -53,6 +63,7 @@ describe('buildReactionEvidence', () => {
 		expect(model.supportedSessionCount).toBe(12);
 		expect(model.totalSessionCount).toBe(12);
 		expect(model.windowSize).toBe(5);
+		expect(model.presentation.statement).toContain('latest 5 supported sessions');
 	});
 
 	it('uses supported reaction observations rather than total session count for evidence maturity', () => {
@@ -67,6 +78,7 @@ describe('buildReactionEvidence', () => {
 		expect(model.supportedSessionCount).toBe(2);
 		expect(model.state).toBe('observed-history');
 		expect(model.finding).toBeNull();
+		expect(model.presentation.statement).toBe('2 supported sessions show reaction history. No trend claim yet.');
 	});
 
 	it('keeps a measured PB even when that session cannot support average-reaction inference', () => {
@@ -87,5 +99,15 @@ describe('buildReactionEvidence', () => {
 		expect(model.supportedSessionCount).toBe(2);
 		expect(model.state).toBe('observed-history');
 		expect(model.finding).toBeNull();
+	});
+
+	it('uses cautious wording for an early declining signal', () => {
+		const sessions = [makeSession(0, 250), makeSession(1, 260), makeSession(2, 275), makeSession(3, 290)];
+		const model = buildReactionEvidence(sessions);
+
+		expect(model.finding?.direction).toBe('declining');
+		expect(model.presentation.label).toBe('Early signal');
+		expect(model.presentation.statement).toContain('appears');
+		expect(model.presentation.statement).toContain('higher than');
 	});
 });
