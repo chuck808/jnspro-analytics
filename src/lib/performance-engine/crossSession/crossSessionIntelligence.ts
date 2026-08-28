@@ -130,13 +130,18 @@ function determineOverallTrend(
 	].filter(Boolean).length;
 
 	const decliningCount = [
-		performance.speedTrend.improving === false && performance.speedTrend.direction !== 'stable',
+		performance.speedTrend.improving === false &&
+			performance.speedTrend.direction !== 'stable' &&
+			performance.speedTrend.direction !== 'unknown',
 		performance.reactionTrend.improving === false &&
-			performance.reactionTrend.direction !== 'stable',
+			performance.reactionTrend.direction !== 'stable' &&
+			performance.reactionTrend.direction !== 'unknown',
 		consistency.repeatabilityTrend.improving === false &&
-			consistency.repeatabilityTrend.direction !== 'stable',
+			consistency.repeatabilityTrend.direction !== 'stable' &&
+			consistency.repeatabilityTrend.direction !== 'unknown',
 		fatigue.optimalSetLengthTrend.improving === false &&
-			fatigue.optimalSetLengthTrend.direction !== 'stable'
+			fatigue.optimalSetLengthTrend.direction !== 'stable' &&
+			fatigue.optimalSetLengthTrend.direction !== 'unknown'
 	].filter(Boolean).length;
 
 	if (improvingCount >= 3) return 'improving';
