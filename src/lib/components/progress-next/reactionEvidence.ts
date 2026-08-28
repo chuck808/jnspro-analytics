@@ -31,9 +31,62 @@ export interface ReactionEvidenceModel {
 		recentAverageMs: number;
 		historicalAverageMs: number;
 	};
+	presentation: {
+		label: 'Measured' | 'Observed history' | 'Early signal' | 'Supported finding';
+		statement: string;
+	};
 }
 
 const RECENT_WINDOW = 5;
+
+function describeReactionEvidence(
+	state: ReactionEvidenceState,
+	supportedSessionCount: number,
+	windowSize: number,
+	finding: ReactionEvidenceModel['finding']
+): ReactionEvidenceModel['presentation'] {
+	if (state === 'measured') {
+		return {
+			label: 'Measured',
+			statement:
+				supportedSessionCount === 1
+					? '1 supported session establishes a reaction baseline. Another supported session will unlock observed history.'
+					: 'Measured reaction evidence is available, but average-reaction history is still building.'
+		};
+	}
+
+	if (state === 'observed-history') {
+		return {
+			label: 'Observed history',
+			statement: `${supportedSessionCount} supported sessions show reaction history. No trend claim yet.`
+		};
+	}
+
+	if (!finding) {
+		return {
+			label: state === 'early-signal' ? 'Early signal' : 'Supported finding',
+			statement: `${supportedSessionCount} supported sessions are available, but no directional finding is currently supported.`
+		};
+	}
+
+	const comparison =
+		finding.direction === 'stable'
+			? 'broadly stable against'
+			: `${Math.abs(finding.changePercent).toFixed(1)}% ${finding.direction === 'improving' ? 'lower than' : 'higher than'}`;
+	const window = `within the latest ${windowSize} supported session${windowSize === 1 ? '' : 's'}`;
+
+	if (state === 'early-signal') {
+		return {
+			label: 'Early signal',
+			statement: `Recent average reaction appears ${comparison} the earlier comparison ${window}.`
+		};
+	}
+
+	return {
+		label: 'Supported finding',
+		statement: `Recent average reaction is ${comparison} the earlier comparison ${window}.`
+	};
+}
 
 /**
  * Build the rider-facing Reaction evidence boundary for /progress-next.
@@ -81,11 +134,13 @@ export function buildReactionEvidence(sessions: ReactionSessionPoint[]): Reactio
 		}
 	}
 
+	const windowSize = Math.min(recentSupported.length, RECENT_WINDOW);
+
 	return {
 		state,
 		supportedSessionCount: supported.length,
 		totalSessionCount: sessions.length,
-		windowSize: Math.min(recentSupported.length, RECENT_WINDOW),
+		windowSize,
 		bestReactionMs: bestValues.length > 0 ? Math.min(...bestValues) : null,
 		latestAverageReactionMs: latest?.avg_reaction_ms ?? null,
 		latestReactionCv: latest?.reaction_cv ?? null,
@@ -96,6 +151,7 @@ export function buildReactionEvidence(sessions: ReactionSessionPoint[]): Reactio
 			averageReactionMs: session.avg_reaction_ms,
 			reactionCv: session.reaction_cv
 		})),
-		finding
+		finding,
+		presentation: describeReactionEvidence(state, supported.length, windowSize, finding)
 	};
 }
