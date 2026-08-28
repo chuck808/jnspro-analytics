@@ -18,16 +18,33 @@ import { analyseBestVsAverage, type BestVsAverageAnalysis } from './bestVsAverag
 import { detectDropOff, type DropOffAnalysis } from './dropoff';
 import { suggestSetLength, type SetLengthSuggestion } from './setLength';
 
+export interface PerformancePersistenceEvidence {
+	physicalRunCount: number;
+	supportedRunCount: number;
+	supportedRunNumbers: number[];
+	coverage: 'complete' | 'incomplete-contiguous' | 'incomplete-non-contiguous';
+	dropOffRun: number | null;
+	demonstratedThroughRun: number | null;
+}
+
 export interface SessionIntelligenceReport {
 	repeatability: RepeatabilityAnalysis;
 	fatigue: FatigueAnalysis;
 	bestVsAvg: BestVsAverageAnalysis | null;
 	dropOff: DropOffAnalysis | null;
 	setLength: SetLengthSuggestion;
+	performancePersistence: PerformancePersistenceEvidence;
 	sessionQuality: number;
 }
 
-export function analyseSessionIntelligence(runs: RunData[]): SessionIntelligenceReport {
+export interface SessionIntelligenceOptions {
+	physicalRunCount?: number;
+}
+
+export function analyseSessionIntelligence(
+	runs: RunData[],
+	options: SessionIntelligenceOptions = {}
+): SessionIntelligenceReport {
 	const repeat = analyseRepeatability(runs);
 	const speedObservations = runs
 		.map((r, index) => ({
@@ -39,6 +56,17 @@ export function analyseSessionIntelligence(runs: RunData[]): SessionIntelligence
 				typeof observation.value === 'number' && !isNaN(observation.value)
 		);
 	const speeds = speedObservations.map((observation) => observation.value);
+	const supportedRunNumbers = speedObservations.map((observation) => observation.runNumber);
+	const physicalRunCount = options.physicalRunCount ?? runs.length;
+	const contiguousFromStart = supportedRunNumbers.every(
+		(runNumber, index) => runNumber === index + 1
+	);
+	const coverage: PerformancePersistenceEvidence['coverage'] =
+		supportedRunNumbers.length === physicalRunCount && contiguousFromStart
+			? 'complete'
+			: contiguousFromStart
+				? 'incomplete-contiguous'
+				: 'incomplete-non-contiguous';
 
 	// Fatigue uses peak speed as the primary signal (higher = better, so a
 	// declining second half flags fatigue). When speed is unavailable for the
@@ -60,11 +88,22 @@ export function analyseSessionIntelligence(runs: RunData[]): SessionIntelligence
 	// needs only the numeric values; dropOff also receives preserved physical run
 	// numbers so a "Run N" result cannot become a filtered-array position.
 	const bestVsAvg = analyseBestVsAverage(speeds);
-	const dropOff = detectDropOff(
-		speeds,
-		speedObservations.map((observation) => observation.runNumber)
-	);
+	const dropOff = detectDropOff(speeds, supportedRunNumbers);
 	const setLength = suggestSetLength(dropOff, runs.length);
+	const demonstratedThroughRun =
+		coverage === 'incomplete-non-contiguous'
+			? null
+			: dropOff
+				? dropOff.dropOffRun - 1
+				: (supportedRunNumbers.at(-1) ?? null);
+	const performancePersistence: PerformancePersistenceEvidence = {
+		physicalRunCount,
+		supportedRunCount: supportedRunNumbers.length,
+		supportedRunNumbers,
+		coverage,
+		dropOffRun: dropOff?.dropOffRun ?? null,
+		demonstratedThroughRun
+	};
 	const quality = repeat.overall - (fatigue.trend === 'declining' ? 20 : 0);
 
 	return {
@@ -73,6 +112,7 @@ export function analyseSessionIntelligence(runs: RunData[]): SessionIntelligence
 		bestVsAvg,
 		dropOff,
 		setLength,
+		performancePersistence,
 		sessionQuality: Math.max(0, quality)
 	};
 }
