@@ -43,7 +43,8 @@ function describeReactionEvidence(
 	state: ReactionEvidenceState,
 	supportedSessionCount: number,
 	windowSize: number,
-	finding: ReactionEvidenceModel['finding']
+	finding: ReactionEvidenceModel['finding'],
+	hasMeasuredReaction: boolean
 ): ReactionEvidenceModel['presentation'] {
 	if (state === 'measured') {
 		return {
@@ -51,7 +52,9 @@ function describeReactionEvidence(
 			statement:
 				supportedSessionCount === 1
 					? '1 supported session establishes a reaction baseline. Another supported session will unlock observed history.'
-					: 'Measured reaction evidence is available, but average-reaction history is still building.'
+					: hasMeasuredReaction
+						? 'Measured reaction evidence is available, but average-reaction history is still building.'
+						: 'No supported reaction measurement is available yet. Reaction history will appear as usable evidence is recorded.'
 		};
 	}
 
@@ -107,6 +110,7 @@ export function buildReactionEvidence(sessions: ReactionSessionPoint[]): Reactio
 	const bestValues = sessions
 		.map((session) => session.best_reaction_ms)
 		.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+	const bestReactionMs = bestValues.length > 0 ? Math.min(...bestValues) : null;
 
 	let state: ReactionEvidenceState = 'measured';
 	if (supported.length === 2) state = 'observed-history';
@@ -141,7 +145,7 @@ export function buildReactionEvidence(sessions: ReactionSessionPoint[]): Reactio
 		supportedSessionCount: supported.length,
 		totalSessionCount: sessions.length,
 		windowSize,
-		bestReactionMs: bestValues.length > 0 ? Math.min(...bestValues) : null,
+		bestReactionMs,
 		latestAverageReactionMs: latest?.avg_reaction_ms ?? null,
 		latestReactionCv: latest?.reaction_cv ?? null,
 		history: supported.map((session) => ({
@@ -152,6 +156,12 @@ export function buildReactionEvidence(sessions: ReactionSessionPoint[]): Reactio
 			reactionCv: session.reaction_cv
 		})),
 		finding,
-		presentation: describeReactionEvidence(state, supported.length, windowSize, finding)
+		presentation: describeReactionEvidence(
+			state,
+			supported.length,
+			windowSize,
+			finding,
+			bestReactionMs !== null
+		)
 	};
 }
