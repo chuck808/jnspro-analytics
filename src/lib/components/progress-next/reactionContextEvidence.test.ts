@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CorrelationInsight, CorrelationResult } from '$lib/analytics/correlationAnalysis';
-import { buildReactionContextEvidence } from './reactionContextEvidence';
+import { buildReactionContextEvidence, isReactionInsight } from './reactionContextEvidence';
 
 type InsightOverrides = Omit<Partial<CorrelationInsight>, 'correlation'> & {
 	correlation?: Partial<CorrelationResult>;
@@ -28,6 +28,24 @@ function makeInsight(overrides: InsightOverrides = {}): CorrelationInsight {
 		}
 	};
 }
+
+describe('isReactionInsight', () => {
+	it('recognises Reaction repeatability labels while still excluding multi-variable synthesis', () => {
+		expect(
+			isReactionInsight(
+				makeInsight({ correlation: { variable1: 'Track Surface', variable2: 'Reaction Repeatability' } })
+			)
+		).toBe(true);
+		expect(
+			isReactionInsight(
+				makeInsight({
+					id: 'insight-multi-5',
+					correlation: { variable1: 'Track Surface', variable2: 'Reaction Repeatability' }
+				})
+			)
+		).toBe(false);
+	});
+});
 
 describe('buildReactionContextEvidence', () => {
 	it('withholds contextual claims below the five-supported-Reaction floor', () => {
@@ -114,6 +132,29 @@ describe('buildReactionContextEvidence', () => {
 		expect(model.presentation.statement).toContain('not a cause');
 		expect(model.presentation.statement).not.toContain('Consider');
 		expect(model.presentation.statement).not.toContain('Peak performance');
+	});
+
+	it('surfaces Reaction repeatability context after the engine label identifies the metric accurately', () => {
+		const model = buildReactionContextEvidence(
+			[
+				makeInsight({
+					id: 'reaction-track-surface',
+					title: 'Track surface appears associated with Reaction repeatability',
+					correlation: {
+						variable1: 'Track Surface',
+						variable2: 'Reaction Repeatability',
+						direction: 'none'
+					}
+				})
+			],
+			12,
+			12
+		);
+
+		expect(model.state).toBe('contextual-finding');
+		expect(model.selected?.id).toBe('reaction-track-surface');
+		expect(model.presentation.statement).toContain('alongside reaction');
+		expect(model.presentation.statement).toContain('not a cause');
 	});
 
 	it('prefers the qualifying Reaction association with broader paired coverage', () => {
