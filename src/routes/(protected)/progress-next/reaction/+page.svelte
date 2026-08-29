@@ -62,10 +62,20 @@
 				<h1>Reaction Progress</h1>
 				<span>Depth grows only as the underlying Reaction evidence earns it.</span>
 			</div>
+
 			<div class="stage-summary">
 				<strong>{depthEvidence.presentation.label}</strong>
-				<span>{depthEvidence.supportedSessionCount} Reaction-supported session{depthEvidence.supportedSessionCount === 1 ? '' : 's'}</span>
-				<small>{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount === 1 ? '' : 's'}</small>
+				<span>
+					{depthEvidence.supportedSessionCount} Reaction-supported session{depthEvidence.supportedSessionCount ===
+					1
+						? ''
+						: 's'}
+				</span>
+				<small>
+					{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount === 1
+						? ''
+						: 's'}
+				</small>
 			</div>
 		</header>
 
@@ -75,7 +85,11 @@
 				<h2>{depthEvidence.presentation.headline}</h2>
 				<span>{depthEvidence.presentation.guidance}</span>
 			</div>
-			<div class="maturity-track" aria-label={`Current Reaction depth: ${depthEvidence.presentation.label}`}>
+
+			<div
+				class="maturity-track"
+				aria-label={`Current Reaction depth: ${depthEvidence.presentation.label}`}
+			>
 				{#each stages as stage, index}
 					<div class:reached={index <= stageIndex} class:current={index === stageIndex}>
 						<i></i>
@@ -91,16 +105,25 @@
 				<strong>{reactionValue(reactionEvidence.bestReactionMs)}</strong>
 				<small>Measured personal best</small>
 			</article>
+
 			<article>
 				<span>Latest average</span>
 				<strong>{reactionValue(reactionEvidence.latestAverageReactionMs)}</strong>
-				<small>{latestHistory ? dateLabel(latestHistory.timestamp) : 'No supported average yet'}</small>
+				<small>
+					{latestHistory ? dateLabel(latestHistory.timestamp) : 'No supported average yet'}
+				</small>
 			</article>
+
 			<article>
 				<span>Latest repeatability</span>
 				<strong>{latestRepeatability ? `${latestRepeatability.cv.toFixed(1)}%` : '—'}</strong>
-				<small>{latestRepeatability ? 'Reaction CV · lower means less variation' : 'Repeatability evidence building'}</small>
+				<small>
+					{latestRepeatability
+						? 'Reaction CV · lower means less variation'
+						: 'Repeatability evidence building'}
+				</small>
 			</article>
+
 			<article>
 				<span>Direction evidence</span>
 				<strong>{reactionEvidence.presentation.label}</strong>
@@ -129,10 +152,15 @@
 					<span>{reactionEvidence.presentation.label}</span>
 				</header>
 				<p>{reactionEvidence.presentation.statement}</p>
-				<footer>{reactionEvidence.supportedSessionCount} supported · window {reactionEvidence.windowSize}</footer>
+				<footer>
+					{reactionEvidence.supportedSessionCount} supported · window {reactionEvidence.windowSize}
+				</footer>
 			</article>
 
-			<article class="evidence-card" data-earned={depthEvidence.unlocks.repeatabilityHistory}>
+			<article
+				class="evidence-card"
+				data-earned={depthEvidence.unlocks.repeatabilityHistory}
+			>
 				<header>
 					<div>
 						<p>Repeatability</p>
@@ -141,7 +169,9 @@
 					<span>{repeatabilityEvidence.presentation.label}</span>
 				</header>
 				<p>{repeatabilityEvidence.presentation.statement}</p>
-				<footer>{repeatabilityEvidence.supportedSessionCount} CV-supported · window {repeatabilityEvidence.windowSize}</footer>
+				<footer>
+					{repeatabilityEvidence.supportedSessionCount} CV-supported · window {repeatabilityEvidence.windowSize}
+				</footer>
 			</article>
 
 			<article class="evidence-card" data-earned={depthEvidence.unlocks.context}>
@@ -154,7 +184,9 @@
 				</header>
 				<p>{contextEvidence.presentation.statement}</p>
 				{#if contextEvidence.selected}
-					<footer>{contextEvidence.selected.variable} · {contextEvidence.selected.strength} evidence · n={contextEvidence.selected.sampleSize}</footer>
+					<footer>
+						{contextEvidence.selected.variable} · {contextEvidence.selected.strength} evidence · n={contextEvidence.selected.sampleSize}
+					</footer>
 				{:else}
 					<footer>No contextual cause is inferred.</footer>
 				{/if}
@@ -175,13 +207,29 @@
 			<div>
 				<p>Evidence provenance</p>
 				<h2>Why this page can say what it says</h2>
-				<span>Every layer above consumes the frozen Reaction evidence boundaries. Overall depth never upgrades an individual statement by itself.</span>
+				<span>
+					Every layer above consumes the frozen Reaction evidence boundaries. Overall depth never
+					upgrades an individual statement by itself.
+				</span>
 			</div>
+
 			<dl>
-				<div><dt>Reaction support</dt><dd>{reactionEvidence.supportedSessionCount} sessions</dd></div>
-				<div><dt>Repeatability support</dt><dd>{repeatabilityEvidence.supportedSessionCount} sessions</dd></div>
-				<div><dt>Context analysis</dt><dd>{contextEvidence.state === 'absent' ? 'Building' : 'Run'}</dd></div>
-				<div><dt>Synthesis</dt><dd>{synthesisEvidence.state}</dd></div>
+				<div>
+					<dt>Reaction support</dt>
+					<dd>{reactionEvidence.supportedSessionCount} sessions</dd>
+				</div>
+				<div>
+					<dt>Repeatability support</dt>
+					<dd>{repeatabilityEvidence.supportedSessionCount} sessions</dd>
+				</div>
+				<div>
+					<dt>Context analysis</dt>
+					<dd>{contextEvidence.state === 'absent' ? 'Building' : 'Run'}</dd>
+				</div>
+				<div>
+					<dt>Synthesis</dt>
+					<dd>{synthesisEvidence.state}</dd>
+				</div>
 			</dl>
 		</section>
 	</div>
