@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import ProgressPrimaryChart from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
+	import ProgressReactionComparisonProof from '$lib/components/progress-next/ProgressReactionComparisonProof.svelte';
 	import ProgressReactionSupportingSessions from '$lib/components/progress-next/ProgressReactionSupportingSessions.svelte';
 	import ProgressReactionSynthesis from '$lib/components/progress-next/ProgressReactionSynthesis.svelte';
 	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
@@ -196,6 +197,11 @@
 				{/if}
 			</article>
 		</section>
+
+		<ProgressReactionComparisonProof
+			reaction={reactionEvidence}
+			repeatability={repeatabilityEvidence}
+		/>
 
 		{#if depthEvidence.unlocks.synthesis}
 			<ProgressReactionSynthesis evidence={synthesisEvidence} />
