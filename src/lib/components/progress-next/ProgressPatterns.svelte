@@ -1,18 +1,16 @@
 <script lang="ts">
 	import type { CorrelationInsight } from '$lib/analytics/correlationAnalysis';
+	import { buildVisiblePatternInsights } from './progressPatternInsights';
 
 	interface Props {
 		insights: CorrelationInsight[];
 		sessionCount: number;
+		suppressedInsightIds?: string[];
 	}
 
-	let { insights, sessionCount }: Props = $props();
+	let { insights, sessionCount, suppressedInsightIds = [] }: Props = $props();
 
-	const visible = $derived(
-		[...insights]
-			.sort((a, b) => Math.abs(b.correlation.correlation) - Math.abs(a.correlation.correlation))
-			.slice(0, 6)
-	);
+	const visible = $derived(buildVisiblePatternInsights(insights, suppressedInsightIds));
 
 	function position(r: number) {
 		return 50 + Math.max(-1, Math.min(1, r)) * 44;
