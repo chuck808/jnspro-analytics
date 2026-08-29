@@ -20,7 +20,7 @@ export interface ReactionContextEvidenceModel {
 	};
 }
 
-function isReactionInsight(insight: CorrelationInsight): boolean {
+export function isReactionInsight(insight: CorrelationInsight): boolean {
 	return (
 		!insight.id.startsWith('insight-multi-') &&
 		insight.correlation.variable2.toLowerCase().includes('reaction')
