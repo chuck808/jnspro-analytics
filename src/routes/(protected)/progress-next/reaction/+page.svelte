@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import ProgressPrimaryChart from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
+	import ProgressReactionSupportingSessions from '$lib/components/progress-next/ProgressReactionSupportingSessions.svelte';
 	import ProgressReactionSynthesis from '$lib/components/progress-next/ProgressReactionSynthesis.svelte';
 	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
 	import { buildReactionContextEvidence } from '$lib/components/progress-next/reactionContextEvidence';
 	import { buildReactionDepthEvidence } from '$lib/components/progress-next/reactionDepthEvidence';
 	import { buildReactionRepeatabilityEvidence } from '$lib/components/progress-next/reactionRepeatabilityEvidence';
+	import { buildReactionSupportingSessions } from '$lib/components/progress-next/reactionSupportingSessions';
 	import { buildReactionSynthesisEvidence } from '$lib/components/progress-next/reactionSynthesisEvidence';
 
 	let { data }: { data: PageData } = $props();
@@ -29,6 +31,9 @@
 			contextEvidence,
 			synthesisEvidence
 		)
+	);
+	const supportingSessions = $derived(
+		buildReactionSupportingSessions(reactionEvidence, repeatabilityEvidence)
 	);
 
 	const stages = ['building', 'emerging', 'developing', 'established'] as const;
@@ -201,6 +206,8 @@
 				<span>{synthesisEvidence.statement}</span>
 			</section>
 		{/if}
+
+		<ProgressReactionSupportingSessions evidence={supportingSessions} />
 
 		<section class="proof" aria-label="Reaction evidence provenance">
 			<div>
