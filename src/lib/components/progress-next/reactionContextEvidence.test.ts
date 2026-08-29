@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { CorrelationInsight } from '$lib/analytics/correlationAnalysis';
+import type { CorrelationInsight, CorrelationResult } from '$lib/analytics/correlationAnalysis';
 import { buildReactionContextEvidence } from './reactionContextEvidence';
 
-function makeInsight(
-	overrides: Partial<CorrelationInsight> & {
-		correlation?: Partial<CorrelationInsight['correlation']>;
-	} = {}
-): CorrelationInsight {
+type InsightOverrides = Omit<Partial<CorrelationInsight>, 'correlation'> & {
+	correlation?: Partial<CorrelationResult>;
+};
+
+function makeInsight(overrides: InsightOverrides = {}): CorrelationInsight {
 	return {
 		id: 'reaction-context-1',
 		title: 'Temperature appears associated with reaction time',
@@ -77,7 +77,7 @@ describe('buildReactionContextEvidence', () => {
 			[makeInsight({ correlation: { significant: false, pValue: 0.3 } })],
 			12
 		);
-
+n
 		expect(model.state).toBe('no-pattern');
 	});
 
