@@ -24,6 +24,42 @@ export interface ReactionDepthEvidenceModel {
 	};
 }
 
+function describeDepth(stage: ReactionDepthStage): ReactionDepthEvidenceModel['presentation'] {
+	if (stage === 'building') {
+		return {
+			label: 'Building',
+			headline: 'Building your Reaction baseline',
+			guidance:
+				'Measured evidence comes first. Direction and deeper interpretation appear only when supported.'
+		};
+	}
+
+	if (stage === 'emerging') {
+		return {
+			label: 'Emerging',
+			headline: 'An early Reaction signal is emerging',
+			guidance:
+				'Direction can now be described cautiously. Keep adding supported sessions to strengthen the comparison.'
+		};
+	}
+
+	if (stage === 'developing') {
+		return {
+			label: 'Developing',
+			headline: 'Reaction progression is supported',
+			guidance:
+				'The Reaction direction is supported. Other evidence layers still keep their own independent requirements.'
+		};
+	}
+
+	return {
+		label: 'Established',
+		headline: 'Reaction evidence has reached established depth',
+		guidance:
+			'Longitudinal Reaction evidence is supported and contextual analysis has run. Individual findings still retain their own confidence.'
+	};
+}
+
 /**
  * Describe how much Reaction deep-dive presentation has been earned.
  *
@@ -45,36 +81,11 @@ export function buildReactionDepthEvidence(
 		stage = context.state === 'absent' ? 'developing' : 'established';
 	}
 
-	const presentation =
-		stage === 'building'
-			? {
-					label: 'Building' as const,
-					headline: 'Building your Reaction baseline',
-					guidance: 'Measured evidence comes first. Direction and deeper interpretation appear only when supported.'
-				}
-			: stage === 'emerging'
-				? {
-						label: 'Emerging' as const,
-						headline: 'An early Reaction signal is emerging',
-						guidance: 'Direction can now be described cautiously. Keep adding supported sessions to strengthen the comparison.'
-					}
-				: stage === 'developing'
-					? {
-							label: 'Developing' as const,
-							headline: 'Reaction progression is supported',
-							guidance: 'The Reaction direction is supported. Other evidence layers still keep their own independent requirements.'
-						}
-					: {
-							label: 'Established' as const,
-							headline: 'Reaction evidence has reached established depth',
-							guidance: 'Longitudinal Reaction evidence is supported and contextual analysis has run. Individual findings still retain their own confidence.'
-						};
-
 	return {
 		stage,
 		supportedSessionCount: reaction.supportedSessionCount,
 		totalSessionCount: reaction.totalSessionCount,
-		presentation,
+		presentation: describeDepth(stage),
 		unlocks: {
 			history: reaction.history.length >= 2,
 			direction: reaction.finding !== null,
