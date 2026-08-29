@@ -4,11 +4,16 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: write
+
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: tmp-reaction-format-probe
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -18,7 +23,13 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Format and print patch
+      - name: Format and commit
         run: |
           pnpm exec prettier --write 'src/routes/(protected)/progress-next/reaction/+page.svelte'
-          git diff -- 'src/routes/(protected)/progress-next/reaction/+page.svelte'
+          if ! git diff --quiet -- 'src/routes/(protected)/progress-next/reaction/+page.svelte'; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add 'src/routes/(protected)/progress-next/reaction/+page.svelte'
+            git commit -m 'chore: capture canonical Reaction formatting'
+            git push origin HEAD:tmp-reaction-format-probe
+          fi
