@@ -77,7 +77,7 @@ describe('buildReactionContextEvidence', () => {
 			[makeInsight({ correlation: { significant: false, pValue: 0.3 } })],
 			12
 		);
-n
+
 		expect(model.state).toBe('no-pattern');
 	});
 
