@@ -12,9 +12,11 @@
 	import ProgressDeepEvidence from '$lib/components/progress-next/ProgressDeepEvidence.svelte';
 	import ProgressGoals from '$lib/components/progress-next/ProgressGoals.svelte';
 	import ProgressReports from '$lib/components/progress-next/ProgressReports.svelte';
+	import ProgressReactionSynthesis from '$lib/components/progress-next/ProgressReactionSynthesis.svelte';
 	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
 	import { buildReactionContextEvidence } from '$lib/components/progress-next/reactionContextEvidence';
 	import { buildReactionRepeatabilityEvidence } from '$lib/components/progress-next/reactionRepeatabilityEvidence';
+	import { buildReactionSynthesisEvidence } from '$lib/components/progress-next/reactionSynthesisEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -26,6 +28,9 @@
 	const latestSessionId = $derived(latestSession?.id ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
+	const reactionSynthesisEvidence = $derived(
+		buildReactionSynthesisEvidence(reactionEvidence, reactionRepeatabilityEvidence)
+	);
 	const reactionContextEvidence = $derived(
 		buildReactionContextEvidence(
 			data.correlationInsights ?? [],
@@ -105,6 +110,10 @@
 					onSelect={(nextView) => (view = nextView)}
 				/>
 			</section>
+
+			{#if view === 'reaction'}
+				<ProgressReactionSynthesis evidence={reactionSynthesisEvidence} />
+			{/if}
 
 			<section class="secondary-grid" aria-label="Start performance and ride quality">
 				<ProgressStartPerformance sessions={data.sessions} personalBests={data.personalBests} />
