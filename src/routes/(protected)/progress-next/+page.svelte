@@ -91,7 +91,7 @@
 			<ProgressSnapshotRail
 				sessionCount={data.sessionCount}
 				personalBests={data.personalBests}
-				reactionTrend={data.trend.reaction}
+				{reactionEvidence}
 				{latestSessionQuality}
 			/>
 
@@ -106,7 +106,7 @@
 				/>
 				<ProgressBreakdown
 					{view}
-					reactionTrend={data.trend.reaction}
+					{reactionEvidence}
 					speedTrend={data.trend.speed}
 					{reactionRepeatabilityEvidence}
 					sessions={data.sessions}
