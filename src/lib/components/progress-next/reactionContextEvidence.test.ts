@@ -31,7 +31,7 @@ function makeInsight(overrides: InsightOverrides = {}): CorrelationInsight {
 
 describe('buildReactionContextEvidence', () => {
 	it('withholds contextual claims below the five-supported-Reaction floor', () => {
-		const model = buildReactionContextEvidence([makeInsight()], 4);
+		const model = buildReactionContextEvidence([makeInsight()], 4, 12);
 
 		expect(model.state).toBe('absent');
 		expect(model.selected).toBeNull();
@@ -39,8 +39,17 @@ describe('buildReactionContextEvidence', () => {
 		expect(model.presentation.statement).toContain('at least 5 supported Reaction sessions');
 	});
 
-	it('returns a first-class no-pattern state when mature Reaction evidence has no qualifying context', () => {
-		const model = buildReactionContextEvidence([], 7);
+	it('keeps context building until the upstream context analysis is eligible to run', () => {
+		const model = buildReactionContextEvidence([], 7, 7);
+
+		expect(model.state).toBe('absent');
+		expect(model.selected).toBeNull();
+		expect(model.presentation.label).toBe('Context building');
+		expect(model.presentation.statement).toContain('after 10 eligible sessions');
+	});
+
+	it('returns a first-class no-pattern state after context analysis is eligible but has no qualifying finding', () => {
+		const model = buildReactionContextEvidence([], 7, 10);
 
 		expect(model.state).toBe('no-pattern');
 		expect(model.selected).toBeNull();
@@ -57,6 +66,17 @@ describe('buildReactionContextEvidence', () => {
 					}
 				})
 			],
+			12,
+			12
+		);
+
+		expect(model.state).toBe('no-pattern');
+	});
+
+	it('ignores multi-variable legacy synthesis even when its structured correlation is Reaction-shaped', () => {
+		const model = buildReactionContextEvidence(
+			[makeInsight({ id: 'insight-multi-5' })],
+			12,
 			12
 		);
 
@@ -66,6 +86,7 @@ describe('buildReactionContextEvidence', () => {
 	it('ignores a Reaction association that lacks five paired observations', () => {
 		const model = buildReactionContextEvidence(
 			[makeInsight({ correlation: { sampleSize: 4 } })],
+			12,
 			12
 		);
 
@@ -75,6 +96,7 @@ describe('buildReactionContextEvidence', () => {
 	it('ignores a non-significant Reaction association', () => {
 		const model = buildReactionContextEvidence(
 			[makeInsight({ correlation: { significant: false, pValue: 0.3 } })],
+			12,
 			12
 		);
 
@@ -82,7 +104,7 @@ describe('buildReactionContextEvidence', () => {
 	});
 
 	it('surfaces qualifying Reaction context using non-causal adapter language', () => {
-		const model = buildReactionContextEvidence([makeInsight()], 7);
+		const model = buildReactionContextEvidence([makeInsight()], 7, 12);
 
 		expect(model.state).toBe('contextual-finding');
 		expect(model.selected?.sampleSize).toBe(8);
@@ -97,9 +119,16 @@ describe('buildReactionContextEvidence', () => {
 	it('prefers the qualifying Reaction association with broader paired coverage', () => {
 		const model = buildReactionContextEvidence(
 			[
-				makeInsight({ id: 'smaller', correlation: { sampleSize: 6, correlation: -0.82, strength: 'very strong' } }),
-				makeInsight({ id: 'broader', correlation: { sampleSize: 10, correlation: -0.45, strength: 'moderate' } })
+				makeInsight({
+					id: 'smaller',
+					correlation: { sampleSize: 6, correlation: -0.82, strength: 'very strong' }
+				}),
+				makeInsight({
+					id: 'broader',
+					correlation: { sampleSize: 10, correlation: -0.45, strength: 'moderate' }
+				})
 			],
+			12,
 			12
 		);
 
