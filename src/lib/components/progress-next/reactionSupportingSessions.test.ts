@@ -3,7 +3,10 @@ import { buildReactionEvidence, type ReactionSessionPoint } from './reactionEvid
 import { buildReactionRepeatabilityEvidence } from './reactionRepeatabilityEvidence';
 import { buildReactionSupportingSessions } from './reactionSupportingSessions';
 
-function makeSession(index: number, reactionCv: number | null = 8 - index * 0.2): ReactionSessionPoint {
+function makeSession(
+	index: number,
+	reactionCv: number | null = 8 - index * 0.2
+): ReactionSessionPoint {
 	return {
 		id: `session-${index + 1}`,
 		timestamp: new Date(Date.UTC(2026, 0, index + 1)).toISOString(),
@@ -41,7 +44,9 @@ describe('buildReactionSupportingSessions', () => {
 			'session-7'
 		]);
 		expect(
-			model.sessions.filter((session) => session.supportsReactionDirection).map((session) => session.id)
+			model.sessions
+				.filter((session) => session.supportsReactionDirection)
+				.map((session) => session.id)
 		).toEqual(['session-7', 'session-6', 'session-5', 'session-4', 'session-3']);
 	});
 
@@ -54,10 +59,9 @@ describe('buildReactionSupportingSessions', () => {
 		expect(model.sessions).toHaveLength(12);
 		expect(model.reactionDirectionSessionIds).toHaveLength(5);
 		expect(model.repeatabilityDirectionSessionIds).toEqual([]);
-		expect(model.sessions.filter((session) => session.supportsRepeatability).map((session) => session.id)).toEqual([
-			'session-2',
-			'session-1'
-		]);
+		expect(
+			model.sessions.filter((session) => session.supportsRepeatability).map((session) => session.id)
+		).toEqual(['session-2', 'session-1']);
 		expect(model.sessions.every((session) => !session.supportsRepeatabilityDirection)).toBe(true);
 	});
 
@@ -74,7 +78,11 @@ describe('buildReactionSupportingSessions', () => {
 			'session-6',
 			'session-8'
 		]);
-		expect(model.sessions.find((session) => session.id === 'session-7')?.supportsRepeatability).toBe(false);
-		expect(model.sessions.find((session) => session.id === 'session-6')?.supportsRepeatabilityDirection).toBe(true);
+		expect(model.sessions.find((session) => session.id === 'session-7')?.supportsRepeatability).toBe(
+			false
+		);
+		expect(
+			model.sessions.find((session) => session.id === 'session-6')?.supportsRepeatabilityDirection
+		).toBe(true);
 	});
 });
