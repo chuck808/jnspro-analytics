@@ -21,7 +21,10 @@ export interface ReactionContextEvidenceModel {
 }
 
 function isReactionInsight(insight: CorrelationInsight): boolean {
-	return insight.correlation.variable2.toLowerCase().includes('reaction');
+	return (
+		!insight.id.startsWith('insight-multi-') &&
+		insight.correlation.variable2.toLowerCase().includes('reaction')
+	);
 }
 
 function safeVariableLabel(insight: CorrelationInsight): string {
@@ -45,13 +48,15 @@ function contextualStatement(insight: CorrelationInsight): string {
 /**
  * Adapt legacy correlation output into the stricter Reaction Progress claim boundary.
  *
- * The adapter intentionally ignores legacy recommendation/example prose and only
- * carries through qualifying Reaction associations plus their sample-size and
- * strength provenance. It does not re-run correlation calculations in Svelte.
+ * The adapter intentionally ignores legacy recommendation/example prose and
+ * multi-variable synthesis. It carries through only qualifying Reaction
+ * associations plus their sample-size and strength provenance, and it does not
+ * re-run correlation calculations in Svelte.
  */
 export function buildReactionContextEvidence(
 	insights: CorrelationInsight[],
-	supportedReactionSessionCount: number
+	supportedReactionSessionCount: number,
+	totalSessionCount: number
 ): ReactionContextEvidenceModel {
 	if (supportedReactionSessionCount < 5) {
 		return {
@@ -60,7 +65,21 @@ export function buildReactionContextEvidence(
 			selected: null,
 			presentation: {
 				label: 'Context building',
-				statement: 'Recorded context needs at least 5 supported Reaction sessions before a contextual finding can be shown.'
+				statement:
+					'Recorded context needs at least 5 supported Reaction sessions before a contextual finding can be shown.'
+			}
+		};
+	}
+
+	if (totalSessionCount < 10) {
+		return {
+			state: 'absent',
+			qualifyingInsightCount: 0,
+			selected: null,
+			presentation: {
+				label: 'Context building',
+				statement:
+					'The current context analysis begins after 10 eligible sessions. No contextual claim is made before that analysis runs.'
 			}
 		};
 	}
@@ -84,7 +103,8 @@ export function buildReactionContextEvidence(
 			selected: null,
 			presentation: {
 				label: 'No meaningful pattern',
-				statement: 'No qualifying recorded context currently shows a meaningful association with Reaction.'
+				statement:
+					'No qualifying recorded context currently shows a meaningful association with Reaction.'
 			}
 		};
 	}
