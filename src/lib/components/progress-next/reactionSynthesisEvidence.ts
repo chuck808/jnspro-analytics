@@ -33,8 +33,10 @@ function directionPhrase(
 
 /**
  * Combine Reaction direction and repeatability direction without exceeding the
- * weakest essential supporting claim. Context is intentionally excluded: a
- * contextual association may accompany this synthesis but does not explain it.
+ * weakest essential supporting claim. Aggregate synthesis state is weakest-link
+ * capped, while each clause keeps the confidence posture of its own evidence.
+ * Context is intentionally excluded: a contextual association may accompany
+ * this synthesis but does not explain it.
  */
 export function buildReactionSynthesisEvidence(
 	reaction: ReactionEvidenceModel,
@@ -67,9 +69,16 @@ export function buildReactionSynthesisEvidence(
 
 	const supported = reaction.state === 'supported-finding' && repeatability.state === 'supported-finding';
 	const state: ReactionSynthesisEvidenceState = supported ? 'supported-synthesis' : 'early-synthesis';
-	const early = state === 'early-synthesis';
-	const reactionPhrase = directionPhrase(reaction.finding.direction, 'reaction', early);
-	const repeatabilityPhrase = directionPhrase(repeatability.finding.direction, 'repeatability', early);
+	const reactionPhrase = directionPhrase(
+		reaction.finding.direction,
+		'reaction',
+		reaction.state !== 'supported-finding'
+	);
+	const repeatabilityPhrase = directionPhrase(
+		repeatability.finding.direction,
+		'repeatability',
+		repeatability.state !== 'supported-finding'
+	);
 
 	let statement = `${reactionPhrase}, while ${repeatabilityPhrase}.`;
 	if (reaction.finding.direction === repeatability.finding.direction) {
