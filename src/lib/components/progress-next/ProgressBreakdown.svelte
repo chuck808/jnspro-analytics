@@ -1,30 +1,40 @@
 <script lang="ts">
 	import type { ProgressView } from './ProgressPrimaryChart.svelte';
+	import type { ReactionEvidenceModel } from './reactionEvidence';
 	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
 
 	interface SessionPoint {
 		timestamp: string;
-		best_reaction_ms: number | null;
 		best_peak_speed_ms: number | null;
-		reaction_cv: number | null;
 	}
 
 	interface Props {
 		view: ProgressView;
-		reactionTrend: number | null;
+		reactionEvidence: ReactionEvidenceModel;
 		speedTrend: number | null;
 		reactionRepeatabilityEvidence: ReactionRepeatabilityEvidenceModel;
 		sessions?: SessionPoint[];
 		onSelect: (view: ProgressView) => void;
 	}
 
-	let { view, reactionTrend, speedTrend, reactionRepeatabilityEvidence, sessions = [], onSelect }: Props = $props();
+	let { view, reactionEvidence, speedTrend, reactionRepeatabilityEvidence, sessions = [], onSelect }: Props = $props();
 
 	function pct(value: number | null, lowerIsBetter = false) {
 		if (value === null) return { value: '—', label: 'building evidence', tone: 'neutral' };
 		if (Math.abs(value) < 1) return { value: 'Stable', label: 'recent window', tone: 'neutral' };
 		const improving = lowerIsBetter ? value < 0 : value > 0;
 		return { value: `${Math.abs(value).toFixed(1)}%`, label: improving ? 'improving' : 'declining', tone: improving ? 'good' : 'attention' };
+	}
+
+	function reactionMetric(model: ReactionEvidenceModel) {
+		const finding = model.finding;
+		if (!finding) return { value: '—', label: model.presentation.label.toLowerCase(), tone: 'neutral' };
+		if (finding.direction === 'stable') return { value: 'Stable', label: model.state === 'early-signal' ? 'early signal' : 'supported', tone: 'neutral' };
+		return {
+			value: `${Math.abs(finding.changePercent).toFixed(1)}%`,
+			label: model.state === 'early-signal' ? `appears ${finding.direction}` : finding.direction,
+			tone: finding.direction === 'improving' ? 'good' : 'attention'
+		};
 	}
 
 	function sparkPoints(values: number[], lowerIsBetter = false) {
@@ -53,6 +63,7 @@
 	}
 
 	const recent = $derived(sessions.slice(-10));
+	const recentReaction = $derived(reactionEvidence.history.slice(-10));
 	const recentRepeatability = $derived(reactionRepeatabilityEvidence.history.slice(-10));
 	const historyLabel = $derived.by(() => {
 		if (sessions.length === 0) return 'No session history';
@@ -73,9 +84,9 @@
 			label: 'Reaction',
 			provenance: 'Measured',
 			glyph: 'R',
-			metric: pct(reactionTrend, true),
-			points: sparkPoints(recent.map((session) => session.best_reaction_ms).filter((value): value is number => value !== null), true),
-			evidenceCount: recent.filter((session) => session.best_reaction_ms !== null).length
+			metric: reactionMetric(reactionEvidence),
+			points: sparkPoints(recentReaction.map((session) => session.averageReactionMs), true),
+			evidenceCount: recentReaction.length
 		},
 		{
 			key: 'speed' as const,
