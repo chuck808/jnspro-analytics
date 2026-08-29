@@ -119,6 +119,28 @@ describe('buildReactionEvidence', () => {
 		expect(model.presentation.statement).toBe('2 supported sessions show reaction history. No trend claim yet.');
 	});
 
+	it('excludes a null session from the supported trend window instead of coercing it to zero', () => {
+		const sessions = [
+			makeSession(0, 400),
+			makeSession(1, 380),
+			{ ...makeSession(2, 370), avg_reaction_ms: null, best_reaction_ms: null, reaction_cv: null },
+			makeSession(3, 360),
+			makeSession(4, 340),
+			makeSession(5, 320)
+		];
+
+		const model = buildReactionEvidence(sessions);
+
+		expect(model.totalSessionCount).toBe(6);
+		expect(model.supportedSessionCount).toBe(5);
+		expect(model.windowSize).toBe(5);
+		expect(model.history.map((item) => item.id)).not.toContain('session-3');
+		expect(model.finding?.direction).toBe('improving');
+		expect(model.finding?.historicalAverageMs).toBe(380);
+		expect(model.finding?.recentAverageMs).toBe(330);
+		expect(model.finding?.changePercent).toBeCloseTo(-13.1579, 4);
+	});
+
 	it('keeps a measured PB even when that session cannot support average-reaction inference', () => {
 		const sessions = [
 			makeSession(0, 250),
