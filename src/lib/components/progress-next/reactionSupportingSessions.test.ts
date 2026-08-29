@@ -78,9 +78,9 @@ describe('buildReactionSupportingSessions', () => {
 			'session-6',
 			'session-8'
 		]);
-		expect(model.sessions.find((session) => session.id === 'session-7')?.supportsRepeatability).toBe(
-			false
-		);
+		expect(
+			model.sessions.find((session) => session.id === 'session-7')?.supportsRepeatability
+		).toBe(false);
 		expect(
 			model.sessions.find((session) => session.id === 'session-6')?.supportsRepeatabilityDirection
 		).toBe(true);
