@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import ProgressPrimaryChart from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
 	import ProgressReactionComparisonProof from '$lib/components/progress-next/ProgressReactionComparisonProof.svelte';
+	import ProgressReactionContextProof from '$lib/components/progress-next/ProgressReactionContextProof.svelte';
 	import ProgressReactionSupportingSessions from '$lib/components/progress-next/ProgressReactionSupportingSessions.svelte';
 	import ProgressReactionSynthesis from '$lib/components/progress-next/ProgressReactionSynthesis.svelte';
 	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
@@ -203,6 +204,10 @@
 				reaction={reactionEvidence}
 				repeatability={repeatabilityEvidence}
 			/>
+		{/if}
+
+		{#if depthEvidence.unlocks.context}
+			<ProgressReactionContextProof evidence={contextEvidence} />
 		{/if}
 
 		{#if depthEvidence.unlocks.synthesis}
