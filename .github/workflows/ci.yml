@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: write
+
 env:
   # Format-valid placeholders only — satisfy $env/static/* and validateEnv()
   # for typecheck/lint/test/build. No real credentials are used in CI; live
@@ -16,6 +19,38 @@ env:
   DEVICE_INGEST_SECRET: ci-placeholder-secret-not-for-production-use-32c
 
 jobs:
+  patch-overview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tmp-reaction-overview-link
+
+      - name: Patch overview entry point
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/routes/(protected)/progress-next/+page.svelte')
+          text = path.read_text()
+          old = """\t\t\t{#if view === 'reaction'}\n\t\t\t\t<ProgressReactionSynthesis evidence={reactionSynthesisEvidence} />\n\t\t\t{/if}\n"""
+          new = """\t\t\t{#if view === 'reaction'}\n\t\t\t\t<ProgressReactionSynthesis evidence={reactionSynthesisEvidence} />\n\t\t\t\t<a class=\"reaction-depth-link\" href=\"/progress-next/reaction\">\n\t\t\t\t\t<span>Open Reaction Progress</span>\n\t\t\t\t\t<small>Follow the evidence from baseline to established depth</small>\n\t\t\t\t\t<strong aria-hidden=\"true\">→</strong>\n\t\t\t\t</a>\n\t\t\t{/if}\n"""
+          if old not in text:
+              raise SystemExit('synthesis insertion point not found')
+          text = text.replace(old, new, 1)
+          css = """
+\n\t.reaction-depth-link {\n\t\tdisplay: grid;\n\t\tgrid-template-columns: minmax(0, 1fr) auto;\n\t\tgap: 0.2rem 1rem;\n\t\talign-items: center;\n\t\tmargin-top: 0.55rem;\n\t\tborder: 1px solid rgba(75, 163, 255, 0.32);\n\t\tborder-radius: 0.8rem;\n\t\tbackground: rgba(75, 163, 255, 0.07);\n\t\tpadding: 0.7rem 0.9rem;\n\t\tcolor: #d8eaff;\n\t\ttext-decoration: none;\n\t}\n\n\t.reaction-depth-link span { font-size: 0.68rem; font-weight: 800; }\n\t.reaction-depth-link small { grid-column: 1; color: #7f98ad; font-size: 0.56rem; }\n\t.reaction-depth-link strong { grid-column: 2; grid-row: 1 / span 2; color: #8de51e; font-size: 1rem; }\n\t.reaction-depth-link:hover { border-color: rgba(141, 229, 30, 0.48); background: rgba(141, 229, 30, 0.07); }\n\t.reaction-depth-link:focus-visible { outline: 2px solid #4ba3ff; outline-offset: 2px; }\n"""
+          marker = '\n\t@media (max-width: 1180px) {'
+          if marker not in text:
+              raise SystemExit('style insertion point not found')
+          text = text.replace(marker, css + marker, 1)
+          path.write_text(text)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'src/routes/(protected)/progress-next/+page.svelte'
+          git commit -m 'feat: link Progress overview to Reaction depth'
+          git push origin HEAD:tmp-reaction-overview-link
+
   verify:
     runs-on: ubuntu-latest
     steps:
