@@ -25,7 +25,7 @@ describe('buildReactionSynthesisEvidence', () => {
 		expect(result.statement).toContain('shown separately');
 	});
 
-	it('caps synthesis at early when one essential claim is early', () => {
+	it('caps synthesis at early while preserving each claim confidence posture', () => {
 		const reactionSessions = [
 			session(1, 520, null),
 			session(2, 510, null),
@@ -39,7 +39,9 @@ describe('buildReactionSynthesisEvidence', () => {
 		);
 
 		expect(result.state).toBe('early-synthesis');
-		expect(result.statement).toContain('appears');
+		expect(result.statement).toContain('reaction is getting quicker');
+		expect(result.statement).toContain('repeatability appears to be improving');
+		expect(result.statement).not.toContain('reaction appears');
 	});
 
 	it('expresses a supported reaction/repeatability trade-off without explanation', () => {
