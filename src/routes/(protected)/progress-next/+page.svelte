@@ -14,6 +14,7 @@
 	import ProgressReports from '$lib/components/progress-next/ProgressReports.svelte';
 	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
 	import { buildReactionContextEvidence } from '$lib/components/progress-next/reactionContextEvidence';
+	import { buildReactionRepeatabilityEvidence } from '$lib/components/progress-next/reactionRepeatabilityEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -21,10 +22,10 @@
 	const latestSession = $derived(data.sessions.at(-1) ?? null);
 	const latestSessionAnalysis = $derived(data.sessionAnalyses.at(-1)?.analysis ?? null);
 	const latestSessionQuality = $derived(latestSessionAnalysis?.intelligence?.sessionQuality ?? null);
-	const latestReactionCv = $derived(latestSession?.reaction_cv ?? null);
 	const latestRideScores = $derived(data.sessionAnalyses.at(-1)?.insightPack?.scores ?? null);
 	const latestSessionId = $derived(latestSession?.id ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
+	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
 	const reactionContextEvidence = $derived(
 		buildReactionContextEvidence(
 			data.correlationInsights ?? [],
@@ -87,12 +88,19 @@
 			/>
 
 			<section class="primary-grid" aria-label="Primary Progress evidence">
-				<ProgressPrimaryChart sessions={data.sessions} {view} goalTargets={data.goalTargets} {reactionEvidence} {reactionContextEvidence} />
+				<ProgressPrimaryChart
+					sessions={data.sessions}
+					{view}
+					goalTargets={data.goalTargets}
+					{reactionEvidence}
+					{reactionContextEvidence}
+					{reactionRepeatabilityEvidence}
+				/>
 				<ProgressBreakdown
 					{view}
 					reactionTrend={data.trend.reaction}
 					speedTrend={data.trend.speed}
-					{latestReactionCv}
+					{reactionRepeatabilityEvidence}
 					sessions={data.sessions}
 					onSelect={(nextView) => (view = nextView)}
 				/>
