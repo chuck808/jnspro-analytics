@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ReactionEvidenceModel } from './reactionEvidence';
+
 	interface PersonalBests {
 		reaction_ms: number | null;
 		peak_speed_ms: number | null;
@@ -8,18 +10,34 @@
 	interface Props {
 		sessionCount: number;
 		personalBests: PersonalBests;
-		reactionTrend: number | null;
+		reactionEvidence: ReactionEvidenceModel;
 		latestSessionQuality: number | null;
 	}
 
-	let { sessionCount, personalBests, reactionTrend, latestSessionQuality }: Props = $props();
+	let { sessionCount, personalBests, reactionEvidence, latestSessionQuality }: Props = $props();
 
 	const reactionChange = $derived.by(() => {
-		if (reactionTrend === null) return { value: '—', detail: 'More history needed', tone: 'neutral' };
-		if (Math.abs(reactionTrend) < 1) return { value: 'Stable', detail: 'Recent window', tone: 'neutral' };
-		return reactionTrend < 0
-			? { value: `${Math.abs(reactionTrend).toFixed(1)}%`, detail: 'faster recently', tone: 'good' }
-			: { value: `${Math.abs(reactionTrend).toFixed(1)}%`, detail: 'slower recently', tone: 'attention' };
+		const finding = reactionEvidence.finding;
+		if (!finding) {
+			return {
+				value: '—',
+				detail: `${reactionEvidence.presentation.label} · ${reactionEvidence.supportedSessionCount} supported`,
+				tone: 'neutral'
+			};
+		}
+
+		const window = `latest ${reactionEvidence.windowSize} supported`;
+		if (finding.direction === 'stable') {
+			return { value: 'Stable', detail: window, tone: 'neutral' };
+		}
+
+		const early = reactionEvidence.state === 'early-signal';
+		const direction = finding.direction === 'improving' ? 'faster' : 'slower';
+		return {
+			value: `${Math.abs(finding.changePercent).toFixed(1)}%`,
+			detail: `${early ? 'appears ' : ''}${direction} · ${window}`,
+			tone: finding.direction === 'improving' ? 'good' : 'attention'
+		};
 	});
 
 	const cards = $derived([
