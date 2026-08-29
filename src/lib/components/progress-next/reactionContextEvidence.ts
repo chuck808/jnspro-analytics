@@ -12,6 +12,7 @@ export interface ReactionContextEvidenceModel {
 		sampleSize: number;
 		strength: CorrelationInsight['correlation']['strength'];
 		correlation: number;
+		direction: CorrelationInsight['correlation']['direction'];
 		variable: string;
 	};
 	presentation: {
@@ -129,6 +130,7 @@ export function buildReactionContextEvidence(
 			sampleSize: selected.correlation.sampleSize,
 			strength: selected.correlation.strength,
 			correlation: selected.correlation.correlation,
+			direction: selected.correlation.direction,
 			variable: safeVariableLabel(selected)
 		},
 		presentation: {
