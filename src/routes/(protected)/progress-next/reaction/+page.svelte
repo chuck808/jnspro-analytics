@@ -72,7 +72,8 @@
 						: 's'}
 				</span>
 				<small>
-					{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount === 1
+					{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount ===
+					1
 						? ''
 						: 's'}
 				</small>
@@ -157,10 +158,7 @@
 				</footer>
 			</article>
 
-			<article
-				class="evidence-card"
-				data-earned={depthEvidence.unlocks.repeatabilityHistory}
-			>
+			<article class="evidence-card" data-earned={depthEvidence.unlocks.repeatabilityHistory}>
 				<header>
 					<div>
 						<p>Repeatability</p>
@@ -185,7 +183,8 @@
 				<p>{contextEvidence.presentation.statement}</p>
 				{#if contextEvidence.selected}
 					<footer>
-						{contextEvidence.selected.variable} · {contextEvidence.selected.strength} evidence · n={contextEvidence.selected.sampleSize}
+						{contextEvidence.selected.variable} · {contextEvidence.selected.strength} evidence · n={contextEvidence
+							.selected.sampleSize}
 					</footer>
 				{:else}
 					<footer>No contextual cause is inferred.</footer>
