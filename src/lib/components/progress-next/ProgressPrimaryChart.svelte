@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import type { ReactionEvidenceModel } from './reactionEvidence';
+	import type { ReactionContextEvidenceModel } from './reactionContextEvidence';
 
 	export type ProgressView = 'reaction' | 'speed' | 'consistency';
 
@@ -17,9 +18,10 @@
 		view: ProgressView;
 		goalTargets?: Record<string, any>;
 		reactionEvidence?: ReactionEvidenceModel;
+		reactionContextEvidence?: ReactionContextEvidenceModel;
 	}
 
-	let { sessions, view, goalTargets = {}, reactionEvidence }: Props = $props();
+	let { sessions, view, goalTargets = {}, reactionEvidence, reactionContextEvidence }: Props = $props();
 	let canvas: HTMLCanvasElement | null = $state(null);
 	let chart: any = null;
 
@@ -145,12 +147,28 @@
 	</div>
 
 	{#if view === 'reaction' && reactionEvidence}
-		<div class="evidence-summary" data-state={reactionEvidence.state}>
-			<div class="evidence-label">
-				<span>{reactionEvidence.presentation.label}</span>
-				<small>{reactionEvidence.supportedSessionCount} supported session{reactionEvidence.supportedSessionCount === 1 ? '' : 's'}</small>
+		<div class="reaction-evidence-stack">
+			<div class="evidence-summary" data-state={reactionEvidence.state}>
+				<div class="evidence-label">
+					<span>{reactionEvidence.presentation.label}</span>
+					<small>{reactionEvidence.supportedSessionCount} supported session{reactionEvidence.supportedSessionCount === 1 ? '' : 's'}</small>
+				</div>
+				<p>{reactionEvidence.presentation.statement}</p>
 			</div>
-			<p>{reactionEvidence.presentation.statement}</p>
+
+			{#if reactionContextEvidence}
+				<div class="context-summary" data-state={reactionContextEvidence.state}>
+					<div class="context-label">
+						<span>{reactionContextEvidence.presentation.label}</span>
+						{#if reactionContextEvidence.selected}
+							<small>{reactionContextEvidence.selected.strength} evidence · n={reactionContextEvidence.selected.sampleSize}</small>
+						{:else}
+							<small>recorded context only</small>
+						{/if}
+					</div>
+					<p>{reactionContextEvidence.presentation.statement}</p>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -211,12 +229,13 @@
 
 	.live-mark i { width: .45rem; height: .45rem; border-radius: 999px; box-shadow: 0 0 12px currentColor; }
 
-	.evidence-summary {
+	.reaction-evidence-stack { display:grid; gap:.5rem; margin-top:.9rem; }
+	.evidence-summary,
+	.context-summary {
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		align-items: center;
 		gap: .9rem;
-		margin-top: .9rem;
 		padding: .72rem .82rem;
 		border: 1px solid #203b53;
 		border-radius: .72rem;
@@ -225,11 +244,17 @@
 
 	.evidence-summary[data-state='early-signal'] { border-color: rgba(255,179,26,.35); }
 	.evidence-summary[data-state='supported-finding'] { border-color: rgba(141,229,30,.35); }
+	.context-summary[data-state='contextual-finding'] { border-color: rgba(56,217,202,.38); background: rgba(19,53,62,.5); }
+	.context-summary[data-state='no-pattern'] { border-style: dashed; }
 
-	.evidence-label { display: grid; gap: .12rem; min-width: 7.4rem; }
-	.evidence-label span { color: #dce9f4; font-size: .63rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
-	.evidence-label small { color: #7890a4; font-size: .54rem; }
-	.evidence-summary p { margin: 0; color: #9fb1c1; font-size: .65rem; line-height: 1.45; }
+	.evidence-label,
+	.context-label { display: grid; gap: .12rem; min-width: 7.4rem; }
+	.evidence-label span,
+	.context-label span { color: #dce9f4; font-size: .63rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+	.evidence-label small,
+	.context-label small { color: #7890a4; font-size: .54rem; text-transform:capitalize; }
+	.evidence-summary p,
+	.context-summary p { margin: 0; color: #9fb1c1; font-size: .65rem; line-height: 1.45; }
 
 	.chart-stage { height: 20rem; margin-top: .8rem; }
 	.empty { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #74899d; }
@@ -240,6 +265,7 @@
 		.chart-stage { height: 16rem; }
 		.chart-heading { align-items: flex-start; }
 		.live-mark { display: none; }
-		.evidence-summary { grid-template-columns: 1fr; gap: .45rem; }
+		.evidence-summary,
+		.context-summary { grid-template-columns: 1fr; gap: .45rem; }
 	}
 </style>
