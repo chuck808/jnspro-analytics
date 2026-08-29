@@ -1,0 +1,24 @@
+name: Reaction format probe
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format and print patch
+        run: |
+          pnpm exec prettier --write 'src/routes/(protected)/progress-next/reaction/+page.svelte'
+          git diff -- 'src/routes/(protected)/progress-next/reaction/+page.svelte'
