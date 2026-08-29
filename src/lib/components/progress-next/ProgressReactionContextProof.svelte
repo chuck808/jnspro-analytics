@@ -29,10 +29,12 @@
 			</div>
 
 			<dl>
-				<div>
-					<dt>Association</dt>
-					<dd>r={correlationValue(evidence.selected.correlation)}</dd>
-				</div>
+				{#if evidence.selected.direction !== 'none'}
+					<div>
+						<dt>Association</dt>
+						<dd>r={correlationValue(evidence.selected.correlation)}</dd>
+					</div>
+				{/if}
 				<div>
 					<dt>Supported sample</dt>
 					<dd>{evidence.selected.sampleSize} sessions</dd>
