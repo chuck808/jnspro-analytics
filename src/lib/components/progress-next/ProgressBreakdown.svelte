@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ProgressView } from './ProgressPrimaryChart.svelte';
+	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
 
 	interface SessionPoint {
 		timestamp: string;
@@ -12,12 +13,12 @@
 		view: ProgressView;
 		reactionTrend: number | null;
 		speedTrend: number | null;
-		latestReactionCv: number | null;
+		reactionRepeatabilityEvidence: ReactionRepeatabilityEvidenceModel;
 		sessions?: SessionPoint[];
 		onSelect: (view: ProgressView) => void;
 	}
 
-	let { view, reactionTrend, speedTrend, latestReactionCv, sessions = [], onSelect }: Props = $props();
+	let { view, reactionTrend, speedTrend, reactionRepeatabilityEvidence, sessions = [], onSelect }: Props = $props();
 
 	function pct(value: number | null, lowerIsBetter = false) {
 		if (value === null) return { value: '—', label: 'building evidence', tone: 'neutral' };
@@ -52,11 +53,18 @@
 	}
 
 	const recent = $derived(sessions.slice(-10));
+	const recentRepeatability = $derived(reactionRepeatabilityEvidence.history.slice(-10));
 	const historyLabel = $derived.by(() => {
 		if (sessions.length === 0) return 'No session history';
 		const first = dateLabel(sessions[0].timestamp);
 		const last = dateLabel(sessions.at(-1)!.timestamp);
 		return `${sessions.length} session${sessions.length === 1 ? '' : 's'} · ${first}–${last}`;
+	});
+
+	const consistencyMetric = $derived.by(() => {
+		const latestCv = reactionRepeatabilityEvidence.latestCv;
+		if (latestCv === null) return { value: '—', label: 'building evidence', tone: 'neutral' };
+		return { value: `${latestCv.toFixed(1)}%`, label: 'latest session CV', tone: 'neutral' };
 	});
 
 	const rows = $derived.by(() => [
@@ -83,11 +91,9 @@
 			label: 'Consistency',
 			provenance: 'Reaction CV',
 			glyph: 'C',
-			metric: latestReactionCv === null
-				? { value: '—', label: 'building evidence', tone: 'neutral' }
-				: { value: `${latestReactionCv.toFixed(1)}%`, label: latestReactionCv < 2 ? 'tight' : latestReactionCv < 5 ? 'developing' : 'variable', tone: latestReactionCv < 5 ? 'good' : 'attention' },
-			points: sparkPoints(recent.map((session) => session.reaction_cv).filter((value): value is number => value !== null), true),
-			evidenceCount: recent.filter((session) => session.reaction_cv !== null).length
+			metric: consistencyMetric,
+			points: sparkPoints(recentRepeatability.map((session) => session.cv), true),
+			evidenceCount: recentRepeatability.length
 		}
 	]);
 </script>
