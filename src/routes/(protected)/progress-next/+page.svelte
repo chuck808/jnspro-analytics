@@ -116,6 +116,11 @@
 
 			{#if view === 'reaction'}
 				<ProgressReactionSynthesis evidence={reactionSynthesisEvidence} />
+				<a class="reaction-depth-link" href="/progress-next/reaction">
+					<span>Open Reaction Progress</span>
+					<small>Follow the evidence from baseline to established depth</small>
+					<strong aria-hidden="true">→</strong>
+				</a>
 			{/if}
 
 			<section class="secondary-grid" aria-label="Start performance and ride quality">
@@ -317,6 +322,26 @@
 	.empty-state p { margin: 0.8rem 0 0; color: #8de51e; font-size: 0.7rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.13em; }
 	.empty-state h2 { max-width: 35rem; margin: 0.8rem 0 0; color: #f7fbff; font-size: clamp(1.35rem, 3vw, 2.4rem); line-height: 1.15; letter-spacing: -0.03em; }
 	.empty-state a { margin-top: 1.5rem; border-radius: 0.7rem; background: #4ba3ff; padding: 0.75rem 1rem; color: #04101a; font-size: 0.72rem; font-weight: 800; text-decoration: none; }
+
+	.reaction-depth-link {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.2rem 1rem;
+		align-items: center;
+		margin-top: 0.55rem;
+		border: 1px solid rgba(75, 163, 255, 0.32);
+		border-radius: 0.8rem;
+		background: rgba(75, 163, 255, 0.07);
+		padding: 0.7rem 0.9rem;
+		color: #d8eaff;
+		text-decoration: none;
+	}
+
+	.reaction-depth-link span { font-size: 0.68rem; font-weight: 800; }
+	.reaction-depth-link small { grid-column: 1; color: #7f98ad; font-size: 0.56rem; }
+	.reaction-depth-link strong { grid-column: 2; grid-row: 1 / span 2; color: #8de51e; font-size: 1rem; }
+	.reaction-depth-link:hover { border-color: rgba(141, 229, 30, 0.48); background: rgba(141, 229, 30, 0.07); }
+	.reaction-depth-link:focus-visible { outline: 2px solid #4ba3ff; outline-offset: 2px; }
 
 	@media (max-width: 1180px) {
 		.lower-grid,
