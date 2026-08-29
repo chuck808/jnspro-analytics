@@ -65,10 +65,11 @@ describe('buildReactionDepthEvidence', () => {
 	});
 
 	it('does not let twelve total sessions promote Reaction when only two support it', () => {
-		const sessions = Array.from({ length: 12 }, (_, index) => makeSession(index)).map((session, index) =>
-			index < 2
-				? session
-				: { ...session, avg_reaction_ms: null, best_reaction_ms: null, reaction_cv: null }
+		const sessions = Array.from({ length: 12 }, (_, index) => makeSession(index)).map(
+			(session, index) =>
+				index < 2
+					? session
+					: { ...session, avg_reaction_ms: null, best_reaction_ms: null, reaction_cv: null }
 		);
 		const model = build(sessions);
 
