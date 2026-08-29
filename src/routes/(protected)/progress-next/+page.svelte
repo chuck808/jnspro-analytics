@@ -38,6 +38,9 @@
 			data.sessionCount
 		)
 	);
+	const reactionContextPatternSuppressions = $derived(
+		reactionContextEvidence.selected ? [reactionContextEvidence.selected.id] : []
+	);
 
 	const dateWindow = $derived.by(() => {
 		if (data.sessions.length === 0) return 'No sessions yet';
@@ -124,7 +127,11 @@
 
 			<section class="lower-grid" aria-label="Context, investigation, strengths and limiters">
 				<div class="patterns-slot">
-					<ProgressPatterns insights={data.correlationInsights ?? []} sessionCount={data.sessionCount} />
+					<ProgressPatterns
+						insights={data.correlationInsights ?? []}
+						sessionCount={data.sessionCount}
+						suppressedInsightIds={reactionContextPatternSuppressions}
+					/>
 				</div>
 				<div class="investigate-slot">
 					<ProgressInvestigate sessionAnalyses={data.sessionAnalyses} />
