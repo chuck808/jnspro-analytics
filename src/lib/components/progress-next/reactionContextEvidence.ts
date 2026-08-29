@@ -21,9 +21,18 @@ export interface ReactionContextEvidenceModel {
 }
 
 export function isReactionInsight(insight: CorrelationInsight): boolean {
+	if (insight.id.startsWith('insight-multi-')) return false;
+
+	const variable1 = insight.correlation.variable1.trim().toLowerCase();
+	const variable2 = insight.correlation.variable2.trim().toLowerCase();
+	if (variable2.includes('reaction')) return true;
+
+	// Legacy correlation output labels two reaction-CV analyses as generic
+	// "Consistency": track surface vs reactionCV and run count vs reactionCV.
+	// Treat only those known call-site identities as Reaction repeatability evidence.
 	return (
-		!insight.id.startsWith('insight-multi-') &&
-		insight.correlation.variable2.toLowerCase().includes('reaction')
+		variable2 === 'consistency' &&
+		(variable1 === 'track surface' || variable1 === 'runs per session')
 	);
 }
 
