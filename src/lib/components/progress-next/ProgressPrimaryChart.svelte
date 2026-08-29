@@ -2,6 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import type { ReactionEvidenceModel } from './reactionEvidence';
 	import type { ReactionContextEvidenceModel } from './reactionContextEvidence';
+	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
 
 	export type ProgressView = 'reaction' | 'speed' | 'consistency';
 
@@ -19,21 +20,33 @@
 		goalTargets?: Record<string, any>;
 		reactionEvidence?: ReactionEvidenceModel;
 		reactionContextEvidence?: ReactionContextEvidenceModel;
+		reactionRepeatabilityEvidence?: ReactionRepeatabilityEvidenceModel;
 	}
 
-	let { sessions, view, goalTargets = {}, reactionEvidence, reactionContextEvidence }: Props = $props();
+	let {
+		sessions,
+		view,
+		goalTargets = {},
+		reactionEvidence,
+		reactionContextEvidence,
+		reactionRepeatabilityEvidence
+	}: Props = $props();
 	let canvas: HTMLCanvasElement | null = $state(null);
 	let chart: any = null;
 
 	const meta = $derived.by(() => {
 		if (view === 'speed') return { title: 'Peak speed progression', note: 'Validated IMU evidence · higher is better', accent: '#ff7555' };
-		if (view === 'consistency') return { title: 'Reaction consistency', note: 'Session CV · lower means more repeatable', accent: '#38d9ca' };
+		if (view === 'consistency') return { title: 'Reaction consistency', note: 'Session CV · lower means less within-session variation', accent: '#38d9ca' };
 		return { title: 'Reaction progression', note: 'Best + average reaction · lower is better', accent: '#96de27' };
 	});
 
-	const canRender = $derived(view === 'reaction'
-		? (reactionEvidence?.history.length ?? 0) >= 2
-		: sessions.length >= 3);
+	const canRender = $derived(
+		view === 'reaction'
+			? (reactionEvidence?.history.length ?? 0) >= 2
+			: view === 'consistency'
+				? (reactionRepeatabilityEvidence?.history.length ?? 0) >= 2
+				: sessions.length >= 3
+	);
 
 	function labelDate(value: string) {
 		return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -46,7 +59,8 @@
 		chart?.destroy();
 
 		const reactionHistory = reactionEvidence?.history ?? [];
-		const chartSessions = view === 'reaction' ? reactionHistory : sessions;
+		const repeatabilityHistory = reactionRepeatabilityEvidence?.history ?? [];
+		const chartSessions = view === 'reaction' ? reactionHistory : view === 'consistency' ? repeatabilityHistory : sessions;
 		const labels = chartSessions.map((session) => labelDate(session.timestamp));
 		const commonDataset = {
 			borderWidth: 2.4,
@@ -74,14 +88,8 @@
 		} else if (view === 'consistency') {
 			datasets = [{
 				label: 'Reaction CV %',
-				data: sessions.map((session) => session.reaction_cv),
-				backgroundColor: sessions.map((session) => {
-					const cv = session.reaction_cv;
-					if (cv === null) return 'rgba(127,147,168,.25)';
-					if (cv < 2) return 'rgba(56,217,202,.80)';
-					if (cv < 5) return 'rgba(255,179,26,.78)';
-					return 'rgba(255,92,92,.72)';
-				}),
+				data: repeatabilityHistory.map((session) => session.cv),
+				backgroundColor: 'rgba(56,217,202,.72)',
 				borderRadius: 5,
 				maxBarThickness: 30
 			}];
@@ -127,12 +135,12 @@
 				scales: {
 					x: { grid: { display: false }, ticks: { color: '#657b90', maxTicksLimit: 8, font: { size: 10 } }, border: { color: '#20374b' } },
 					y: { reverse, grid: { color: 'rgba(91,121,148,.14)' }, ticks: { color: '#657b90', font: { size: 10 } }, border: { display: false }, title: { display: true, text: yLabel, color: '#657b90', font: { size: 10 } } }
-			}
+				}
 			} as any
 		});
 	}
 
-	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; canRender; draw(); });
+	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; reactionRepeatabilityEvidence; canRender; draw(); });
 	onDestroy(() => chart?.destroy());
 </script>
 
@@ -172,12 +180,27 @@
 		</div>
 	{/if}
 
+	{#if view === 'consistency' && reactionRepeatabilityEvidence}
+		<div class="reaction-evidence-stack">
+			<div class="repeatability-summary" data-state={reactionRepeatabilityEvidence.state}>
+				<div class="evidence-label">
+					<span>{reactionRepeatabilityEvidence.presentation.label}</span>
+					<small>{reactionRepeatabilityEvidence.supportedSessionCount} CV-supported session{reactionRepeatabilityEvidence.supportedSessionCount === 1 ? '' : 's'}</small>
+				</div>
+				<p>{reactionRepeatabilityEvidence.presentation.statement}</p>
+			</div>
+		</div>
+	{/if}
+
 	<div class="chart-stage">
 		{#if !canRender}
 			<div class="empty">
 				{#if view === 'reaction'}
 					<strong>Reaction history needs another supported observation.</strong>
 					<span>Two sessions with average reaction evidence unlock observed history. Direction is only described when enough supported evidence exists.</span>
+				{:else if view === 'consistency'}
+					<strong>Repeatability history needs another supported session.</strong>
+					<span>Two sessions with measurable reaction CV unlock observed repeatability history. A session needs at least two usable reaction observations before CV can be measured.</span>
 				{:else}
 					<strong>Direction needs more evidence.</strong>
 					<span>Complete {Math.max(0, 3 - sessions.length)} more eligible session{Math.max(0, 3 - sessions.length) === 1 ? '' : 's'} to unlock this longitudinal view.</span>
@@ -231,7 +254,8 @@
 
 	.reaction-evidence-stack { display:grid; gap:.5rem; margin-top:.9rem; }
 	.evidence-summary,
-	.context-summary {
+	.context-summary,
+	.repeatability-summary {
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		align-items: center;
@@ -242,8 +266,10 @@
 		background: rgba(12,29,45,.72);
 	}
 
-	.evidence-summary[data-state='early-signal'] { border-color: rgba(255,179,26,.35); }
+	.evidence-summary[data-state='early-signal'],
+	.repeatability-summary[data-state='early-signal'] { border-color: rgba(255,179,26,.35); }
 	.evidence-summary[data-state='supported-finding'] { border-color: rgba(141,229,30,.35); }
+	.repeatability-summary[data-state='supported-finding'] { border-color: rgba(56,217,202,.38); background: rgba(19,53,62,.5); }
 	.context-summary[data-state='contextual-finding'] { border-color: rgba(56,217,202,.38); background: rgba(19,53,62,.5); }
 	.context-summary[data-state='no-pattern'] { border-style: dashed; }
 
@@ -254,7 +280,8 @@
 	.evidence-label small,
 	.context-label small { color: #7890a4; font-size: .54rem; text-transform:capitalize; }
 	.evidence-summary p,
-	.context-summary p { margin: 0; color: #9fb1c1; font-size: .65rem; line-height: 1.45; }
+	.context-summary p,
+	.repeatability-summary p { margin: 0; color: #9fb1c1; font-size: .65rem; line-height: 1.45; }
 
 	.chart-stage { height: 20rem; margin-top: .8rem; }
 	.empty { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #74899d; }
@@ -266,6 +293,7 @@
 		.chart-heading { align-items: flex-start; }
 		.live-mark { display: none; }
 		.evidence-summary,
-		.context-summary { grid-template-columns: 1fr; gap: .45rem; }
+		.context-summary,
+		.repeatability-summary { grid-template-columns: 1fr; gap: .45rem; }
 	}
 </style>
