@@ -26,7 +26,11 @@
 	const latestSessionId = $derived(latestSession?.id ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
 	const reactionContextEvidence = $derived(
-		buildReactionContextEvidence(data.correlationInsights ?? [], reactionEvidence.supportedSessionCount)
+		buildReactionContextEvidence(
+			data.correlationInsights ?? [],
+			reactionEvidence.supportedSessionCount,
+			data.sessionCount
+		)
 	);
 
 	const dateWindow = $derived.by(() => {
