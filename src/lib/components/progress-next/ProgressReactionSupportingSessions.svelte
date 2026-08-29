@@ -34,47 +34,55 @@
 		</div>
 	</header>
 
-	<div class="session-list">
-		{#each evidence.sessions as session}
-			<a class="session-row" href={`/sessions/${session.id}`}>
-				<div class="session-date">
-					<strong>{dateLabel(session.timestamp)}</strong>
-					<span>Open session →</span>
-				</div>
+	<details open={evidence.sessions.length <= 4}>
+		<summary>
+			<span>Session-level proof</span>
+			<strong>{evidence.sessions.length} sessions</strong>
+			<small>Open to inspect the measurements and evidence membership behind this view.</small>
+		</summary>
 
-				<dl>
-					<div>
-						<dt>Average</dt>
-						<dd>{reactionValue(session.averageReactionMs)}</dd>
+		<div class="session-list">
+			{#each evidence.sessions as session}
+				<a class="session-row" href={`/sessions/${session.id}`}>
+					<div class="session-date">
+						<strong>{dateLabel(session.timestamp)}</strong>
+						<span>Open session →</span>
 					</div>
-					<div>
-						<dt>Best</dt>
-						<dd>{reactionValue(session.bestReactionMs)}</dd>
-					</div>
-					<div>
-						<dt>Reaction CV</dt>
-						<dd>{session.reactionCv === null ? '—' : `${session.reactionCv.toFixed(1)}%`}</dd>
-					</div>
-				</dl>
 
-				<div class="support-badges" aria-label="Evidence supported by this session">
-					{#if session.supportsReactionDirection}
-						<span class="earned">Reaction direction</span>
-					{:else}
-						<span>Reaction history</span>
-					{/if}
+					<dl>
+						<div>
+							<dt>Average</dt>
+							<dd>{reactionValue(session.averageReactionMs)}</dd>
+						</div>
+						<div>
+							<dt>Best</dt>
+							<dd>{reactionValue(session.bestReactionMs)}</dd>
+						</div>
+						<div>
+							<dt>Reaction CV</dt>
+							<dd>{session.reactionCv === null ? '—' : `${session.reactionCv.toFixed(1)}%`}</dd>
+						</div>
+					</dl>
 
-					{#if session.supportsRepeatabilityDirection}
-						<span class="earned">Repeatability direction</span>
-					{:else if session.supportsRepeatability}
-						<span>Repeatability measured</span>
-					{:else}
-						<span class="unavailable">No repeatability measure</span>
-					{/if}
-				</div>
-			</a>
-		{/each}
-	</div>
+					<div class="support-badges" aria-label="Evidence supported by this session">
+						{#if session.supportsReactionDirection}
+							<span class="earned">Reaction direction</span>
+						{:else}
+							<span>Reaction history</span>
+						{/if}
+
+						{#if session.supportsRepeatabilityDirection}
+							<span class="earned">Repeatability direction</span>
+						{:else if session.supportsRepeatability}
+							<span>Repeatability measured</span>
+						{:else}
+							<span class="unavailable">No repeatability measure</span>
+						{/if}
+					</div>
+				</a>
+			{/each}
+		</div>
+	</details>
 </section>
 
 <style>
@@ -140,10 +148,53 @@
 		color: #7f95a7;
 	}
 
+	details {
+		margin-top: 0.9rem;
+	}
+
+	summary {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 0.15rem 0.75rem;
+		align-items: baseline;
+		padding: 0.7rem 0.8rem;
+		border: 1px solid #1b3449;
+		border-radius: 0.7rem;
+		background: rgba(7, 20, 32, 0.7);
+		cursor: pointer;
+		list-style: none;
+	}
+
+	summary::-webkit-details-marker {
+		display: none;
+	}
+
+	summary span {
+		font-size: 0.62rem;
+		font-weight: 800;
+		color: #dce8f2;
+	}
+
+	summary strong {
+		font-size: 0.58rem;
+		color: #dfffb4;
+	}
+
+	summary small {
+		grid-column: 1 / -1;
+		font-size: 0.52rem;
+		line-height: 1.45;
+		color: #71889b;
+	}
+
+	details[open] summary {
+		border-color: #315a79;
+	}
+
 	.session-list {
 		display: grid;
 		gap: 0.45rem;
-		margin-top: 0.9rem;
+		margin-top: 0.45rem;
 	}
 
 	.session-row {
