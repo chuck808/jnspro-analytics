@@ -198,10 +198,12 @@
 			</article>
 		</section>
 
-		<ProgressReactionComparisonProof
-			reaction={reactionEvidence}
-			repeatability={repeatabilityEvidence}
-		/>
+		{#if depthEvidence.unlocks.direction || depthEvidence.unlocks.repeatabilityDirection}
+			<ProgressReactionComparisonProof
+				reaction={reactionEvidence}
+				repeatability={repeatabilityEvidence}
+			/>
+		{/if}
 
 		{#if depthEvidence.unlocks.synthesis}
 			<ProgressReactionSynthesis evidence={synthesisEvidence} />
