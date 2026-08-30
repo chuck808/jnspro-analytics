@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { PeakSpeedEvidenceModel } from './peakSpeedEvidence';
+	import type { ReactionEvidenceModel } from './reactionEvidence';
 
 	interface SessionPoint {
 		timestamp: string;
-		best_reaction_ms: number | null;
 		best_peak_speed_ms: number | null;
 		best_max_g: number | null;
 	}
@@ -11,14 +11,15 @@
 	interface Props {
 		sessions: SessionPoint[];
 		personalBests: {
-			reaction_ms: number | null;
 			max_g: number | null;
 		};
+		reactionEvidence: ReactionEvidenceModel;
 		peakSpeedEvidence: PeakSpeedEvidenceModel;
 	}
 
-	let { sessions, personalBests, peakSpeedEvidence }: Props = $props();
+	let { sessions, personalBests, reactionEvidence, peakSpeedEvidence }: Props = $props();
 	const latest = $derived(sessions.at(-1) ?? null);
+	const latestReaction = $derived(reactionEvidence.history.at(-1) ?? null);
 
 	function fmtReaction(value: number | null | undefined) {
 		return typeof value === 'number' ? `${(value / 1000).toFixed(3)}s` : '—';
@@ -32,7 +33,7 @@
 		return typeof value === 'number' ? `${value.toFixed(2)}G` : '—';
 	}
 
-	function series(key: 'best_reaction_ms' | 'best_max_g') {
+	function series(key: 'best_max_g') {
 		return sessions
 			.slice(-10)
 			.map((session) => session[key])
@@ -56,7 +57,12 @@
 			.join(' ');
 	}
 
-	const reactionSeries = $derived(series('best_reaction_ms'));
+	const reactionSeries = $derived(
+		reactionEvidence.history
+			.slice(-10)
+			.map((session) => session.bestReactionMs)
+			.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+	);
 	const speedSeries = $derived(
 		peakSpeedEvidence.history.slice(-10).map((session) => session.bestSpeedMs)
 	);
@@ -77,9 +83,9 @@
 
 	<div class="metric-grid">
 		<article class="metric reaction">
-			<div class="metric-head"><span>Reaction</span><small>measured</small></div>
-			<strong>{fmtReaction(latest?.best_reaction_ms)}</strong>
-			<p>PB {fmtReaction(personalBests.reaction_ms)}</p>
+			<div class="metric-head"><span>Reaction</span><small>latest supported</small></div>
+			<strong>{fmtReaction(latestReaction?.bestReactionMs)}</strong>
+			<p>PB {fmtReaction(reactionEvidence.bestReactionMs)}</p>
 			<svg class="micro-line" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
 				<line x1="4" y1="36" x2="96" y2="36"></line>
 				<polyline points={sparkPoints(reactionSeries, true)}></polyline>
