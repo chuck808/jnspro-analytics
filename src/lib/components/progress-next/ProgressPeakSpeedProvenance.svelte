@@ -14,19 +14,20 @@
 
 <style>
 	.provenance {
-		border: 1px solid var(--color-border, #e5e7eb);
-		border-radius: 1rem;
-		padding: 1.25rem;
-		background: var(--color-surface, #fff);
+		border: 1px solid #1d3449;
+		border-radius: 0.9rem;
+		padding: 1rem 1.1rem;
+		background: linear-gradient(180deg, rgba(10, 27, 43, 0.98), rgba(6, 18, 30, 0.98));
+		color: #f7fbff;
 	}
 
 	.eyebrow {
 		margin: 0 0 0.25rem;
-		font-size: 0.75rem;
+		font-size: 0.58rem;
 		font-weight: 800;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
-		color: var(--color-text-muted, #6b7280);
+		color: #ff7555;
 	}
 
 	h2,
@@ -36,12 +37,14 @@
 
 	h2 {
 		margin-bottom: 0.4rem;
-		font-size: 1.15rem;
+		font-size: 1rem;
+		letter-spacing: -0.02em;
 	}
 
 	p {
-		color: var(--color-text-muted, #6b7280);
+		font-size: 0.68rem;
 		line-height: 1.55;
+		color: #93a8b9;
 	}
 
 	p:last-child {
