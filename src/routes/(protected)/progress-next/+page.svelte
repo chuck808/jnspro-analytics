@@ -19,6 +19,8 @@
 	import { buildReactionSynthesisEvidence } from '$lib/components/progress-next/reactionSynthesisEvidence';
 	import { buildPeakSpeedEvidence } from '$lib/components/progress-next/peakSpeedEvidence';
 	import { buildRiderDevelopmentEvidence } from '$lib/components/progress-next/riderDevelopmentEvidence';
+	import { buildInvestigateEvidence } from '$lib/components/progress-next/investigateEvidence';
+	import { buildStrengthsLimitersEvidence } from '$lib/components/progress-next/strengthsLimitersEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -32,6 +34,8 @@
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
 	const peakSpeedEvidence = $derived(buildPeakSpeedEvidence(data.sessions));
 	const riderDevelopmentEvidence = $derived(buildRiderDevelopmentEvidence(data.sessionAnalyses));
+	const investigateEvidence = $derived(buildInvestigateEvidence(data.sessionAnalyses));
+	const strengthsLimitersEvidence = $derived(buildStrengthsLimitersEvidence(data.sessionAnalyses));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
 	const reactionSynthesisEvidence = $derived(
 		buildReactionSynthesisEvidence(reactionEvidence, reactionRepeatabilityEvidence)
@@ -139,8 +143,8 @@
 
 			<section class="lower-grid" aria-label="Context, investigation, strengths and limiters">
 				<div class="patterns-slot"><ProgressPatterns insights={data.correlationInsights ?? []} suppressedInsightIds={reactionContextPatternSuppressions} /></div>
-				<div class="investigate-slot"><ProgressInvestigate sessionAnalyses={data.sessionAnalyses} /></div>
-				<div class="strengths-slot"><ProgressStrengthsLimiters sessionAnalyses={data.sessionAnalyses} /></div>
+				<div class="investigate-slot"><ProgressInvestigate evidence={investigateEvidence} /></div>
+				<div class="strengths-slot"><ProgressStrengthsLimiters evidence={strengthsLimitersEvidence} /></div>
 			</section>
 
 			<section class="final-grid" aria-label="Deep evidence, goals and reports">
