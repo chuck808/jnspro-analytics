@@ -138,7 +138,7 @@
 			<ProgressRiderDevelopment evidence={riderDevelopmentEvidence} />
 
 			<section class="lower-grid" aria-label="Context, investigation, strengths and limiters">
-				<div class="patterns-slot"><ProgressPatterns insights={data.correlationInsights ?? []} sessionCount={data.sessionCount} suppressedInsightIds={reactionContextPatternSuppressions} /></div>
+				<div class="patterns-slot"><ProgressPatterns insights={data.correlationInsights ?? []} suppressedInsightIds={reactionContextPatternSuppressions} /></div>
 				<div class="investigate-slot"><ProgressInvestigate sessionAnalyses={data.sessionAnalyses} /></div>
 				<div class="strengths-slot"><ProgressStrengthsLimiters sessionAnalyses={data.sessionAnalyses} /></div>
 			</section>
