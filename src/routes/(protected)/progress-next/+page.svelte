@@ -27,7 +27,6 @@
 	const latestAnalyzedSession = $derived(data.sessionAnalyses.at(-1) ?? null);
 	const latestSessionAnalysis = $derived(latestAnalyzedSession?.analysis ?? null);
 	const latestSessionQuality = $derived(latestSessionAnalysis?.intelligence?.sessionQuality ?? null);
-	const latestRideScores = $derived(latestAnalyzedSession?.insightPack?.scores ?? null);
 	const latestSessionId = $derived(latestSession?.id ?? null);
 	const latestAnalyzedSessionId = $derived(latestAnalyzedSession?.sessionId ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
@@ -133,7 +132,7 @@
 
 			<section class="secondary-grid" aria-label="Start performance and ride quality">
 				<ProgressStartPerformance sessions={data.sessions} personalBests={data.personalBests} {peakSpeedEvidence} />
-				<ProgressRideQuality evidence={riderDevelopmentEvidence} overall={latestRideScores?.overall ?? null} />
+				<ProgressRideQuality evidence={riderDevelopmentEvidence} />
 			</section>
 
 			<ProgressRiderDevelopment evidence={riderDevelopmentEvidence} />
