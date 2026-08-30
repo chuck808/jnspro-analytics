@@ -29,11 +29,7 @@
 		</span>
 	</header>
 
-	<ProgressPrimaryChart
-		{sessions}
-		view="consistency"
-		reactionRepeatabilityEvidence={evidence}
-	/>
+	<ProgressPrimaryChart {sessions} view="consistency" reactionRepeatabilityEvidence={evidence} />
 </section>
 
 <style>
