@@ -14,26 +14,26 @@
 <section class="panel" aria-labelledby="reports-heading">
 	<div>
 		<p class="eyebrow">10 · Reports</p>
-		<h2 id="reports-heading">Turn the evidence into something shareable</h2>
-		<span class="intro">Progress reports use the same verified evidence, then adapt the detail for rider, parent or coach.</span>
+		<h2 id="reports-heading">Turn your history into something shareable</h2>
+		<span class="intro">Reports remain on the previous analytics engine while the new Progress and Sessions evidence contracts are completed.</span>
 	</div>
 
 	<div class="report-card">
 		<div class="icon" aria-hidden="true">▤</div>
 		<div class="copy">
-			<strong>Progress report</strong>
-			<span>Print or save as PDF. Exported reports keep confidence and data-quality context attached.</span>
+			<strong>Legacy progress report</strong>
+			<span>Print or save the current analytics report as PDF. Its claims are not yet governed by the clean-sheet Progress evidence model.</span>
 		</div>
 	</div>
 
 	<div class="capabilities" aria-label="Report capabilities">
-		<span>Progress</span>
+		<span>Current analytics</span>
 		<span>Print / PDF</span>
 		{#if coachLinks.length > 0}<span>Coach share · {coachLinks.length}</span>{/if}
 	</div>
 
-	<a class="action" href="/analytics">Open report builder <span aria-hidden="true">›</span></a>
-	<p class="preview-note">The verified builder remains in the reference workspace during this clean-sheet preview; no report capability has been duplicated or removed.</p>
+	<a class="action" href="/analytics">Open current report builder <span aria-hidden="true">›</span></a>
+	<p class="preview-note">The report engine will be updated after the clean-sheet Progress and Sessions contracts are complete, so this surface does not claim evidence parity yet.</p>
 </section>
 
 <style>
