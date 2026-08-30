@@ -21,6 +21,7 @@
 	import { buildRiderDevelopmentEvidence } from '$lib/components/progress-next/riderDevelopmentEvidence';
 	import { buildInvestigateEvidence } from '$lib/components/progress-next/investigateEvidence';
 	import { buildStrengthsLimitersEvidence } from '$lib/components/progress-next/strengthsLimitersEvidence';
+	import { buildProgressGoalEvidence } from '$lib/components/progress-next/goalEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -36,6 +37,7 @@
 	const riderDevelopmentEvidence = $derived(buildRiderDevelopmentEvidence(data.sessionAnalyses));
 	const investigateEvidence = $derived(buildInvestigateEvidence(data.sessionAnalyses));
 	const strengthsLimitersEvidence = $derived(buildStrengthsLimitersEvidence(data.sessionAnalyses));
+	const goalEvidence = $derived(buildProgressGoalEvidence(data.goalTargets));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
 	const reactionSynthesisEvidence = $derived(
 		buildReactionSynthesisEvidence(reactionEvidence, reactionRepeatabilityEvidence)
@@ -149,7 +151,7 @@
 
 			<section class="final-grid" aria-label="Deep evidence, goals and reports">
 				<div class="deep-slot"><ProgressDeepEvidence {latestSessionId} {latestAnalyzedSessionId} sessionCount={data.sessionCount} /></div>
-				<div class="goals-slot"><ProgressGoals goalTargets={data.goalTargets} /></div>
+				<div class="goals-slot"><ProgressGoals evidence={goalEvidence} /></div>
 				<div class="reports-slot"><ProgressReports coachLinks={data.coachLinks ?? []} /></div>
 			</section>
 		{/if}
