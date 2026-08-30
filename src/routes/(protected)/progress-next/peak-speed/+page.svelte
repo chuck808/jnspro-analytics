@@ -1,12 +1,17 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { buildPeakSpeedEvidence } from '$lib/components/progress-next/peakSpeedEvidence';
+	import ProgressPeakSpeedComparisonProof from '$lib/components/progress-next/ProgressPeakSpeedComparisonProof.svelte';
+	import ProgressPeakSpeedProvenance from '$lib/components/progress-next/ProgressPeakSpeedProvenance.svelte';
+	import ProgressPeakSpeedSupportingSessions from '$lib/components/progress-next/ProgressPeakSpeedSupportingSessions.svelte';
 	import { buildPeakSpeedDepthEvidence } from '$lib/components/progress-next/peakSpeedDepthEvidence';
+	import { buildPeakSpeedEvidence } from '$lib/components/progress-next/peakSpeedEvidence';
+	import { buildPeakSpeedSupportingSessions } from '$lib/components/progress-next/peakSpeedSupportingSessions';
 
 	let { data }: { data: PageData } = $props();
 
 	const evidence = $derived(buildPeakSpeedEvidence(data.sessions));
 	const depth = $derived(buildPeakSpeedDepthEvidence(evidence));
+	const supportingSessions = $derived(buildPeakSpeedSupportingSessions(evidence));
 	const stages = ['unavailable', 'building', 'developing'] as const;
 	const stageIndex = $derived(stages.indexOf(depth.stage));
 	const latest = $derived(evidence.history.at(-1) ?? null);
@@ -93,98 +98,21 @@
 			<p>{evidence.presentation.statement}</p>
 		</section>
 
-		{#if depth.unlocks.history}
-			<section class="history" aria-label="Validated Peak Speed history">
-				<header>
-					<div>
-						<p>Validated history</p>
-						<h2>Session-level Peak Speed evidence</h2>
-					</div>
-					<span>{evidence.history.length} supported</span>
-				</header>
-				<p class="history-note">Only sessions already admitted by the Peak Speed evidence boundary appear here. Average speed is supporting measurement only; direction is based on validated session-best speed.</p>
-
-				<div class="session-list">
-					{#each [...evidence.history].reverse() as session}
-						<a href={`/sessions/${session.id}`}>
-							<div>
-								<strong>{dateLabel(session.timestamp)}</strong>
-								<small>Open session →</small>
-							</div>
-							<dl>
-								<div>
-									<dt>Best</dt>
-									<dd>{speedValue(session.bestSpeedMs)}</dd>
-								</div>
-								<div>
-									<dt>Average</dt>
-									<dd>{speedValue(session.averageSpeedMs)}</dd>
-								</div>
-							</dl>
-						</a>
-					{/each}
-				</div>
-			</section>
+		{#if depth.unlocks.measurement}
+			<ProgressPeakSpeedSupportingSessions evidence={supportingSessions} />
 		{:else}
 			<section class="history-building" aria-label="Peak Speed history building">
 				<p>Validated history</p>
-				<h2>A second validated-speed session will unlock cross-session history.</h2>
+				<h2>Validated speed evidence has not been measured yet.</h2>
 				<span>{evidence.presentation.statement}</span>
 			</section>
 		{/if}
 
-		{#if depth.unlocks.comparisonProof && evidence.finding}
-			<section class="comparison" aria-label="Peak Speed comparison proof">
-				<header>
-					<div>
-						<p>Comparison proof</p>
-						<h2>What the direction statement compares</h2>
-					</div>
-					<span>{evidence.finding.direction}</span>
-				</header>
-				<div class="comparison-grid">
-					<div>
-						<span>Earlier comparison</span>
-						<strong>{speedValue(evidence.finding.historicalBestSpeedMs)}</strong>
-					</div>
-					<div>
-						<span>Recent comparison</span>
-						<strong>{speedValue(evidence.finding.recentBestSpeedMs)}</strong>
-					</div>
-					<div>
-						<span>Relative change</span>
-						<strong>{evidence.finding.changePercent > 0 ? '+' : ''}{evidence.finding.changePercent.toFixed(1)}%</strong>
-					</div>
-				</div>
-				<footer>{evidence.presentation.statement}</footer>
-			</section>
+		{#if depth.unlocks.comparisonProof}
+			<ProgressPeakSpeedComparisonProof {evidence} />
 		{/if}
 
-		<section class="proof" aria-label="Peak Speed evidence provenance">
-			<div>
-				<p>Evidence provenance</p>
-				<h2>Why this page can say what it says</h2>
-				<span>Session summaries admit Peak Speed only from analytics-valid gate runs. This page does not read the legacy analytics loader's speed trend or calculate a second direction.</span>
-			</div>
-			<dl>
-				<div>
-					<dt>Validated support</dt>
-					<dd>{evidence.supportedSessionCount} sessions</dd>
-				</div>
-				<div>
-					<dt>Total eligible history</dt>
-					<dd>{evidence.totalSessionCount} sessions</dd>
-				</div>
-				<div>
-					<dt>Direction source</dt>
-					<dd>Session best speed</dd>
-				</div>
-				<div>
-					<dt>Comparison window</dt>
-					<dd>Full supported history</dd>
-				</div>
-			</dl>
-		</section>
+		<ProgressPeakSpeedProvenance />
 	</div>
 </div>
 
@@ -201,6 +129,8 @@
 	.workspace {
 		width: 100%;
 		padding: clamp(1.1rem, 1.8vw, 1.8rem);
+		display: grid;
+		gap: 0.75rem;
 	}
 
 	.page-head {
@@ -208,7 +138,7 @@
 		align-items: end;
 		justify-content: space-between;
 		gap: 1.5rem;
-		margin-bottom: 1rem;
+		margin-bottom: 0.25rem;
 	}
 
 	.back-link {
@@ -225,10 +155,7 @@
 	.eyebrow,
 	.maturity-copy p,
 	.direction header p,
-	.history header p,
-	.history-building p,
-	.comparison header p,
-	.proof p {
+	.history-building p {
 		margin: 0;
 		font-size: 0.58rem;
 		font-weight: 800;
@@ -278,18 +205,14 @@
 
 	.maturity-copy h2,
 	.direction h2,
-	.history h2,
-	.history-building h2,
-	.comparison h2,
-	.proof h2 {
+	.history-building h2 {
 		margin: 0.25rem 0 0;
 		font-size: 1rem;
 		letter-spacing: -0.02em;
 	}
 
 	.maturity-copy span,
-	.history-building span,
-	.proof span {
+	.history-building span {
 		display: block;
 		margin-top: 0.35rem;
 		font-size: 0.68rem;
@@ -322,15 +245,11 @@
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 0.7rem;
-		margin-top: 0.75rem;
 	}
 
 	.snapshot article,
 	.direction,
-	.history,
-	.history-building,
-	.comparison,
-	.proof {
+	.history-building {
 		border: 1px solid #1d3449;
 		border-radius: 0.9rem;
 		background: linear-gradient(180deg, rgba(10, 27, 43, 0.98), rgba(6, 18, 30, 0.98));
@@ -347,23 +266,16 @@
 	.snapshot article strong { display: block; margin: 0.55rem 0 0.22rem; font-size: 1.2rem; }
 
 	.direction,
-	.history,
-	.history-building,
-	.comparison,
-	.proof { margin-top: 0.75rem; padding: 1rem 1.1rem; }
+	.history-building { padding: 1rem 1.1rem; }
 
-	.direction header,
-	.history header,
-	.comparison header {
+	.direction header {
 		display: flex;
 		align-items: start;
 		justify-content: space-between;
 		gap: 1rem;
 	}
 
-	.direction header > span,
-	.history header > span,
-	.comparison header > span {
+	.direction header > span {
 		border-radius: 999px;
 		background: rgba(255, 117, 85, 0.12);
 		padding: 0.3rem 0.5rem;
@@ -374,87 +286,21 @@
 		text-transform: capitalize;
 	}
 
-	.direction > p,
-	.history-note {
+	.direction > p {
 		margin: 0.75rem 0 0;
 		font-size: 0.68rem;
 		line-height: 1.55;
 		color: #a6b7c5;
 	}
 
-	.session-list { display: grid; gap: 0.45rem; margin-top: 0.9rem; }
-	.session-list > a {
-		display: grid;
-		grid-template-columns: minmax(11rem, 0.7fr) minmax(0, 1fr);
-		gap: 1rem;
-		align-items: center;
-		padding: 0.75rem 0.85rem;
-		border: 1px solid #1b3449;
-		border-radius: 0.7rem;
-		background: rgba(7, 20, 32, 0.7);
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.session-list > a:hover { border-color: #75473f; }
-	.session-list > a > div { display: grid; gap: 0.2rem; }
-	.session-list strong { font-size: 0.68rem; }
-	.session-list small { font-size: 0.52rem; color: #71889b; }
-
-	dl {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.45rem;
-		margin: 0;
-	}
-
-	dl > div {
-		padding: 0.65rem 0.75rem;
-		border: 1px solid #1b3449;
-		border-radius: 0.65rem;
-		background: rgba(7, 20, 32, 0.7);
-	}
-
-	dt { font-size: 0.52rem; color: #6f8799; }
-	dd { margin: 0.2rem 0 0; font-size: 0.65rem; font-weight: 750; color: #dce8f2; }
-
-	.comparison-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.55rem;
-		margin-top: 0.9rem;
-	}
-
-	.comparison-grid > div {
-		padding: 0.8rem;
-		border: 1px solid #1b3449;
-		border-radius: 0.7rem;
-		background: rgba(7, 20, 32, 0.7);
-	}
-
-	.comparison-grid span { display: block; font-size: 0.54rem; color: #71889b; }
-	.comparison-grid strong { display: block; margin-top: 0.3rem; font-size: 0.92rem; }
-	.comparison footer { margin-top: 0.75rem; font-size: 0.62rem; line-height: 1.5; color: #91a7b8; }
-
-	.proof {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(24rem, 0.9fr);
-		gap: 1.2rem;
-		align-items: center;
-	}
-
 	@media (max-width: 900px) {
-		.maturity,
-		.proof { grid-template-columns: 1fr; }
+		.maturity { grid-template-columns: 1fr; }
 		.snapshot { grid-template-columns: 1fr; }
-		.session-list > a { grid-template-columns: 1fr; }
 	}
 
 	@media (max-width: 640px) {
 		.page-head { align-items: stretch; flex-direction: column; }
 		.stage-summary { justify-items: start; }
-		.maturity-track,
-		.comparison-grid,
-		dl { grid-template-columns: 1fr; }
+		.maturity-track { grid-template-columns: 1fr; }
 	}
 </style>
