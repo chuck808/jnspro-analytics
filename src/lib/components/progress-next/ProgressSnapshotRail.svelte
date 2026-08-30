@@ -1,9 +1,9 @@
 <script lang="ts">
+	import type { PeakSpeedEvidenceModel } from './peakSpeedEvidence';
 	import type { ReactionEvidenceModel } from './reactionEvidence';
 
 	interface PersonalBests {
 		reaction_ms: number | null;
-		peak_speed_ms: number | null;
 		max_g: number | null;
 	}
 
@@ -11,10 +11,17 @@
 		sessionCount: number;
 		personalBests: PersonalBests;
 		reactionEvidence: ReactionEvidenceModel;
+		peakSpeedEvidence: PeakSpeedEvidenceModel;
 		latestSessionQuality: number | null;
 	}
 
-	let { sessionCount, personalBests, reactionEvidence, latestSessionQuality }: Props = $props();
+	let {
+		sessionCount,
+		personalBests,
+		reactionEvidence,
+		peakSpeedEvidence,
+		latestSessionQuality
+	}: Props = $props();
 
 	const reactionChange = $derived.by(() => {
 		const finding = reactionEvidence.finding;
@@ -44,7 +51,10 @@
 		{
 			key: 'reaction-pb',
 			label: 'Reaction PB',
-			value: personalBests.reaction_ms === null ? '—' : `${(personalBests.reaction_ms / 1000).toFixed(3)}s`,
+			value:
+				personalBests.reaction_ms === null
+					? '—'
+					: `${(personalBests.reaction_ms / 1000).toFixed(3)}s`,
 			detail: 'Measured · all time',
 			tone: 'amber',
 			glyph: '⚡'
@@ -54,22 +64,33 @@
 			label: 'Recent reaction',
 			value: reactionChange.value,
 			detail: reactionChange.detail,
-			tone: reactionChange.tone === 'good' ? 'lime' : reactionChange.tone === 'attention' ? 'coral' : 'blue',
+			tone:
+				reactionChange.tone === 'good'
+					? 'lime'
+					: reactionChange.tone === 'attention'
+						? 'coral'
+						: 'blue',
 			glyph: '↗'
 		},
 		{
 			key: 'sessions',
 			label: 'Eligible sessions',
 			value: String(sessionCount),
-			detail: sessionCount < 3 ? `${3 - sessionCount} to trend view` : 'Longitudinal record',
+			detail: 'Account history',
 			tone: 'blue',
 			glyph: '▥'
 		},
 		{
 			key: 'speed-pb',
 			label: 'Peak speed PB',
-			value: personalBests.peak_speed_ms === null ? '—' : `${(personalBests.peak_speed_ms * 3.6).toFixed(1)} km/h`,
-			detail: 'Validated IMU · all time',
+			value:
+				peakSpeedEvidence.bestSpeedMs === null
+					? '—'
+					: `${(peakSpeedEvidence.bestSpeedMs * 3.6).toFixed(1)} km/h`,
+			detail:
+				peakSpeedEvidence.supportedSessionCount === 0
+					? 'No validated IMU speed yet'
+					: `Validated IMU · ${peakSpeedEvidence.supportedSessionCount} supported`,
 			tone: 'cyan',
 			glyph: '➤'
 		},
@@ -77,7 +98,8 @@
 			key: 'session-quality',
 			label: 'Latest quality',
 			value: latestSessionQuality === null ? '—' : `${Math.round(latestSessionQuality)}/100`,
-			detail: latestSessionQuality === null ? 'Needs supported analysis' : 'Performance Engine',
+			detail:
+				latestSessionQuality === null ? 'Needs supported analysis' : 'Performance Engine',
 			tone: 'violet',
 			glyph: '◎'
 		},
@@ -125,11 +147,21 @@
 		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 	}
 
-	.snapshot-card[data-tone='amber'] { --tone: #ffb31a; }
-	.snapshot-card[data-tone='lime'] { --tone: #8de51e; }
-	.snapshot-card[data-tone='coral'] { --tone: #ff7354; }
-	.snapshot-card[data-tone='cyan'] { --tone: #34d9ed; }
-	.snapshot-card[data-tone='violet'] { --tone: #c178ff; }
+	.snapshot-card[data-tone='amber'] {
+		--tone: #ffb31a;
+	}
+	.snapshot-card[data-tone='lime'] {
+		--tone: #8de51e;
+	}
+	.snapshot-card[data-tone='coral'] {
+		--tone: #ff7354;
+	}
+	.snapshot-card[data-tone='cyan'] {
+		--tone: #34d9ed;
+	}
+	.snapshot-card[data-tone='violet'] {
+		--tone: #c178ff;
+	}
 
 	.card-top {
 		display: flex;
@@ -182,15 +214,30 @@
 		opacity: 0.55;
 	}
 
-	.spark i:nth-child(1) { height: 28%; }
-	.spark i:nth-child(2) { height: 44%; }
-	.spark i:nth-child(3) { height: 36%; }
-	.spark i:nth-child(4) { height: 62%; }
-	.spark i:nth-child(5) { height: 55%; }
-	.spark i:nth-child(6) { height: 82%; opacity: 0.95; }
+	.spark i:nth-child(1) {
+		height: 28%;
+	}
+	.spark i:nth-child(2) {
+		height: 44%;
+	}
+	.spark i:nth-child(3) {
+		height: 36%;
+	}
+	.spark i:nth-child(4) {
+		height: 62%;
+	}
+	.spark i:nth-child(5) {
+		height: 55%;
+	}
+	.spark i:nth-child(6) {
+		height: 82%;
+		opacity: 0.95;
+	}
 
 	@media (max-width: 1180px) {
-		.snapshot { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+		.snapshot {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
 	}
 
 	@media (max-width: 640px) {
