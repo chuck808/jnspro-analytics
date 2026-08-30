@@ -58,10 +58,11 @@
 
 <style>
 	.supporting-proof {
-		border: 1px solid var(--color-border, #e5e7eb);
-		border-radius: 1rem;
-		padding: 1.25rem;
-		background: var(--color-surface, #fff);
+		border: 1px solid #1d3449;
+		border-radius: 0.9rem;
+		padding: 1rem 1.1rem;
+		background: linear-gradient(180deg, rgba(10, 27, 43, 0.98), rgba(6, 18, 30, 0.98));
+		color: #f7fbff;
 	}
 
 	.section-heading,
@@ -76,74 +77,74 @@
 		gap: 1rem;
 	}
 
-	.eyebrow,
-	.section-copy,
-	.session-identity span,
-	small {
-		color: var(--color-text-muted, #6b7280);
-	}
-
 	.eyebrow {
 		margin: 0 0 0.2rem;
-		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
+		font-size: 0.58rem;
+		font-weight: 800;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
+		color: #ff7555;
 	}
 
 	h2 {
 		margin: 0;
-		font-size: 1.15rem;
+		font-size: 1rem;
+		letter-spacing: -0.02em;
 	}
 
 	.count,
 	.badge {
 		border-radius: 999px;
-		padding: 0.3rem 0.6rem;
-		font-size: 0.75rem;
-		font-weight: 700;
+		padding: 0.3rem 0.55rem;
+		font-size: 0.52rem;
+		font-weight: 750;
 		white-space: nowrap;
 	}
 
 	.count {
-		background: var(--color-surface-subtle, #f3f4f6);
+		background: rgba(255, 117, 85, 0.12);
+		color: #ffc0b2;
 	}
 
 	.section-copy {
-		margin: 0.65rem 0 1rem;
-		font-size: 0.9rem;
-		line-height: 1.5;
+		margin: 0.65rem 0 0.9rem;
+		font-size: 0.68rem;
+		line-height: 1.55;
+		color: #a6b7c5;
 	}
 
 	details {
-		border-top: 1px solid var(--color-border, #e5e7eb);
+		border-top: 1px solid #1b3449;
 		padding-top: 0.85rem;
 	}
 
 	summary {
 		cursor: pointer;
-		font-weight: 700;
+		font-size: 0.65rem;
+		font-weight: 750;
+		color: #dce8f2;
 	}
 
 	.session-list {
 		display: grid;
-		gap: 0.65rem;
+		gap: 0.45rem;
 		margin-top: 0.85rem;
 	}
 
 	.session-row {
 		gap: 1rem;
 		justify-content: space-between;
-		padding: 0.8rem;
-		border: 1px solid var(--color-border, #e5e7eb);
-		border-radius: 0.75rem;
+		padding: 0.75rem 0.85rem;
+		border: 1px solid #1b3449;
+		border-radius: 0.7rem;
+		background: rgba(7, 20, 32, 0.7);
 		color: inherit;
 		text-decoration: none;
 	}
 
 	.session-row:hover,
 	.session-row:focus-visible {
-		border-color: currentColor;
+		border-color: #75473f;
 	}
 
 	.session-identity {
@@ -152,9 +153,11 @@
 		min-width: 9rem;
 	}
 
+	.session-identity strong { font-size: 0.68rem; }
 	.session-identity span,
 	small {
-		font-size: 0.75rem;
+		font-size: 0.52rem;
+		color: #71889b;
 	}
 
 	.measurements {
@@ -165,18 +168,19 @@
 	.measurements span {
 		display: grid;
 		gap: 0.1rem;
-		font-weight: 700;
+		font-size: 0.65rem;
+		font-weight: 750;
 		text-align: right;
 	}
 
 	.badge {
-		background: #ecfdf5;
-		color: #047857;
+		background: rgba(56, 217, 202, 0.13);
+		color: #7de7dc;
 	}
 
 	.badge.measured {
-		background: #f3f4f6;
-		color: #4b5563;
+		background: rgba(127, 149, 167, 0.14);
+		color: #a6b7c5;
 	}
 
 	@media (max-width: 720px) {
