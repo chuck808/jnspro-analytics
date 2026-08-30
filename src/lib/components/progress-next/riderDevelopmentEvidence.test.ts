@@ -44,11 +44,13 @@ describe('buildRiderDevelopmentEvidence', () => {
 		expect(evidence.state).toBe('absent');
 		expect(evidence.supportedSessionCount).toBe(0);
 		expect(evidence.dimensions).toEqual([]);
+		expect(evidence.latestSupportedSession).toBeNull();
 	});
 
 	it('treats one analysed score as measurement, not development direction', () => {
-		const score = scores({ launchQuality: 81 });
+		const score = scores({ launchQuality: 81, overall: 81 });
 		score.labels.launchQuality = 'good';
+		score.labels.overall = 'good';
 		const evidence = buildRiderDevelopmentEvidence([point('1', score)]);
 
 		expect(evidence.state).toBe('measured');
@@ -57,6 +59,12 @@ describe('buildRiderDevelopmentEvidence', () => {
 			key: 'launchQuality',
 			current: 81,
 			currentLabel: 'good'
+		});
+		expect(evidence.latestSupportedSession).toMatchObject({
+			sessionId: '1',
+			overall: 81,
+			overallLabel: 'good',
+			dimensions: [{ key: 'launchQuality', value: 81, labelValue: 'good' }]
 		});
 		expect(evidence.presentation.statement).toContain('More supported observations');
 	});
@@ -83,6 +91,33 @@ describe('buildRiderDevelopmentEvidence', () => {
 			{ sessionId: '3', timestamp: '2026-08-03T10:00:00Z', value: 70 }
 		]);
 		expect(evidence.dimensions.find((item) => item.key === 'speedCarry')?.history).toHaveLength(2);
+	});
+
+	it('keeps the latest Ride Quality snapshot on one session when dimension histories are sparse', () => {
+		const first = scores({ speedCarry: 91, overall: 91 });
+		first.labels.speedCarry = 'excellent';
+		first.labels.overall = 'excellent';
+		const second = scores({ launchQuality: 60, overall: 60 });
+		second.labels.launchQuality = 'developing';
+		second.labels.overall = 'developing';
+
+		const evidence = buildRiderDevelopmentEvidence([point('1', first), point('2', second)]);
+
+		expect(evidence.dimensions.find((item) => item.key === 'speedCarry')?.current).toBe(91);
+		expect(evidence.latestSupportedSession).toEqual({
+			sessionId: '2',
+			timestamp: '2026-08-02T10:00:00Z',
+			overall: 60,
+			overallLabel: 'developing',
+			dimensions: [
+				{
+					key: 'launchQuality',
+					label: 'Launch Quality',
+					value: 60,
+					labelValue: 'developing'
+				}
+			]
+		});
 	});
 
 	it('does not manufacture strength or focus semantics from score ordering', () => {
