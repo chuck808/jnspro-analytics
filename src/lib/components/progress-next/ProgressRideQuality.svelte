@@ -1,37 +1,13 @@
 <script lang="ts">
-	import type { TechniqueScoreBreakdown } from '$lib/performance-engine/techniqueScoring';
-	import { progressDimensionPalette, type ProgressDimensionKey } from './progressDimensionPalette';
-
-	type ScoreKey = ProgressDimensionKey;
-
-	interface SessionScorePoint {
-		insightPack: {
-			scores: TechniqueScoreBreakdown;
-		};
-	}
+	import { progressDimensionPalette } from './progressDimensionPalette';
+	import type { RiderDevelopmentEvidenceModel } from './riderDevelopmentEvidence';
 
 	interface Props {
-		scores: TechniqueScoreBreakdown | null;
-		sessionAnalyses?: SessionScorePoint[];
+		evidence: RiderDevelopmentEvidenceModel;
+		overall: number | null;
 	}
 
-	let { scores, sessionAnalyses = [] }: Props = $props();
-
-	const definitions: Array<{ key: ScoreKey; label: string }> = [
-		{ key: 'launchQuality', label: 'Launch quality' },
-		{ key: 'explosiveness', label: 'Explosiveness' },
-		{ key: 'impulseTiming', label: 'Impulse timing' },
-		{ key: 'speedCarry', label: 'Speed carry' },
-		{ key: 'smoothness', label: 'Smoothness' },
-		{ key: 'repeatability', label: 'Repeatability' }
-	];
-
-	function valuesFor(key: ScoreKey) {
-		return sessionAnalyses
-			.map((item) => item.insightPack.scores[key])
-			.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-			.slice(-10);
-	}
+	let { evidence, overall }: Props = $props();
 
 	function sparkPoints(values: number[]) {
 		if (values.length < 2) return '';
@@ -44,44 +20,21 @@
 			.join(' ');
 	}
 
-	function movement(values: number[]) {
-		if (values.length < 2) return null;
-		return values.at(-1)! - values[0];
+	function labelText(label: string) {
+		return label === 'needs-work'
+			? 'Needs work'
+			: label === 'unknown'
+				? 'Measured'
+				: `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 	}
 
-	function band(value: number) {
-		if (value >= 80) return 'Strong';
-		if (value >= 65) return 'Developing';
-		return 'Needs focus';
-	}
-
-	function trajectorySummary(label: string, values: number[]) {
-		if (values.length < 2) return `${label} trajectory is still building.`;
-		const first = Math.round(values[0]);
-		const last = Math.round(values.at(-1)!);
-		const delta = last - first;
-		const direction = delta > 0 ? `up ${Math.abs(delta)} points` : delta < 0 ? `down ${Math.abs(delta)} points` : 'unchanged';
-		return `${label} moved from ${first} to ${last} out of 100 across the latest ${values.length} supported sessions, ${direction}.`;
-	}
-
-	const dimensions = $derived.by(() => {
-		if (!scores) return [];
-		return definitions
-			.map((definition) => {
-				const value = scores[definition.key];
-				if (typeof value !== 'number') return null;
-				const history = valuesFor(definition.key);
-				return {
-					...definition,
-					tone: progressDimensionPalette[definition.key],
-					value,
-					history,
-					points: sparkPoints(history),
-					delta: movement(history)
-				};
-			})
-			.filter((item): item is NonNullable<typeof item> => item !== null);
-	});
+	const dimensions = $derived(
+		evidence.dimensions.map((dimension) => ({
+			...dimension,
+			tone: progressDimensionPalette[dimension.key],
+			points: sparkPoints(dimension.history.map((point) => point.value))
+		}))
+	);
 </script>
 
 <section class="quality-layer" aria-labelledby="ride-quality-heading">
@@ -89,12 +42,12 @@
 		<div>
 			<p class="eyebrow">3 · Ride quality</p>
 			<h2 id="ride-quality-heading">How the start was produced</h2>
-			<span>Latest Performance Engine scores with up to 10 supported-session trajectories. Missing dimensions stay missing.</span>
+			<span>Performance Engine measurements and engine-owned labels. Lines show observed score history, not a Progress trend claim.</span>
 		</div>
-		{#if typeof scores?.overall === 'number'}
-			<div class="overall" aria-label={`Overall ride quality ${Math.round(scores.overall)} out of 100`}>
+		{#if typeof overall === 'number' && Number.isFinite(overall)}
+			<div class="overall" aria-label={`Overall ride quality ${Math.round(overall)} out of 100`}>
 				<span>Overall</span>
-				<strong>{Math.round(scores.overall)}</strong>
+				<strong>{Math.round(overall)}</strong>
 				<small>/100</small>
 			</div>
 		{/if}
@@ -106,40 +59,35 @@
 				<article style={`--tone:${dimension.tone}`}>
 					<div class="topline">
 						<span>{dimension.label}</span>
-						<small>{band(dimension.value)}</small>
+						<small>{labelText(dimension.currentLabel)}</small>
 					</div>
 
 					<div class="scoreline">
-						<div class="score"><strong>{Math.round(dimension.value)}</strong><span>/100</span></div>
-						{#if dimension.delta !== null}
-							<div class="delta" data-direction={dimension.delta >= 0 ? 'up' : 'down'}>
-								<strong>{dimension.delta >= 0 ? '▲' : '▼'} {Math.abs(dimension.delta).toFixed(0)}</strong>
-								<span>last {dimension.history.length}</span>
-							</div>
-						{:else}
-							<div class="delta" data-direction="none"><span>building</span></div>
-						{/if}
+						<div class="score"><strong>{Math.round(dimension.current)}</strong><span>/100</span></div>
+						<div class="observation-count">
+							<strong>{dimension.history.length}</strong>
+							<span>observation{dimension.history.length === 1 ? '' : 's'}</span>
+						</div>
 					</div>
 
 					<div class="trajectory" aria-hidden="true">
 						{#if dimension.points}
 							<svg viewBox="0 0 100 34" preserveAspectRatio="none">
 								<line x1="3" y1="30" x2="97" y2="30"></line>
-								<line x1="3" y1="10.8" x2="97" y2="10.8" class="benchmark"></line>
 								<polyline points={dimension.points}></polyline>
 							</svg>
 						{:else}
 							<i></i>
 						{/if}
 					</div>
-					<span class="sr-only">{trajectorySummary(dimension.label, dimension.history)}</span>
+					<span class="sr-only">{dimension.label}: {Math.round(dimension.current)} out of 100, {labelText(dimension.currentLabel)}, across {dimension.history.length} supported observation{dimension.history.length === 1 ? '' : 's'}. No direction is inferred.</span>
 				</article>
 			{/each}
 		</div>
 	{:else}
 		<div class="developing">
 			<strong>Ride-quality evidence is still developing.</strong>
-			<span>These dimensions appear only when the Performance Engine has enough supported run data.</span>
+			<span>{evidence.presentation.statement}</span>
 		</div>
 	{/if}
 </section>
@@ -163,14 +111,12 @@
 	.score { display: flex; align-items: baseline; gap: .1rem; }
 	.score strong { color: #f7fbff; font-size: 1.35rem; line-height: 1; }
 	.score span { color: #8196a8; font-size: .55rem; }
-	.delta { display: grid; justify-items: end; gap: .05rem; min-width: 3.4rem; }
-	.delta strong { font-size: .56rem; color: #8de51e; }
-	.delta span { font-size: .48rem; color: #7890a4; }
-	.delta[data-direction='down'] strong { color: #ff7354; }
+	.observation-count { display: grid; justify-items: end; gap: .05rem; min-width: 3.4rem; }
+	.observation-count strong { font-size: .56rem; color: #b7c9d8; }
+	.observation-count span { font-size: .48rem; color: #7890a4; }
 	.trajectory { height: 2.2rem; margin-top: .45rem; }
 	.trajectory svg { width: 100%; height: 100%; overflow: visible; }
 	.trajectory line { stroke: #1d3a50; stroke-width: 1; }
-	.trajectory .benchmark { stroke: color-mix(in srgb, var(--tone) 26%, transparent); stroke-dasharray: 3 4; }
 	.trajectory polyline { fill: none; stroke: var(--tone); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 	.trajectory i { display: block; width: 100%; height: 1px; margin-top: 1.2rem; background: #294359; }
 	.developing { display: grid; gap: .25rem; margin-top: .85rem; border-radius: .75rem; background: #0d2437; padding: .85rem; }
