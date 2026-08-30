@@ -3,6 +3,7 @@
 	import type { ReactionEvidenceModel } from './reactionEvidence';
 	import type { ReactionContextEvidenceModel } from './reactionContextEvidence';
 	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
+	import type { PeakSpeedEvidenceModel } from './peakSpeedEvidence';
 
 	export type ProgressView = 'reaction' | 'speed' | 'consistency';
 
@@ -21,6 +22,7 @@
 		reactionEvidence?: ReactionEvidenceModel;
 		reactionContextEvidence?: ReactionContextEvidenceModel;
 		reactionRepeatabilityEvidence?: ReactionRepeatabilityEvidenceModel;
+		peakSpeedEvidence?: PeakSpeedEvidenceModel;
 	}
 
 	let {
@@ -29,7 +31,8 @@
 		goalTargets = {},
 		reactionEvidence,
 		reactionContextEvidence,
-		reactionRepeatabilityEvidence
+		reactionRepeatabilityEvidence,
+		peakSpeedEvidence
 	}: Props = $props();
 	let canvas: HTMLCanvasElement | null = $state(null);
 	let chart: any = null;
@@ -45,7 +48,7 @@
 			? (reactionEvidence?.history.length ?? 0) >= 2
 			: view === 'consistency'
 				? (reactionRepeatabilityEvidence?.history.length ?? 0) >= 2
-				: sessions.length >= 3
+				: (peakSpeedEvidence?.history.length ?? 0) >= 2
 	);
 
 	function labelDate(value: string) {
@@ -60,7 +63,8 @@
 
 		const reactionHistory = reactionEvidence?.history ?? [];
 		const repeatabilityHistory = reactionRepeatabilityEvidence?.history ?? [];
-		const chartSessions = view === 'reaction' ? reactionHistory : view === 'consistency' ? repeatabilityHistory : sessions;
+		const speedHistory = peakSpeedEvidence?.history ?? [];
+		const chartSessions = view === 'reaction' ? reactionHistory : view === 'consistency' ? repeatabilityHistory : speedHistory;
 		const labels = chartSessions.map((session) => labelDate(session.timestamp));
 		const commonDataset = {
 			borderWidth: 2.4,
@@ -77,13 +81,13 @@
 			datasets = [{
 				...commonDataset,
 				label: 'Peak speed (km/h)',
-				data: sessions.map((session) => session.best_peak_speed_ms === null ? null : session.best_peak_speed_ms * 3.6),
+				data: speedHistory.map((session) => session.bestSpeedMs * 3.6),
 				borderColor: '#ff7555',
 				backgroundColor: 'rgba(255,117,85,.10)',
 				pointBackgroundColor: '#ff7555'
 			}];
 			const target = goalTargets.peakSpeed?.target;
-			if (target) datasets.push({ label: 'Goal', data: Array(sessions.length).fill(target * 3.6), borderColor: '#38d9ca', borderDash: [7, 6], borderWidth: 1.4, pointRadius: 0 });
+			if (target) datasets.push({ label: 'Goal', data: Array(speedHistory.length).fill(target * 3.6), borderColor: '#38d9ca', borderDash: [7, 6], borderWidth: 1.4, pointRadius: 0 });
 			yLabel = 'km/h';
 		} else if (view === 'consistency') {
 			datasets = [{
@@ -140,7 +144,7 @@
 		});
 	}
 
-	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; reactionRepeatabilityEvidence; canRender; draw(); });
+	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; reactionRepeatabilityEvidence; peakSpeedEvidence; canRender; draw(); });
 	onDestroy(() => chart?.destroy());
 </script>
 
@@ -180,6 +184,18 @@
 		</div>
 	{/if}
 
+	{#if view === 'speed' && peakSpeedEvidence}
+		<div class="reaction-evidence-stack">
+			<div class="evidence-summary" data-state={peakSpeedEvidence.state}>
+				<div class="evidence-label">
+					<span>{peakSpeedEvidence.presentation.label}</span>
+					<small>{peakSpeedEvidence.supportedSessionCount} validated-speed session{peakSpeedEvidence.supportedSessionCount === 1 ? '' : 's'}</small>
+				</div>
+				<p>{peakSpeedEvidence.presentation.statement}</p>
+			</div>
+		</div>
+	{/if}
+
 	{#if view === 'consistency' && reactionRepeatabilityEvidence}
 		<div class="reaction-evidence-stack">
 			<div class="repeatability-summary" data-state={reactionRepeatabilityEvidence.state}>
@@ -202,8 +218,8 @@
 					<strong>Repeatability history needs another supported session.</strong>
 					<span>Two sessions with measurable reaction CV unlock observed repeatability history. A session needs at least two usable reaction observations before CV can be measured.</span>
 				{:else}
-					<strong>Direction needs more evidence.</strong>
-					<span>Complete {Math.max(0, 3 - sessions.length)} more eligible session{Math.max(0, 3 - sessions.length) === 1 ? '' : 's'} to unlock this longitudinal view.</span>
+					<strong>Peak Speed history needs another validated-speed session.</strong>
+					<span>Two sessions with validated IMU peak-speed evidence unlock the longitudinal view. Unsupported account sessions do not promote this evidence.</span>
 				{/if}
 			</div>
 		{:else}
@@ -269,6 +285,7 @@
 	.evidence-summary[data-state='early-signal'],
 	.repeatability-summary[data-state='early-signal'] { border-color: rgba(255,179,26,.35); }
 	.evidence-summary[data-state='supported-finding'] { border-color: rgba(141,229,30,.35); }
+	.evidence-summary[data-state='directional-finding'] { border-color: rgba(255,117,85,.38); }
 	.repeatability-summary[data-state='supported-finding'] { border-color: rgba(56,217,202,.38); background: rgba(19,53,62,.5); }
 	.context-summary[data-state='contextual-finding'] { border-color: rgba(56,217,202,.38); background: rgba(19,53,62,.5); }
 	.context-summary[data-state='no-pattern'] { border-style: dashed; }
