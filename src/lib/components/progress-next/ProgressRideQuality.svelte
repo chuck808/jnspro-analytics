@@ -4,10 +4,9 @@
 
 	interface Props {
 		evidence: RiderDevelopmentEvidenceModel;
-		overall?: number | null;
 	}
 
-	let { evidence, overall: _legacyOverall = null }: Props = $props();
+	let { evidence }: Props = $props();
 
 	function sparkPoints(values: number[]) {
 		if (values.length < 2) return '';
