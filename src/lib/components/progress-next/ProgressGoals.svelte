@@ -1,39 +1,11 @@
 <script lang="ts">
-	type GoalTarget = {
-		target: number | null;
-		start: number | null;
-		current: number | null;
-		deadline?: string | null;
-	};
+	import type { ProgressGoalEvidenceModel } from './goalEvidence';
 
 	interface Props {
-		goalTargets: Record<string, GoalTarget>;
+		evidence: ProgressGoalEvidenceModel;
 	}
 
-	let { goalTargets }: Props = $props();
-
-	const lowerIsBetter = new Set(['reactionTime', 'elapsedTime', 'accelerationPhase']);
-	const labels: Record<string, string> = {
-		reactionTime: 'Reaction time',
-		elapsedTime: 'Elapsed time',
-		accelerationPhase: 'Acceleration phase',
-		peakSpeed: 'Peak speed',
-		maxG: 'Peak G',
-		consistency: 'Consistency'
-	};
-
-	function label(metric: string) {
-		return labels[metric] ?? metric.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (char) => char.toUpperCase());
-	}
-
-	function progress(metric: string, goal: GoalTarget): number | null {
-		const { start, current, target } = goal;
-		if (start == null || current == null || target == null || start === target) return null;
-		const raw = lowerIsBetter.has(metric)
-			? ((start - current) / (start - target)) * 100
-			: ((current - start) / (target - start)) * 100;
-		return Math.round(Math.min(100, Math.max(0, raw)));
-	}
+	let { evidence }: Props = $props();
 
 	function displayValue(metric: string, value: number | null) {
 		if (value == null) return '—';
@@ -45,12 +17,16 @@
 		return Number.isInteger(value) ? String(value) : value.toFixed(1);
 	}
 
-	function deadlineText(deadline?: string | null) {
+	function deadlineText(deadline: string | null) {
 		if (!deadline) return 'No deadline';
-		return new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+		return new Date(deadline).toLocaleDateString('en-GB', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		});
 	}
 
-	const goals = $derived(Object.entries(goalTargets).slice(0, 2));
+	const goals = $derived(evidence.goals.slice(0, 2));
 </script>
 
 <section class="panel" aria-labelledby="goals-heading">
@@ -66,36 +42,37 @@
 		<div class="empty">
 			<span>◎</span>
 			<strong>No active goal yet</strong>
-			<p>Set a target when you want Progress to show the gap between today's evidence and where you want to get.</p>
+			<p>Set a target when you want Progress to show the gap between supported evidence and where you want to get.</p>
 			<a href="/goals">Set a goal</a>
 		</div>
 	{:else}
 		<div class="goals">
-			{#each goals as [metric, goal], index}
-				{@const percent = progress(metric, goal)}
+			{#each goals as goal, index}
 				<article class:featured={index === 0}>
 					<div
 						class="ring"
-						style={`--progress:${percent ?? 0}`}
-						aria-label={percent === null ? `${label(metric)} goal progress is still building` : `${label(metric)} goal is ${percent}% complete`}
+						style={`--progress:${goal.progressPercent ?? 0}`}
+						aria-label={goal.progressPercent === null
+							? `${goal.label} goal progress is unavailable from the current evidence`
+							: `${goal.label} goal is ${goal.progressPercent}% complete`}
 					>
 						<div class="ring-core">
-							<strong>{percent === null ? '—' : percent}</strong>
-							<span>{percent === null ? 'building' : '%'}</span>
+							<strong>{goal.progressPercent === null ? '—' : goal.progressPercent}</strong>
+							<span>{goal.progressPercent === null ? 'unavailable' : '%'}</span>
 						</div>
 					</div>
 
 					<div class="goal-copy">
-						<span class="metric">{label(metric)}</span>
-						<strong class="current">{displayValue(metric, goal.current)}</strong>
+						<span class="metric">{goal.label}</span>
+						<strong class="current">{displayValue(goal.metric, goal.current)}</strong>
 						<span class="deadline">{deadlineText(goal.deadline)}</span>
 
-						<div class="journey" aria-label={`${label(metric)} goal evidence`}>
-							<div><span>Start</span><strong>{displayValue(metric, goal.start)}</strong></div>
+						<div class="journey" aria-label={`${goal.label} goal evidence`}>
+							<div><span>Start</span><strong>{displayValue(goal.metric, goal.start)}</strong></div>
 							<i aria-hidden="true">→</i>
-							<div><span>Now</span><strong>{displayValue(metric, goal.current)}</strong></div>
+							<div><span>Evidence</span><strong>{displayValue(goal.metric, goal.current)}</strong></div>
 							<i aria-hidden="true">→</i>
-							<div><span>Target</span><strong>{displayValue(metric, goal.target)}</strong></div>
+							<div><span>Target</span><strong>{displayValue(goal.metric, goal.target)}</strong></div>
 						</div>
 					</div>
 				</article>
