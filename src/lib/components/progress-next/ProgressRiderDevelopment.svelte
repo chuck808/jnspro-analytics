@@ -1,36 +1,12 @@
 <script lang="ts">
-	import type { TechniqueScoreBreakdown } from '$lib/performance-engine/techniqueScoring';
-	import { progressDimensionPalette, type ProgressDimensionKey } from './progressDimensionPalette';
-
-	interface SessionScorePoint {
-		timestamp: string;
-		insightPack: {
-			scores: TechniqueScoreBreakdown;
-		};
-	}
+	import { progressDimensionPalette } from './progressDimensionPalette';
+	import type { RiderDevelopmentEvidenceModel } from './riderDevelopmentEvidence';
 
 	interface Props {
-		sessionAnalyses: SessionScorePoint[];
+		evidence: RiderDevelopmentEvidenceModel;
 	}
 
-	let { sessionAnalyses }: Props = $props();
-
-	type ScoreKey = ProgressDimensionKey;
-
-	const dimensions: Array<{ key: ScoreKey; label: string }> = [
-		{ key: 'launchQuality', label: 'Launch Quality' },
-		{ key: 'explosiveness', label: 'Explosiveness' },
-		{ key: 'speedCarry', label: 'Speed Carry' },
-		{ key: 'smoothness', label: 'Smoothness' },
-		{ key: 'impulseTiming', label: 'Impulse Timing' },
-		{ key: 'repeatability', label: 'Repeatability' }
-	];
-
-	function valuesFor(key: ScoreKey) {
-		return sessionAnalyses
-			.map((item) => item.insightPack.scores[key])
-			.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-	}
+	let { evidence }: Props = $props();
 
 	function sparkPoints(values: number[]) {
 		if (!values.length) return '';
@@ -44,68 +20,21 @@
 			.join(' ');
 	}
 
-	function change(values: number[]) {
-		if (values.length < 2) return null;
-		return values.at(-1)! - values[0];
+	function labelText(label: string) {
+		return label === 'needs-work'
+			? 'Needs work'
+			: label === 'unknown'
+				? 'Measured'
+				: `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 	}
 
-	function status(value: number) {
-		if (value >= 80) return 'Strong';
-		if (value >= 65) return 'Developing';
-		return 'Needs focus';
-	}
-
-	function radarPoint(index: number, total: number, value = 100) {
-		const angle = -Math.PI / 2 + (index / total) * Math.PI * 2;
-		const radius = 40 * (Math.max(0, Math.min(100, value)) / 100);
-		return {
-			x: 50 + Math.cos(angle) * radius,
-			y: 50 + Math.sin(angle) * radius
-		};
-	}
-
-	function radarPolygon(values: number[]) {
-		return values
-			.map((value, index) => {
-				const point = radarPoint(index, values.length, value);
-				return `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
-			})
-			.join(' ');
-	}
-
-	const rows = $derived.by(() =>
-		dimensions
-			.map((dimension) => {
-				const values = valuesFor(dimension.key);
-				const current = values.at(-1) ?? null;
-				return current === null
-					? null
-					: {
-							...dimension,
-							tone: progressDimensionPalette[dimension.key],
-							values,
-							current,
-							start: values[0],
-							delta: change(values),
-							status: status(current)
-						};
-			})
-			.filter((row): row is NonNullable<typeof row> => row !== null)
+	const rows = $derived(
+		evidence.dimensions.map((dimension) => ({
+			...dimension,
+			tone: progressDimensionPalette[dimension.key],
+			values: dimension.history.map((point) => point.value)
+		}))
 	);
-
-	const strongest = $derived.by(() => {
-		if (!rows.length) return null;
-		return [...rows].sort((a, b) => b.current - a.current)[0];
-	});
-
-	const focus = $derived.by(() => {
-		if (!rows.length) return null;
-		return [...rows].sort((a, b) => a.current - b.current)[0];
-	});
-
-	const currentProfile = $derived(radarPolygon(rows.map((row) => row.current)));
-	const startingProfile = $derived(radarPolygon(rows.map((row) => row.start)));
-	const profileSummary = $derived(rows.map((row) => `${row.label} ${Math.round(row.current)} out of 100`).join(', '));
 </script>
 
 <section class="development-layer" aria-labelledby="rider-development-heading">
@@ -113,14 +42,14 @@
 		<header>
 			<div>
 				<p class="eyebrow">4 · Rider development</p>
-				<h2 id="rider-development-heading">How your launch profile is changing</h2>
-				<span>Performance Engine scores across supported sessions. Missing evidence stays missing.</span>
+				<h2 id="rider-development-heading">Your measured launch profile</h2>
+				<span>{evidence.presentation.statement}</span>
 			</div>
-			<span class="history-count">{sessionAnalyses.length} analysed session{sessionAnalyses.length === 1 ? '' : 's'}</span>
+			<span class="history-count">{evidence.supportedSessionCount} supported session{evidence.supportedSessionCount === 1 ? '' : 's'}</span>
 		</header>
 
 		{#if rows.length === 0}
-			<div class="empty">Rider Development will appear when enough supported run evidence is available.</div>
+			<div class="empty">{evidence.presentation.statement}</div>
 		{:else}
 			<div class="score-table">
 				{#each rows as row}
@@ -134,16 +63,11 @@
 						</div>
 						<svg class="trajectory" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
 							<line x1="4" y1="38" x2="96" y2="38"></line>
-							<line x1="4" y1="12.4" x2="96" y2="12.4" class="benchmark"></line>
 							<polyline points={sparkPoints(row.values)}></polyline>
 						</svg>
-						<div class="movement" data-direction={row.delta === null ? 'none' : row.delta >= 0 ? 'up' : 'down'}>
-							{#if row.delta === null}
-								<span>Building</span>
-							{:else}
-								<strong>{row.delta >= 0 ? '▲' : '▼'} {Math.abs(row.delta).toFixed(0)}</strong>
-								<span>{row.status}</span>
-							{/if}
+						<div class="measurement">
+							<span>{labelText(row.currentLabel)}</span>
+							<small>{row.history.length} observation{row.history.length === 1 ? '' : 's'}</small>
 						</div>
 					</div>
 				{/each}
@@ -151,45 +75,19 @@
 		{/if}
 	</div>
 
-	<aside class="development-insight" aria-label="Rider Development insight">
-		<p class="eyebrow">Development insight</p>
-		{#if strongest && focus}
-			{#if rows.length >= 3}
-				<div class="profile-visual" role="img" aria-label={`Current rider development profile. ${profileSummary}`}>
-					<svg viewBox="0 0 100 100" aria-hidden="true">
-						{#each [25, 50, 75, 100] as level}
-							<polygon class="profile-ring" points={radarPolygon(rows.map(() => level))}></polygon>
-						{/each}
-						{#each rows as row, index}
-							{@const end = radarPoint(index, rows.length)}
-							{@const currentPoint = radarPoint(index, rows.length, row.current)}
-							<line class="profile-axis" x1="50" y1="50" x2={end.x} y2={end.y}></line>
-							<circle cx={currentPoint.x} cy={currentPoint.y} r="1.7" fill={row.tone}></circle>
-						{/each}
-						<polygon class="profile-start" points={startingProfile}></polygon>
-						<polygon class="profile-current" points={currentProfile}></polygon>
-					</svg>
-					<div class="profile-key" aria-hidden="true">
-						<span><i class="key-current"></i>Current</span>
-						<span><i class="key-start"></i>Earliest supported</span>
-					</div>
-					<div class="profile-labels" aria-hidden="true">
-						{#each rows as row}
-							<span style={`--tone:${row.tone}`}><i></i>{row.label}</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<h3>Your strongest supported quality is {strongest.label.toLowerCase()}.</h3>
-			<p class="summary">{focus.label} is currently the clearest development opportunity. Use the deeper evidence before changing training around a single score.</p>
-			<div class="insight-pair">
-				<div><span>Strength</span><strong>{strongest.label}</strong><small>{Math.round(strongest.current)}/100</small></div>
-				<div><span>Focus</span><strong>{focus.label}</strong><small>{Math.round(focus.current)}/100</small></div>
+	<aside class="development-insight" aria-label="Rider Development evidence state">
+		<p class="eyebrow">Evidence state</p>
+		<h3>{evidence.presentation.label}</h3>
+		<p class="summary">{evidence.presentation.statement}</p>
+		{#if rows.length > 0}
+			<div class="evidence-note">
+				<strong>What this layer says</strong>
+				<span>Scores and their engine-owned labels are measured facts. Lines show observed score history only.</span>
 			</div>
-		{:else}
-			<h3>Development insight is still building.</h3>
-			<p class="summary">Supported score history is needed before this layer can compare strengths and focus areas.</p>
+			<div class="evidence-note">
+				<strong>What it does not say</strong>
+				<span>No strongest-quality ranking, focus-area ranking, training recommendation, or cross-session trend is inferred here.</span>
+			</div>
 		{/if}
 	</aside>
 </section>
@@ -216,13 +114,13 @@
 	.eyebrow { margin: 0; color: #4ba3ff; font-size: .58rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 	h2 { margin: .28rem 0 0; font-size: 1rem; letter-spacing: -.02em; }
 	header div > span, .history-count { color: #71889d; font-size: .62rem; }
-	header div > span { display: block; margin-top: .25rem; }
+	header div > span { display: block; margin-top: .25rem; max-width: 48rem; line-height: 1.45; }
 	.history-count { white-space: nowrap; }
 
 	.score-table { margin-top: .85rem; border-top: 1px solid #18344c; }
 	.score-row {
 		display: grid;
-		grid-template-columns: minmax(8rem, 1fr) 5.5rem minmax(15rem, 2.25fr) 6.8rem;
+		grid-template-columns: minmax(8rem, 1fr) 5.5rem minmax(15rem, 2.25fr) 7.4rem;
 		align-items: center;
 		gap: .8rem;
 		min-height: 3.9rem;
@@ -238,51 +136,28 @@
 
 	.trajectory { width: 100%; height: 2.55rem; color: var(--tone); overflow: visible; }
 	.trajectory line { stroke: #1c394f; stroke-width: 1; vector-effect: non-scaling-stroke; }
-	.trajectory line.benchmark { stroke: #36516a; stroke-dasharray: 2 3; opacity: .6; }
 	.trajectory polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 
-	.movement { display: flex; flex-direction: column; align-items: flex-end; gap: .12rem; }
-	.movement strong { font-size: .66rem; color: #8de51e; }
-	.movement[data-direction='down'] strong { color: #ff7354; }
-	.movement span { color: #71889d; font-size: .55rem; }
-
-	.profile-visual { margin-top: .75rem; border: 1px solid #18364d; border-radius: .85rem; background: radial-gradient(circle at 50% 48%, rgba(75, 163, 255, .07), transparent 65%), rgba(6, 20, 32, .72); padding: .55rem .65rem .65rem; }
-	.profile-visual > svg { display: block; width: min(100%, 13.5rem); margin: 0 auto; overflow: visible; }
-	.profile-ring { fill: none; stroke: #1e3b51; stroke-width: .55; vector-effect: non-scaling-stroke; }
-	.profile-axis { stroke: #24445b; stroke-width: .55; vector-effect: non-scaling-stroke; }
-	.profile-start { fill: rgba(129, 151, 171, .035); stroke: #657d91; stroke-width: 1; stroke-dasharray: 2.5 2.5; vector-effect: non-scaling-stroke; }
-	.profile-current { fill: rgba(75, 163, 255, .13); stroke: #65b3ff; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
-	.profile-key { display: flex; justify-content: center; gap: .8rem; margin-top: -.1rem; color: #6f8598; font-size: .5rem; }
-	.profile-key span { display: inline-flex; align-items: center; gap: .25rem; }
-	.profile-key i { display: block; width: .7rem; height: 2px; }
-	.key-current { background: #65b3ff; }
-	.key-start { border-top: 1px dashed #657d91; }
-	.profile-labels { display: grid; grid-template-columns: 1fr 1fr; gap: .22rem .45rem; margin-top: .55rem; }
-	.profile-labels span { display: flex; align-items: center; min-width: 0; gap: .3rem; color: #7c92a5; font-size: .48rem; }
-	.profile-labels i { flex: 0 0 auto; width: .35rem; height: .35rem; border-radius: 50%; background: var(--tone); }
+	.measurement { display: flex; flex-direction: column; align-items: flex-end; gap: .12rem; }
+	.measurement span { color: #b8c9d8; font-size: .6rem; font-weight: 700; }
+	.measurement small { color: #71889d; font-size: .52rem; }
 
 	.development-insight h3 { margin: .9rem 0 0; color: #f7fbff; font-size: 1.15rem; line-height: 1.2; letter-spacing: -.025em; }
 	.summary { margin: .7rem 0 0; color: #91a5b7; font-size: .68rem; line-height: 1.55; }
-	.insight-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin-top: 1rem; }
-	.insight-pair div { border: 1px solid #1a344b; border-radius: .75rem; padding: .7rem; background: rgba(7, 22, 35, .76); }
-	.insight-pair span, .insight-pair strong, .insight-pair small { display: block; }
-	.insight-pair span { color: #627b91; font-size: .53rem; text-transform: uppercase; letter-spacing: .1em; }
-	.insight-pair strong { margin-top: .3rem; color: #dce8f3; font-size: .68rem; }
-	.insight-pair small { margin-top: .18rem; color: #8de51e; font-size: .6rem; }
-	.insight-pair div:last-child small { color: #ffb31a; }
+	.evidence-note { margin-top: .8rem; border: 1px solid #1a344b; border-radius: .75rem; padding: .75rem; background: rgba(7, 22, 35, .76); }
+	.evidence-note strong, .evidence-note span { display: block; }
+	.evidence-note strong { color: #dce8f3; font-size: .62rem; }
+	.evidence-note span { margin-top: .3rem; color: #71889d; font-size: .58rem; line-height: 1.5; }
 	.empty { margin-top: .85rem; border: 1px dashed #27445d; border-radius: .8rem; padding: 1rem; color: #71889d; font-size: .66rem; }
 
 	@media (max-width: 980px) {
 		.development-layer { grid-template-columns: 1fr; }
-		.profile-visual > svg { width: min(100%, 16rem); }
-		.profile-labels { grid-template-columns: repeat(3, 1fr); }
 	}
 
 	@media (max-width: 700px) {
 		header { align-items: flex-start; flex-direction: column; }
 		.score-row { grid-template-columns: minmax(0, 1fr) auto; gap: .35rem .65rem; padding: .65rem 0; }
 		.trajectory { grid-column: 1 / -1; order: 3; }
-		.movement { display: none; }
-		.profile-labels { grid-template-columns: 1fr 1fr; }
+		.measurement { align-items: flex-start; }
 	}
 </style>
