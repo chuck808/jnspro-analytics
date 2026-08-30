@@ -38,19 +38,20 @@
 
 <style>
 	.comparison-proof {
-		border: 1px solid var(--color-border, #e5e7eb);
-		border-radius: 1rem;
-		padding: 1.25rem;
-		background: var(--color-surface, #fff);
+		border: 1px solid #1d3449;
+		border-radius: 0.9rem;
+		padding: 1rem 1.1rem;
+		background: linear-gradient(180deg, rgba(10, 27, 43, 0.98), rgba(6, 18, 30, 0.98));
+		color: #f7fbff;
 	}
 
 	.eyebrow {
 		margin: 0 0 0.25rem;
-		font-size: 0.75rem;
+		font-size: 0.58rem;
 		font-weight: 800;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
-		color: var(--color-text-muted, #6b7280);
+		color: #ff7555;
 	}
 
 	h2,
@@ -60,44 +61,50 @@
 
 	h2 {
 		margin-bottom: 0.4rem;
-		font-size: 1.15rem;
+		font-size: 1rem;
+		letter-spacing: -0.02em;
 	}
 
 	.comparison-values {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr 1fr;
-		gap: 1rem;
+		gap: 0.55rem;
 		align-items: center;
-		margin: 1rem 0;
+		margin: 0.9rem 0 0.75rem;
 	}
 
 	.comparison-values > div {
 		display: grid;
 		gap: 0.2rem;
+		padding: 0.8rem;
+		border: 1px solid #1b3449;
+		border-radius: 0.7rem;
+		background: rgba(7, 20, 32, 0.7);
 	}
 
 	.comparison-values span,
 	.explanation {
-		font-size: 0.8rem;
-		color: var(--color-text-muted, #6b7280);
+		font-size: 0.54rem;
+		color: #71889b;
 	}
 
 	.comparison-values strong {
-		font-size: 1.2rem;
+		font-size: 0.92rem;
 	}
 
 	.arrow {
 		font-size: 1.2rem !important;
+		color: #ffc0b2 !important;
 	}
 
 	.change {
-		padding-left: 1rem;
-		border-left: 1px solid var(--color-border, #e5e7eb);
+		border-color: rgba(255, 117, 85, 0.35) !important;
 	}
 
 	.explanation {
 		margin-bottom: 0;
-		line-height: 1.55;
+		line-height: 1.5;
+		color: #91a7b8;
 	}
 
 	@media (max-width: 720px) {
@@ -107,13 +114,6 @@
 
 		.arrow {
 			display: none;
-		}
-
-		.change {
-			padding-left: 0;
-			padding-top: 0.75rem;
-			border-left: 0;
-			border-top: 1px solid var(--color-border, #e5e7eb);
 		}
 	}
 </style>
