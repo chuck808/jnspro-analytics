@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { PeakSpeedEvidenceModel } from './peakSpeedEvidence';
+
 	interface SessionPoint {
 		timestamp: string;
 		best_reaction_ms: number | null;
@@ -10,12 +12,12 @@
 		sessions: SessionPoint[];
 		personalBests: {
 			reaction_ms: number | null;
-			peak_speed_ms: number | null;
 			max_g: number | null;
 		};
+		peakSpeedEvidence: PeakSpeedEvidenceModel;
 	}
 
-	let { sessions, personalBests }: Props = $props();
+	let { sessions, personalBests, peakSpeedEvidence }: Props = $props();
 	const latest = $derived(sessions.at(-1) ?? null);
 
 	function fmtReaction(value: number | null | undefined) {
@@ -30,7 +32,7 @@
 		return typeof value === 'number' ? `${value.toFixed(2)}G` : '—';
 	}
 
-	function series(key: 'best_reaction_ms' | 'best_peak_speed_ms' | 'best_max_g') {
+	function series(key: 'best_reaction_ms' | 'best_max_g') {
 		return sessions
 			.slice(-10)
 			.map((session) => session[key])
@@ -55,7 +57,9 @@
 	}
 
 	const reactionSeries = $derived(series('best_reaction_ms'));
-	const speedSeries = $derived(series('best_peak_speed_ms'));
+	const speedSeries = $derived(
+		peakSpeedEvidence.history.slice(-10).map((session) => session.bestSpeedMs)
+	);
 	const forceSeries = $derived(series('best_max_g'));
 </script>
 
@@ -84,7 +88,7 @@
 		<article class="metric speed">
 			<div class="metric-head"><span>Peak speed</span><small>validated IMU</small></div>
 			<strong>{fmtSpeed(latest?.best_peak_speed_ms)}</strong>
-			<p>PB {fmtSpeed(personalBests.peak_speed_ms)}</p>
+			<p>PB {fmtSpeed(peakSpeedEvidence.bestSpeedMs)}</p>
 			<svg class="micro-line" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
 				<line x1="4" y1="36" x2="96" y2="36"></line>
 				<polyline points={sparkPoints(speedSeries)}></polyline>
