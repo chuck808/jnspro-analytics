@@ -23,10 +23,12 @@
 	let view = $state<ProgressView>('reaction');
 
 	const latestSession = $derived(data.sessions.at(-1) ?? null);
-	const latestSessionAnalysis = $derived(data.sessionAnalyses.at(-1)?.analysis ?? null);
+	const latestAnalyzedSession = $derived(data.sessionAnalyses.at(-1) ?? null);
+	const latestSessionAnalysis = $derived(latestAnalyzedSession?.analysis ?? null);
 	const latestSessionQuality = $derived(latestSessionAnalysis?.intelligence?.sessionQuality ?? null);
-	const latestRideScores = $derived(data.sessionAnalyses.at(-1)?.insightPack?.scores ?? null);
+	const latestRideScores = $derived(latestAnalyzedSession?.insightPack?.scores ?? null);
 	const latestSessionId = $derived(latestSession?.id ?? null);
+	const latestAnalyzedSessionId = $derived(latestAnalyzedSession?.sessionId ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
 	const peakSpeedEvidence = $derived(buildPeakSpeedEvidence(data.sessions));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
@@ -70,10 +72,10 @@
 						<span aria-hidden="true">↗</span>
 						Report &amp; share
 					</a>
-					{#if latestSessionId}
-						<a class="action action-evidence" href={`/sessions/${latestSessionId}/analysis`}>
+					{#if latestAnalyzedSessionId}
+						<a class="action action-evidence" href={`/sessions/${latestAnalyzedSessionId}/analysis`}>
 							<span aria-hidden="true">◎</span>
-							Latest evidence
+							Latest analysed evidence
 						</a>
 					{/if}
 					<a class="action action-reference" href="/analytics">Reference view</a>
@@ -141,7 +143,7 @@
 			</section>
 
 			<section class="final-grid" aria-label="Deep evidence, goals and reports">
-				<div class="deep-slot"><ProgressDeepEvidence {latestSessionId} sessionCount={data.sessionCount} /></div>
+				<div class="deep-slot"><ProgressDeepEvidence {latestSessionId} {latestAnalyzedSessionId} sessionCount={data.sessionCount} /></div>
 				<div class="goals-slot"><ProgressGoals goalTargets={data.goalTargets} /></div>
 				<div class="reports-slot"><ProgressReports coachLinks={data.coachLinks ?? []} /></div>
 			</section>
