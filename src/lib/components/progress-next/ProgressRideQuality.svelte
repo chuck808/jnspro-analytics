@@ -4,10 +4,10 @@
 
 	interface Props {
 		evidence: RiderDevelopmentEvidenceModel;
-		overall: number | null;
+		overall?: number | null;
 	}
 
-	let { evidence, overall }: Props = $props();
+	let { evidence, overall: _legacyOverall = null }: Props = $props();
 
 	function sparkPoints(values: number[]) {
 		if (values.length < 2) return '';
@@ -28,26 +28,32 @@
 				: `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 	}
 
-	const dimensions = $derived(
-		evidence.dimensions.map((dimension) => ({
-			...dimension,
-			tone: progressDimensionPalette[dimension.key],
-			points: sparkPoints(dimension.history.map((point) => point.value))
-		}))
-	);
+	const snapshot = $derived(evidence.latestSupportedSession);
+	const dimensions = $derived.by(() => {
+		if (!snapshot) return [];
+		return snapshot.dimensions.map((dimension) => {
+			const history = evidence.dimensions.find((item) => item.key === dimension.key)?.history ?? [];
+			return {
+				...dimension,
+				tone: progressDimensionPalette[dimension.key],
+				history,
+				points: sparkPoints(history.map((point) => point.value))
+			};
+		});
+	});
 </script>
 
 <section class="quality-layer" aria-labelledby="ride-quality-heading">
 	<header>
 		<div>
 			<p class="eyebrow">3 · Ride quality</p>
-			<h2 id="ride-quality-heading">How the start was produced</h2>
-			<span>Performance Engine measurements and engine-owned labels. Lines show observed score history, not a Progress trend claim.</span>
+			<h2 id="ride-quality-heading">How the latest supported start was produced</h2>
+			<span>Current scores and Overall come from one supported session. Lines add observed history for those same dimensions; they are not a Progress trend claim.</span>
 		</div>
-		{#if typeof overall === 'number' && Number.isFinite(overall)}
-			<div class="overall" aria-label={`Overall ride quality ${Math.round(overall)} out of 100`}>
+		{#if typeof snapshot?.overall === 'number' && Number.isFinite(snapshot.overall)}
+			<div class="overall" aria-label={`Overall ride quality ${Math.round(snapshot.overall)} out of 100`}>
 				<span>Overall</span>
-				<strong>{Math.round(overall)}</strong>
+				<strong>{Math.round(snapshot.overall)}</strong>
 				<small>/100</small>
 			</div>
 		{/if}
@@ -59,11 +65,11 @@
 				<article style={`--tone:${dimension.tone}`}>
 					<div class="topline">
 						<span>{dimension.label}</span>
-						<small>{labelText(dimension.currentLabel)}</small>
+						<small>{labelText(dimension.labelValue)}</small>
 					</div>
 
 					<div class="scoreline">
-						<div class="score"><strong>{Math.round(dimension.current)}</strong><span>/100</span></div>
+						<div class="score"><strong>{Math.round(dimension.value)}</strong><span>/100</span></div>
 						<div class="observation-count">
 							<strong>{dimension.history.length}</strong>
 							<span>observation{dimension.history.length === 1 ? '' : 's'}</span>
@@ -80,7 +86,7 @@
 							<i></i>
 						{/if}
 					</div>
-					<span class="sr-only">{dimension.label}: {Math.round(dimension.current)} out of 100, {labelText(dimension.currentLabel)}, across {dimension.history.length} supported observation{dimension.history.length === 1 ? '' : 's'}. No direction is inferred.</span>
+					<span class="sr-only">{dimension.label}: {Math.round(dimension.value)} out of 100, {labelText(dimension.labelValue)}, measured in the latest supported Ride Quality session, with {dimension.history.length} historical observation{dimension.history.length === 1 ? '' : 's'}. No direction is inferred.</span>
 				</article>
 			{/each}
 		</div>
