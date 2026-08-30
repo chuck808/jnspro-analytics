@@ -1,16 +1,19 @@
 <script lang="ts">
 	interface Props {
 		latestSessionId: string | null;
+		latestAnalyzedSessionId: string | null;
 		sessionCount: number;
 	}
 
-	let { latestSessionId, sessionCount }: Props = $props();
+	let { latestSessionId, latestAnalyzedSessionId, sessionCount }: Props = $props();
 
 	const evidence = $derived([
 		{
 			label: 'Session analysis',
-			detail: latestSessionId ? 'Latest supported session intelligence' : 'Available after your first session',
-			href: latestSessionId ? `/sessions/${latestSessionId}/analysis` : '/sessions',
+			detail: latestAnalyzedSessionId
+				? 'Latest supported session intelligence'
+				: 'No supported session analysis yet',
+			href: latestAnalyzedSessionId ? `/sessions/${latestAnalyzedSessionId}/analysis` : '/sessions',
 			mark: 'A'
 		},
 		{
