@@ -23,10 +23,24 @@ export interface RiderDevelopmentDimensionEvidence {
 	}>;
 }
 
+export interface RiderDevelopmentSessionSnapshot {
+	sessionId: string;
+	timestamp: string;
+	overall: number | null;
+	overallLabel: TechniqueScoreBreakdown['labels']['overall'];
+	dimensions: Array<{
+		key: ProgressDimensionKey;
+		label: string;
+		value: number;
+		labelValue: TechniqueScoreBreakdown['labels'][ProgressDimensionKey];
+	}>;
+}
+
 export interface RiderDevelopmentEvidenceModel {
 	state: RiderDevelopmentEvidenceState;
 	supportedSessionCount: number;
 	dimensions: RiderDevelopmentDimensionEvidence[];
+	latestSupportedSession: RiderDevelopmentSessionSnapshot | null;
 	presentation: {
 		label: 'No supported scores' | 'Measured' | 'Observed history';
 		statement: string;
@@ -46,6 +60,31 @@ function isScore(value: number | null | undefined): value is number {
 	return typeof value === 'number' && Number.isFinite(value);
 }
 
+function buildSessionSnapshot(
+	session: RiderDevelopmentSessionPoint | undefined
+): RiderDevelopmentSessionSnapshot | null {
+	if (!session) return null;
+	const scores = session.insightPack.scores;
+	const snapshotDimensions = dimensions
+		.map(({ key, label }) => {
+			const value = scores[key];
+			return isScore(value)
+				? { key, label, value, labelValue: scores.labels[key] }
+				: null;
+		})
+		.filter((dimension): dimension is NonNullable<typeof dimension> => dimension !== null);
+
+	if (snapshotDimensions.length === 0) return null;
+
+	return {
+		sessionId: session.sessionId,
+		timestamp: session.timestamp,
+		overall: isScore(scores.overall) ? scores.overall : null,
+		overallLabel: scores.labels.overall,
+		dimensions: snapshotDimensions
+	};
+}
+
 /**
  * Rider Development evidence boundary for /progress-next.
  *
@@ -54,6 +93,10 @@ function isScore(value: number | null | undefined): value is number {
  * It deliberately does not turn first-to-latest score differences into trend
  * claims and does not rank dimensions into strengths, weaknesses, or coaching
  * opportunities.
+ *
+ * The latestSupportedSession snapshot is intentionally session-local. It exists
+ * so Ride Quality can describe one measured session without mixing a dimension's
+ * older latest observation with another session's overall score.
  */
 export function buildRiderDevelopmentEvidence(
 	sessionAnalyses: RiderDevelopmentSessionPoint[]
@@ -97,6 +140,7 @@ export function buildRiderDevelopmentEvidence(
 		state,
 		supportedSessionCount: supportedSessions.length,
 		dimensions: evidenceDimensions,
+		latestSupportedSession: buildSessionSnapshot(supportedSessions.at(-1)),
 		presentation:
 			state === 'absent'
 				? {
