@@ -90,7 +90,7 @@
 				<a href="/upload">Upload session</a>
 			</section>
 		{:else}
-			<ProgressSnapshotRail sessionCount={data.sessionCount} personalBests={data.personalBests} {reactionEvidence} {latestSessionQuality} />
+			<ProgressSnapshotRail sessionCount={data.sessionCount} personalBests={data.personalBests} {reactionEvidence} {peakSpeedEvidence} {latestSessionQuality} />
 
 			<section class="primary-grid" aria-label="Primary Progress evidence">
 				<ProgressPrimaryChart
