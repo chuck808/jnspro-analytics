@@ -17,6 +17,7 @@
 	import { buildReactionContextEvidence } from '$lib/components/progress-next/reactionContextEvidence';
 	import { buildReactionRepeatabilityEvidence } from '$lib/components/progress-next/reactionRepeatabilityEvidence';
 	import { buildReactionSynthesisEvidence } from '$lib/components/progress-next/reactionSynthesisEvidence';
+	import { buildPeakSpeedEvidence } from '$lib/components/progress-next/peakSpeedEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -27,6 +28,7 @@
 	const latestRideScores = $derived(data.sessionAnalyses.at(-1)?.insightPack?.scores ?? null);
 	const latestSessionId = $derived(latestSession?.id ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
+	const peakSpeedEvidence = $derived(buildPeakSpeedEvidence(data.sessions));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
 	const reactionSynthesisEvidence = $derived(
 		buildReactionSynthesisEvidence(reactionEvidence, reactionRepeatabilityEvidence)
@@ -107,7 +109,7 @@
 				<ProgressBreakdown
 					{view}
 					{reactionEvidence}
-					speedTrend={data.trend.speed}
+					{peakSpeedEvidence}
 					{reactionRepeatabilityEvidence}
 					sessions={data.sessions}
 					onSelect={(nextView) => (view = nextView)}
@@ -119,6 +121,12 @@
 				<a class="reaction-depth-link" href="/progress-next/reaction">
 					<span>Open Reaction Progress</span>
 					<small>Follow the evidence from baseline to established depth</small>
+					<strong aria-hidden="true">→</strong>
+				</a>
+			{:else if view === 'speed'}
+				<a class="reaction-depth-link speed-depth-link" href="/progress-next/peak-speed">
+					<span>Open Peak Speed Progress</span>
+					<small>Inspect validated speed history and the comparison behind its direction</small>
 					<strong aria-hidden="true">→</strong>
 				</a>
 			{/if}
@@ -342,6 +350,9 @@
 	.reaction-depth-link strong { grid-column: 2; grid-row: 1 / span 2; color: #8de51e; font-size: 1rem; }
 	.reaction-depth-link:hover { border-color: rgba(141, 229, 30, 0.48); background: rgba(141, 229, 30, 0.07); }
 	.reaction-depth-link:focus-visible { outline: 2px solid #4ba3ff; outline-offset: 2px; }
+	.speed-depth-link { border-color: rgba(255, 117, 85, 0.35); background: rgba(255, 117, 85, 0.07); }
+	.speed-depth-link strong { color: #ff7555; }
+	.speed-depth-link:hover { border-color: rgba(255, 117, 85, 0.58); background: rgba(255, 117, 85, 0.1); }
 
 	@media (max-width: 1180px) {
 		.lower-grid,
