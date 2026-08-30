@@ -3,6 +3,7 @@
 	import ProgressPrimaryChart from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
 	import ProgressReactionComparisonProof from '$lib/components/progress-next/ProgressReactionComparisonProof.svelte';
 	import ProgressReactionContextProof from '$lib/components/progress-next/ProgressReactionContextProof.svelte';
+	import ProgressReactionRepeatabilityHistory from '$lib/components/progress-next/ProgressReactionRepeatabilityHistory.svelte';
 	import ProgressReactionSupportingSessions from '$lib/components/progress-next/ProgressReactionSupportingSessions.svelte';
 	import ProgressReactionSynthesis from '$lib/components/progress-next/ProgressReactionSynthesis.svelte';
 	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
@@ -198,6 +199,13 @@
 				{/if}
 			</article>
 		</section>
+
+		{#if depthEvidence.unlocks.repeatabilityHistory}
+			<ProgressReactionRepeatabilityHistory
+				sessions={data.sessions}
+				evidence={repeatabilityEvidence}
+			/>
+		{/if}
 
 		{#if depthEvidence.unlocks.direction || depthEvidence.unlocks.repeatabilityDirection}
 			<ProgressReactionComparisonProof
