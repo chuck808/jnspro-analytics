@@ -3,7 +3,6 @@
 	import type { ReactionEvidenceModel } from './reactionEvidence';
 
 	interface PersonalBests {
-		reaction_ms: number | null;
 		max_g: number | null;
 	}
 
@@ -52,10 +51,13 @@
 			key: 'reaction-pb',
 			label: 'Reaction PB',
 			value:
-				personalBests.reaction_ms === null
+				reactionEvidence.bestReactionMs === null
 					? '—'
-					: `${(personalBests.reaction_ms / 1000).toFixed(3)}s`,
-			detail: 'Measured · all time',
+					: `${(reactionEvidence.bestReactionMs / 1000).toFixed(3)}s`,
+			detail:
+				reactionEvidence.bestReactionMs === null
+					? 'No measured reaction yet'
+					: 'Measured · eligible gate evidence',
 			tone: 'amber',
 			glyph: '⚡'
 		},
@@ -179,78 +181,50 @@
 		font-size: 0.88rem;
 	}
 
-	strong {
+	.snapshot-card > strong {
 		display: block;
 		margin-top: 0.7rem;
-		font-size: clamp(1.2rem, 2vw, 1.75rem);
+		font-size: clamp(1.15rem, 2vw, 1.55rem);
 		line-height: 1;
-		letter-spacing: -0.035em;
+		letter-spacing: -0.03em;
 		color: #f7fbff;
-		white-space: nowrap;
 	}
 
 	.detail {
 		display: block;
-		min-height: 1.9em;
-		margin-top: 0.38rem;
-		font-size: 0.62rem;
-		line-height: 1.35;
-		color: #7f93a8;
+		margin-top: 0.32rem;
+		font-size: 0.56rem;
+		color: #72879a;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.spark {
 		display: flex;
+		height: 1.5rem;
 		align-items: end;
-		gap: 0.22rem;
-		height: 1.35rem;
+		gap: 0.18rem;
 		margin-top: 0.6rem;
-		opacity: 0.9;
+		opacity: 0.58;
 	}
 
 	.spark i {
-		flex: 1;
+		width: 100%;
 		border-radius: 999px 999px 0 0;
 		background: var(--tone);
-		opacity: 0.55;
 	}
+	.spark i:nth-child(1) { height: 35%; }
+	.spark i:nth-child(2) { height: 52%; }
+	.spark i:nth-child(3) { height: 44%; }
+	.spark i:nth-child(4) { height: 70%; }
+	.spark i:nth-child(5) { height: 62%; }
+	.spark i:nth-child(6) { height: 90%; }
 
-	.spark i:nth-child(1) {
-		height: 28%;
+	@media (max-width: 1100px) {
+		.snapshot { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 	}
-	.spark i:nth-child(2) {
-		height: 44%;
-	}
-	.spark i:nth-child(3) {
-		height: 36%;
-	}
-	.spark i:nth-child(4) {
-		height: 62%;
-	}
-	.spark i:nth-child(5) {
-		height: 55%;
-	}
-	.spark i:nth-child(6) {
-		height: 82%;
-		opacity: 0.95;
-	}
-
-	@media (max-width: 1180px) {
-		.snapshot {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-	}
-
-	@media (max-width: 640px) {
-		.snapshot {
-			display: flex;
-			overflow-x: auto;
-			scroll-snap-type: x proximity;
-			padding-bottom: 0.3rem;
-		}
-
-		.snapshot-card {
-			flex: 0 0 10.6rem;
-			scroll-snap-align: start;
-		}
+	@media (max-width: 620px) {
+		.snapshot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	}
 </style>
