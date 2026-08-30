@@ -1,55 +1,13 @@
 <script lang="ts">
-	interface Diagnostic {
-		title: string;
-		tone: 'positive' | 'warning' | 'neutral';
-	}
-
-	interface SessionAnalysisLike {
-		sessionId: string;
-		timestamp: string;
-		diagnostics?: Diagnostic[];
-	}
+	import type { InvestigateEvidenceModel } from './investigateEvidence';
 
 	interface Props {
-		sessionAnalyses: SessionAnalysisLike[];
+		evidence: InvestigateEvidenceModel;
 	}
 
-	let { sessionAnalyses }: Props = $props();
+	let { evidence }: Props = $props();
 
-	const patterns = $derived.by(() => {
-		const map = new Map<
-			string,
-			{
-				title: string;
-				count: number;
-				lastSeen: string;
-				lastSeenSessionId: string;
-				tone: Diagnostic['tone'];
-			}
-		>();
-		for (const session of sessionAnalyses) {
-			for (const diagnostic of session.diagnostics ?? []) {
-				const existing = map.get(diagnostic.title);
-				if (existing) {
-					existing.count += 1;
-					existing.lastSeen = session.timestamp;
-					existing.lastSeenSessionId = session.sessionId;
-					if (diagnostic.tone === 'warning') existing.tone = 'warning';
-				} else {
-					map.set(diagnostic.title, {
-						title: diagnostic.title,
-						count: 1,
-						lastSeen: session.timestamp,
-						lastSeenSessionId: session.sessionId,
-						tone: diagnostic.tone
-					});
-				}
-			}
-		}
-		return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5);
-	});
-
-	const maxCount = $derived(Math.max(1, ...patterns.map((pattern) => pattern.count)));
+	const maxCount = $derived(Math.max(1, ...evidence.signals.map((signal) => signal.occurrenceCount)));
 
 	function when(value: string) {
 		return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -60,29 +18,29 @@
 	<header>
 		<p class="eyebrow">6 · Worth investigating</p>
 		<h2 id="investigate-heading">Signals the engine has noticed more than once</h2>
-		<span>Repeated prompts are invitations to inspect the evidence, not diagnoses.</span>
+		<span>{evidence.presentation.statement}</span>
 	</header>
 
-	{#if patterns.length > 0}
+	{#if evidence.signals.length > 0}
 		<div class="signal-list">
-			{#each patterns as pattern}
-				<article data-tone={pattern.tone}>
-					<div class="signal-icon" aria-hidden="true">{pattern.tone === 'warning' ? '!' : pattern.tone === 'positive' ? '↗' : '·'}</div>
+			{#each evidence.signals as signal}
+				<article data-tone={signal.latestTone}>
+					<div class="signal-icon" aria-hidden="true">{signal.latestTone === 'warning' ? '!' : signal.latestTone === 'positive' ? '↗' : '·'}</div>
 					<div class="signal-copy">
-						<strong>{pattern.title}</strong>
-						<span>{pattern.count} occurrence{pattern.count === 1 ? '' : 's'} · latest {when(pattern.lastSeen)}</span>
-						<div class="frequency" aria-label={`${pattern.count} occurrences`}>
-							<i style={`width:${Math.max(8, (pattern.count / maxCount) * 100)}%`}></i>
+						<strong>{signal.title}</strong>
+						<span>{signal.occurrenceCount} occurrence{signal.occurrenceCount === 1 ? '' : 's'} across {signal.supportedAnalysisCount} supported analyses · latest {when(signal.latestTimestamp)}</span>
+						<div class="frequency" aria-label={`${signal.occurrenceCount} occurrences`}>
+							<i style={`width:${Math.max(8, (signal.occurrenceCount / maxCount) * 100)}%`}></i>
 						</div>
 					</div>
-					<a href={`/sessions/${pattern.lastSeenSessionId}/analysis`} aria-label={`Open latest session evidence for ${pattern.title}`}>Evidence</a>
+					<a href={`/sessions/${signal.latestSessionId}/analysis`} aria-label={`Open latest session evidence for ${signal.title}`}>Evidence</a>
 				</article>
 			{/each}
 		</div>
 	{:else}
 		<div class="empty">
 			<strong>No recurring diagnostic signal yet.</strong>
-			<span>That can mean the evidence is stable, sparse, or simply not repeating strongly enough to surface.</span>
+			<span>{evidence.presentation.statement}</span>
 		</div>
 	{/if}
 </section>
