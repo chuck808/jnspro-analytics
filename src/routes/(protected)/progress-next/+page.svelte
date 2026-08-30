@@ -137,7 +137,7 @@
 			{/if}
 
 			<section class="secondary-grid" aria-label="Start performance and ride quality">
-				<ProgressStartPerformance sessions={data.sessions} personalBests={data.personalBests} {peakSpeedEvidence} />
+				<ProgressStartPerformance sessions={data.sessions} personalBests={data.personalBests} {reactionEvidence} {peakSpeedEvidence} />
 				<ProgressRideQuality evidence={riderDevelopmentEvidence} />
 			</section>
 
