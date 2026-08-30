@@ -18,6 +18,7 @@
 	import { buildReactionRepeatabilityEvidence } from '$lib/components/progress-next/reactionRepeatabilityEvidence';
 	import { buildReactionSynthesisEvidence } from '$lib/components/progress-next/reactionSynthesisEvidence';
 	import { buildPeakSpeedEvidence } from '$lib/components/progress-next/peakSpeedEvidence';
+	import { buildRiderDevelopmentEvidence } from '$lib/components/progress-next/riderDevelopmentEvidence';
 
 	let { data }: { data: PageData } = $props();
 	let view = $state<ProgressView>('reaction');
@@ -31,6 +32,7 @@
 	const latestAnalyzedSessionId = $derived(latestAnalyzedSession?.sessionId ?? null);
 	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
 	const peakSpeedEvidence = $derived(buildPeakSpeedEvidence(data.sessions));
+	const riderDevelopmentEvidence = $derived(buildRiderDevelopmentEvidence(data.sessionAnalyses));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
 	const reactionSynthesisEvidence = $derived(
 		buildReactionSynthesisEvidence(reactionEvidence, reactionRepeatabilityEvidence)
@@ -134,7 +136,7 @@
 				<ProgressRideQuality scores={latestRideScores} sessionAnalyses={data.sessionAnalyses} />
 			</section>
 
-			<ProgressRiderDevelopment sessionAnalyses={data.sessionAnalyses} />
+			<ProgressRiderDevelopment evidence={riderDevelopmentEvidence} />
 
 			<section class="lower-grid" aria-label="Context, investigation, strengths and limiters">
 				<div class="patterns-slot"><ProgressPatterns insights={data.correlationInsights ?? []} sessionCount={data.sessionCount} suppressedInsightIds={reactionContextPatternSuppressions} /></div>
