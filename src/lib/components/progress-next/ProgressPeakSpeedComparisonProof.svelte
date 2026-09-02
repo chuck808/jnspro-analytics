@@ -84,7 +84,7 @@
 
 	.comparison-values span,
 	.explanation {
-		font-size: 0.54rem;
+		font-size: 0.55rem;
 		color: #71889b;
 	}
 

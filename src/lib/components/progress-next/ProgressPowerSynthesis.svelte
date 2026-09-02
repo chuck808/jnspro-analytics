@@ -1,21 +1,21 @@
 <script lang="ts">
-	import type { ReactionSynthesisEvidenceModel } from './reactionSynthesisEvidence';
+	import type { PowerSynthesisEvidenceModel } from './powerSynthesisEvidence';
 
 	interface Props {
-		evidence: ReactionSynthesisEvidenceModel;
+		evidence: PowerSynthesisEvidenceModel;
 	}
 
 	let { evidence }: Props = $props();
 
-	function claimLabel(kind: ReactionSynthesisEvidenceModel['supportingClaims'][number]['kind']) {
-		return kind === 'reaction-direction' ? 'Reaction direction' : 'Repeatability direction';
+	function claimLabel(kind: PowerSynthesisEvidenceModel['supportingClaims'][number]['kind']) {
+		return kind === 'power-direction' ? 'Average power direction' : 'Peak power direction';
 	}
 </script>
 
-<section class="synthesis" data-state={evidence.state} aria-labelledby="reaction-synthesis-heading">
+<section class="synthesis" data-state={evidence.state} aria-labelledby="power-synthesis-heading">
 	<div class="copy">
 		<p>What the evidence suggests</p>
-		<h2 id="reaction-synthesis-heading">Reaction development</h2>
+		<h2 id="power-synthesis-heading">Power development</h2>
 		<span>{evidence.statement}</span>
 	</div>
 

@@ -1,17 +1,17 @@
 <script lang="ts">
-	import type { ReactionEvidenceModel } from './reactionEvidence';
-	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
+	import type { PowerEvidenceModel } from './powerEvidence';
+	import type { PowerPeakEvidenceModel } from './powerPeakEvidence';
 
 	let {
-		reaction,
-		repeatability
+		power,
+		peak
 	}: {
-		reaction: ReactionEvidenceModel;
-		repeatability: ReactionRepeatabilityEvidenceModel;
+		power: PowerEvidenceModel;
+		peak: PowerPeakEvidenceModel;
 	} = $props();
 
-	function reactionValue(value: number) {
-		return `${(value / 1000).toFixed(3)}s`;
+	function wattsValue(value: number) {
+		return `${Math.round(value)}W`;
 	}
 
 	function percentValue(value: number) {
@@ -19,7 +19,7 @@
 	}
 </script>
 
-<section class="comparison-proof" aria-label="Reaction direction comparison proof">
+<section class="comparison-proof" aria-label="Power direction comparison proof">
 	<header>
 		<p>Comparison proof</p>
 		<h2>What the direction statements compare</h2>
@@ -30,68 +30,68 @@
 	</header>
 
 	<div class="comparison-grid">
-		<article data-earned={reaction.finding !== null}>
+		<article data-earned={power.finding !== null}>
 			<div class="card-head">
 				<div>
-					<p>Reaction direction</p>
-					<h3>{reaction.presentation.label}</h3>
+					<p>Average power direction</p>
+					<h3>{power.presentation.label}</h3>
 				</div>
-				<span>{reaction.windowSize} supported</span>
+				<span>{power.windowSize} supported</span>
 			</div>
 
-			{#if reaction.finding}
+			{#if power.finding}
 				<dl>
 					<div>
 						<dt>Earlier comparison</dt>
-						<dd>{reactionValue(reaction.finding.historicalAverageMs)}</dd>
+						<dd>{wattsValue(power.finding.historicalAverageW)}</dd>
 					</div>
 					<div>
 						<dt>Recent comparison</dt>
-						<dd>{reactionValue(reaction.finding.recentAverageMs)}</dd>
+						<dd>{wattsValue(power.finding.recentAverageW)}</dd>
 					</div>
 					<div>
 						<dt>Relative change</dt>
-						<dd>{percentValue(reaction.finding.changePercent)}</dd>
+						<dd>{percentValue(power.finding.changePercent)}</dd>
 					</div>
 				</dl>
-				<footer>{reaction.presentation.statement}</footer>
+				<footer>{power.presentation.statement}</footer>
 			{:else}
 				<div class="not-earned">
 					<strong>No directional comparison yet.</strong>
-					<span>{reaction.presentation.statement}</span>
+					<span>{power.presentation.statement}</span>
 				</div>
 			{/if}
 		</article>
 
-		<article data-earned={repeatability.finding !== null}>
+		<article data-earned={peak.finding !== null}>
 			<div class="card-head">
 				<div>
-					<p>Repeatability direction</p>
-					<h3>{repeatability.presentation.label}</h3>
+					<p>Peak power direction</p>
+					<h3>{peak.presentation.label}</h3>
 				</div>
-				<span>{repeatability.windowSize} CV-supported</span>
+				<span>{peak.windowSize} peak-supported</span>
 			</div>
 
-			{#if repeatability.finding}
+			{#if peak.finding}
 				<dl>
 					<div>
 						<dt>Earlier comparison</dt>
-						<dd>{repeatability.finding.historicalCv.toFixed(1)}%</dd>
+						<dd>{wattsValue(peak.finding.historicalPeakW)}</dd>
 					</div>
 					<div>
 						<dt>Recent comparison</dt>
-						<dd>{repeatability.finding.recentCv.toFixed(1)}%</dd>
+						<dd>{wattsValue(peak.finding.recentPeakW)}</dd>
 					</div>
 					<div>
 						<dt>Relative change</dt>
-						<dd>{percentValue(repeatability.finding.changePercent)}</dd>
+						<dd>{percentValue(peak.finding.changePercent)}</dd>
 					</div>
 				</dl>
-				<footer>{repeatability.presentation.statement}</footer>
+				<footer>{peak.presentation.statement}</footer>
 			{:else}
 				<div class="not-earned">
-					<strong>No repeatability-direction comparison yet.</strong>
-					<span>{repeatability.presentation.statement}</span>
+					<strong>No peak-power comparison yet.</strong>
+					<span>{peak.presentation.statement}</span>
 				</div>
 			{/if}
 		</article>

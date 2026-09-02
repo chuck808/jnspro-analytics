@@ -128,6 +128,8 @@
 
 	.workspace {
 		width: 100%;
+		max-width: 96rem;
+		margin: 0 auto;
 		padding: clamp(1.1rem, 1.8vw, 1.8rem);
 		display: grid;
 		gap: 0.75rem;
@@ -229,7 +231,7 @@
 	.maturity-track > div {
 		display: grid;
 		gap: 0.28rem;
-		font-size: 0.52rem;
+		font-size: 0.55rem;
 		font-weight: 700;
 		text-transform: capitalize;
 		color: #60788c;
@@ -279,7 +281,7 @@
 		border-radius: 999px;
 		background: rgba(255, 117, 85, 0.12);
 		padding: 0.3rem 0.5rem;
-		font-size: 0.52rem;
+		font-size: 0.55rem;
 		font-weight: 750;
 		color: #ffc0b2;
 		white-space: nowrap;

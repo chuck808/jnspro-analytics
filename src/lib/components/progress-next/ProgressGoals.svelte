@@ -32,7 +32,7 @@
 <section class="panel" aria-labelledby="goals-heading">
 	<div class="heading-row">
 		<div>
-			<p>9 · Goals</p>
+			<p>10 · Goals</p>
 			<h2 id="goals-heading">What are you working towards?</h2>
 		</div>
 		<a href="/goals">View goals</a>
@@ -150,12 +150,12 @@
 	}
 
 	.ring-core strong { color: #f7fbff; font-size: 1.4rem; line-height: 1; }
-	.ring-core span { margin-top: .16rem; color: #8196a8; font-size: .48rem; text-transform: uppercase; letter-spacing: .08em; }
+	.ring-core span { margin-top: .16rem; color: #8196a8; font-size: 0.55rem; text-transform: uppercase; letter-spacing: .08em; }
 
 	.goal-copy { min-width: 0; }
 	.metric { display: block; color: #8ca0b1; font-size: 0.55rem; }
 	.current { display: block; margin-top: 0.16rem; color: #f4f9fd; font-size: 1.05rem; }
-	.deadline { display: block; margin-top: .14rem; color: #8196a8; font-size: .5rem; }
+	.deadline { display: block; margin-top: .14rem; color: #8196a8; font-size: 0.55rem; }
 
 	.journey {
 		display: grid;
@@ -169,8 +169,8 @@
 
 	.journey div { min-width: 0; }
 	.journey span, .journey strong { display: block; }
-	.journey span { color: #8196a8; font-size: .46rem; text-transform: uppercase; letter-spacing: .08em; }
-	.journey strong { margin-top: .12rem; overflow: hidden; color: #b8c5d0; font-size: .54rem; text-overflow: ellipsis; white-space: nowrap; }
+	.journey span { color: #8196a8; font-size: 0.55rem; text-transform: uppercase; letter-spacing: .08em; }
+	.journey strong { margin-top: .12rem; overflow: hidden; color: #b8c5d0; font-size: 0.55rem; text-overflow: ellipsis; white-space: nowrap; }
 	.journey i { color: #587087; font-size: .6rem; font-style: normal; }
 	.journey div:nth-of-type(2) strong { color: #f3f8fc; }
 	.journey div:nth-of-type(3) strong { color: #8de51e; }

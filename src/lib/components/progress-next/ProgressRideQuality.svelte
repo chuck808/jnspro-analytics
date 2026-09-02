@@ -111,14 +111,14 @@
 	article { min-width: 0; border: 1px solid rgba(91, 126, 154, .12); border-radius: .72rem; background: linear-gradient(160deg, rgba(15, 35, 52, .9), rgba(10, 27, 42, .78)); padding: .72rem; }
 	.topline { display: flex; justify-content: space-between; gap: .35rem; font-size: .58rem; }
 	.topline span { color: #a9bac8; font-weight: 700; }
-	.topline small { color: var(--tone); font-size: .52rem; }
+	.topline small { color: var(--tone); font-size: 0.55rem; }
 	.scoreline { display: flex; align-items: end; justify-content: space-between; gap: .6rem; margin-top: .48rem; }
 	.score { display: flex; align-items: baseline; gap: .1rem; }
 	.score strong { color: #f7fbff; font-size: 1.35rem; line-height: 1; }
 	.score span { color: #8196a8; font-size: .55rem; }
 	.observation-count { display: grid; justify-items: end; gap: .05rem; min-width: 3.4rem; }
 	.observation-count strong { font-size: .56rem; color: #b7c9d8; }
-	.observation-count span { font-size: .48rem; color: #7890a4; }
+	.observation-count span { font-size: 0.55rem; color: #7890a4; }
 	.trajectory { height: 2.2rem; margin-top: .45rem; }
 	.trajectory svg { width: 100%; height: 100%; overflow: visible; }
 	.trajectory line { stroke: #1d3a50; stroke-width: 1; }

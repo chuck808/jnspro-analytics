@@ -1,20 +1,20 @@
 <script lang="ts">
-	import type { ReactionContextEvidenceModel } from './reactionContextEvidence';
+	import type { PowerContextEvidenceModel } from './powerContextEvidence';
 
-	let { evidence }: { evidence: ReactionContextEvidenceModel } = $props();
+	let { evidence }: { evidence: PowerContextEvidenceModel } = $props();
 
 	function correlationValue(value: number) {
 		return Math.abs(value).toFixed(2);
 	}
 </script>
 
-<section class="context-proof" aria-label="Reaction context evidence proof">
+<section class="context-proof" aria-label="Power context evidence proof">
 	<header>
 		<p>Context proof</p>
 		<h2>What contextual analysis actually found</h2>
 		<span>
-			This layer only exposes the structured result already admitted by the Reaction context
-			evidence boundary. It does not infer a cause or add recommendation prose.
+			This layer only exposes the structured result already admitted by the Power context evidence
+			boundary. It does not infer a cause or add recommendation prose.
 		</span>
 	</header>
 

@@ -40,7 +40,7 @@
 <section class="panel" aria-labelledby="deep-evidence-heading">
 	<div class="heading">
 		<div>
-			<p>8 · Deep evidence</p>
+			<p>9 · Deep evidence</p>
 			<h2 id="deep-evidence-heading">Follow the story back to the proof</h2>
 			<span>Overview stays shallow. Measurements and session-level detail remain one step away.</span>
 		</div>

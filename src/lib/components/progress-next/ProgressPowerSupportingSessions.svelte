@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { ReactionSupportingSessionsModel } from './reactionSupportingSessions';
+	import type { PowerSupportingSessionsModel } from './powerSupportingSessions';
 
-	let { evidence }: { evidence: ReactionSupportingSessionsModel } = $props();
+	let { evidence }: { evidence: PowerSupportingSessionsModel } = $props();
 
-	function reactionValue(value: number | null) {
-		return value === null ? '—' : `${(value / 1000).toFixed(3)}s`;
+	function wattsValue(value: number | null) {
+		return value === null ? '—' : `${Math.round(value)}W`;
 	}
 
 	function dateLabel(value: string) {
@@ -16,21 +16,21 @@
 	}
 </script>
 
-<section class="supporting-sessions" aria-label="Sessions behind Reaction evidence">
+<section class="supporting-sessions" aria-label="Sessions behind Power evidence">
 	<header>
 		<div>
 			<p>Supporting sessions</p>
 			<h2>See the sessions behind the evidence</h2>
 			<span>
-				Direction badges mark the exact evidence windows already used by the Reaction and
-				repeatability models. A session can support one without supporting the other.
+				Direction badges mark the exact evidence windows already used by the average-power and
+				peak-power models. A session can support one without supporting the other.
 			</span>
 		</div>
 		<div class="window-summary">
-			<strong>{evidence.reactionDirectionSessionIds.length}</strong>
-			<span>Reaction direction</span>
-			<strong>{evidence.repeatabilityDirectionSessionIds.length}</strong>
-			<span>Repeatability direction</span>
+			<strong>{evidence.powerDirectionSessionIds.length}</strong>
+			<span>Average power direction</span>
+			<strong>{evidence.peakPowerDirectionSessionIds.length}</strong>
+			<span>Peak power direction</span>
 		</div>
 	</header>
 
@@ -43,7 +43,7 @@
 
 		<div class="session-list">
 			{#each evidence.sessions as session}
-				<a class="session-row" href={`/sessions/${session.id}`}>
+				<a class="session-row" href={`/sessions/${session.sessionId}`}>
 					<div class="session-date">
 						<strong>{dateLabel(session.timestamp)}</strong>
 						<span>Open session →</span>
@@ -52,31 +52,27 @@
 					<dl>
 						<div>
 							<dt>Average</dt>
-							<dd>{reactionValue(session.averageReactionMs)}</dd>
+							<dd>{wattsValue(session.averageW)}</dd>
 						</div>
 						<div>
-							<dt>Best</dt>
-							<dd>{reactionValue(session.bestReactionMs)}</dd>
-						</div>
-						<div>
-							<dt>Reaction CV</dt>
-							<dd>{session.reactionCv === null ? '—' : `${session.reactionCv.toFixed(1)}%`}</dd>
+							<dt>Peak</dt>
+							<dd>{wattsValue(session.peakW)}</dd>
 						</div>
 					</dl>
 
 					<div class="support-badges" aria-label="Evidence supported by this session">
-						{#if session.supportsReactionDirection}
-							<span class="earned">Reaction direction</span>
+						{#if session.supportsPowerDirection}
+							<span class="earned">Average power direction</span>
 						{:else}
-							<span>Reaction history</span>
+							<span>Average power history</span>
 						{/if}
 
-						{#if session.supportsRepeatabilityDirection}
-							<span class="earned">Repeatability direction</span>
-						{:else if session.supportsRepeatability}
-							<span>Repeatability measured</span>
+						{#if session.supportsPeakPowerDirection}
+							<span class="earned">Peak power direction</span>
+						{:else if session.supportsPeakPower}
+							<span>Peak power measured</span>
 						{:else}
-							<span class="unavailable">No repeatability measure</span>
+							<span class="unavailable">No peak power measure</span>
 						{/if}
 					</div>
 				</a>
@@ -199,7 +195,7 @@
 
 	.session-row {
 		display: grid;
-		grid-template-columns: minmax(9rem, 0.7fr) minmax(18rem, 1fr) minmax(18rem, 1.2fr);
+		grid-template-columns: minmax(9rem, 0.7fr) minmax(14rem, 1fr) minmax(18rem, 1.2fr);
 		gap: 1rem;
 		align-items: center;
 		padding: 0.7rem 0.8rem;
@@ -232,7 +228,7 @@
 
 	dl {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.45rem;
 		margin: 0;
 	}

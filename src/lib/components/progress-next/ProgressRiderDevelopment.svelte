@@ -140,7 +140,7 @@
 
 	.measurement { display: flex; flex-direction: column; align-items: flex-end; gap: .12rem; }
 	.measurement span { color: #b8c9d8; font-size: .6rem; font-weight: 700; }
-	.measurement small { color: #71889d; font-size: .52rem; }
+	.measurement small { color: #71889d; font-size: 0.55rem; }
 
 	.development-insight h3 { margin: .9rem 0 0; color: #f7fbff; font-size: 1.15rem; line-height: 1.2; letter-spacing: -.025em; }
 	.summary { margin: .7rem 0 0; color: #91a5b7; font-size: .68rem; line-height: 1.55; }

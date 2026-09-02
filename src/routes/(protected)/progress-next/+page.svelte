@@ -9,6 +9,8 @@
 	import ProgressPatterns from '$lib/components/progress-next/ProgressPatterns.svelte';
 	import ProgressInvestigate from '$lib/components/progress-next/ProgressInvestigate.svelte';
 	import ProgressStrengthsLimiters from '$lib/components/progress-next/ProgressStrengthsLimiters.svelte';
+	import ProgressWheeliePattern from '$lib/components/progress-next/ProgressWheeliePattern.svelte';
+	import ProgressDropOff from '$lib/components/progress-next/ProgressDropOff.svelte';
 	import ProgressDeepEvidence from '$lib/components/progress-next/ProgressDeepEvidence.svelte';
 	import ProgressGoals from '$lib/components/progress-next/ProgressGoals.svelte';
 	import ProgressReports from '$lib/components/progress-next/ProgressReports.svelte';
@@ -21,6 +23,9 @@
 	import { buildRiderDevelopmentEvidence } from '$lib/components/progress-next/riderDevelopmentEvidence';
 	import { buildInvestigateEvidence } from '$lib/components/progress-next/investigateEvidence';
 	import { buildStrengthsLimitersEvidence } from '$lib/components/progress-next/strengthsLimitersEvidence';
+	import { buildWheeliePatternEvidence } from '$lib/components/progress-next/wheeliePatternEvidence';
+	import { buildDropOffEvidence } from '$lib/components/progress-next/dropOffEvidence';
+	import { buildPowerEvidence } from '$lib/components/progress-next/powerEvidence';
 	import { buildProgressGoalEvidence } from '$lib/components/progress-next/goalEvidence';
 
 	let { data }: { data: PageData } = $props();
@@ -37,6 +42,9 @@
 	const riderDevelopmentEvidence = $derived(buildRiderDevelopmentEvidence(data.sessionAnalyses));
 	const investigateEvidence = $derived(buildInvestigateEvidence(data.sessionAnalyses));
 	const strengthsLimitersEvidence = $derived(buildStrengthsLimitersEvidence(data.sessionAnalyses));
+	const wheeliePatternEvidence = $derived(buildWheeliePatternEvidence(data.allRuns));
+	const powerEvidence = $derived(buildPowerEvidence(data.sessionAnalyses));
+	const dropOffEvidence = $derived(buildDropOffEvidence(data.sessionAnalyses));
 	const goalEvidence = $derived(buildProgressGoalEvidence(data.goalTargets));
 	const reactionRepeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
 	const reactionSynthesisEvidence = $derived(
@@ -99,7 +107,15 @@
 				<a href="/upload">Upload session</a>
 			</section>
 		{:else}
-			<ProgressSnapshotRail sessionCount={data.sessionCount} personalBests={data.personalBests} {reactionEvidence} {peakSpeedEvidence} {latestSessionQuality} />
+			<ProgressSnapshotRail
+				sessionCount={data.sessionCount}
+				personalBests={data.personalBests}
+				{reactionEvidence}
+				{peakSpeedEvidence}
+				{latestSessionQuality}
+				sessions={data.sessions}
+				sessionAnalyses={data.sessionAnalyses}
+			/>
 
 			<section class="primary-grid" aria-label="Primary Progress evidence">
 				<ProgressPrimaryChart
@@ -110,12 +126,14 @@
 					{reactionContextEvidence}
 					{reactionRepeatabilityEvidence}
 					{peakSpeedEvidence}
+					{powerEvidence}
 				/>
 				<ProgressBreakdown
 					{view}
 					{reactionEvidence}
 					{peakSpeedEvidence}
 					{reactionRepeatabilityEvidence}
+					{powerEvidence}
 					sessions={data.sessions}
 					onSelect={(nextView) => (view = nextView)}
 				/>
@@ -134,6 +152,12 @@
 					<small>Inspect validated speed history and the comparison behind its direction</small>
 					<strong aria-hidden="true">→</strong>
 				</a>
+			{:else if view === 'power'}
+				<a class="reaction-depth-link power-depth-link" href="/progress-next/power">
+					<span>Open Power Progress</span>
+					<small>Inspect estimated physics power history and the comparison behind its direction</small>
+					<strong aria-hidden="true">→</strong>
+				</a>
 			{/if}
 
 			<section class="secondary-grid" aria-label="Start performance and ride quality">
@@ -149,6 +173,9 @@
 				<div class="strengths-slot"><ProgressStrengthsLimiters evidence={strengthsLimitersEvidence} /></div>
 			</section>
 
+			<ProgressWheeliePattern evidence={wheeliePatternEvidence} />
+			<ProgressDropOff evidence={dropOffEvidence} />
+
 			<section class="final-grid" aria-label="Deep evidence, goals and reports">
 				<div class="deep-slot"><ProgressDeepEvidence {latestSessionId} {latestAnalyzedSessionId} sessionCount={data.sessionCount} /></div>
 				<div class="goals-slot"><ProgressGoals evidence={goalEvidence} /></div>
@@ -160,7 +187,7 @@
 
 <style>
 	.progress-next-shell { min-height: calc(100vh - 5rem); margin: -2rem; background: radial-gradient(circle at 76% 8%, rgba(28,111,184,.12), transparent 28rem), linear-gradient(180deg,#07131f 0%,#05101a 100%); color:#f7fbff; }
-	.workspace { width:100%; margin:0; padding:clamp(1.1rem,1.8vw,1.8rem); }
+	.workspace { width:100%; max-width:96rem; margin:0 auto; padding:clamp(1.1rem,1.8vw,1.8rem); }
 	.page-head { display:flex; align-items:end; justify-content:space-between; gap:1.5rem; margin-bottom:1.1rem; }
 	.head-copy { min-width:0; }
 	.eyebrow { margin:0; font-size:.62rem; font-weight:800; letter-spacing:.17em; text-transform:uppercase; color:#4ba3ff; }
@@ -197,6 +224,9 @@
 	.speed-depth-link { border-color:rgba(255,117,85,.35); background:rgba(255,117,85,.07); }
 	.speed-depth-link strong { color:#ff7555; }
 	.speed-depth-link:hover { border-color:rgba(255,117,85,.58); background:rgba(255,117,85,.1); }
+	.power-depth-link { border-color:rgba(255,179,26,.35); background:rgba(255,179,26,.07); }
+	.power-depth-link strong { color:#ffb31a; }
+	.power-depth-link:hover { border-color:rgba(255,179,26,.58); background:rgba(255,179,26,.1); }
 	@media (max-width:1180px) { .lower-grid,.final-grid { grid-template-columns:1fr 1fr; } .patterns-slot,.deep-slot { grid-column:1 / -1; } }
 	@media (max-width:980px) { .primary-grid,.secondary-grid { grid-template-columns:1fr; } }
 	@media (max-width:720px) { .lower-grid,.final-grid { grid-template-columns:1fr; } .patterns-slot,.deep-slot { grid-column:auto; } }

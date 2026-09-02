@@ -96,7 +96,7 @@
 	.badge {
 		border-radius: 999px;
 		padding: 0.3rem 0.55rem;
-		font-size: 0.52rem;
+		font-size: 0.55rem;
 		font-weight: 750;
 		white-space: nowrap;
 	}
@@ -156,7 +156,7 @@
 	.session-identity strong { font-size: 0.68rem; }
 	.session-identity span,
 	small {
-		font-size: 0.52rem;
+		font-size: 0.55rem;
 		color: #71889b;
 	}
 

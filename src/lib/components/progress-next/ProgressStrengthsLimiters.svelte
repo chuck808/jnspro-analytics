@@ -77,14 +77,14 @@
 	.row + .row { margin-top:.62rem; }
 	.row-head { display:flex; justify-content:space-between; gap:.5rem; align-items:center; }
 	.row-head span { min-width:0; overflow:hidden; color:#dce8f2; font-size:.62rem; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
-	.row-head b { color:#71889d; font-size:.5rem; font-weight:600; white-space:nowrap; }
+	.row-head b { color:#71889d; font-size: 0.55rem; font-weight:600; white-space:nowrap; }
 	.strengths .row-head b { color:#44d5c8; }
 	.limiters .row-head b { color:#f3a84a; }
 	.tracks { position:relative; height:.32rem; margin-top:.38rem; overflow:hidden; border-radius:999px; background:#11293b; }
 	.tracks i { position:absolute; inset-block:0; left:0; border-radius:999px; }
 	.current { background:#44d5c8; }
 	.limiters .current { background:#f3a84a; }
-	.row small { display:block; margin-top:.23rem; color:#536d82; font-size:.48rem; }
+	.row small { display:block; margin-top:.23rem; color:#536d82; font-size: 0.55rem; }
 	.empty { margin:.3rem 0 0; color:#71889d; font-size:.58rem; line-height:1.4; }
 	@media (max-width:760px) { .columns { grid-template-columns:1fr; } header { align-items:flex-start; } }
 </style>

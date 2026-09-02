@@ -1,51 +1,42 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import ProgressPrimaryChart from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
-	import ProgressReactionComparisonProof from '$lib/components/progress-next/ProgressReactionComparisonProof.svelte';
-	import ProgressReactionContextProof from '$lib/components/progress-next/ProgressReactionContextProof.svelte';
-	import ProgressReactionRepeatabilityHistory from '$lib/components/progress-next/ProgressReactionRepeatabilityHistory.svelte';
-	import ProgressReactionSupportingSessions from '$lib/components/progress-next/ProgressReactionSupportingSessions.svelte';
-	import ProgressReactionSynthesis from '$lib/components/progress-next/ProgressReactionSynthesis.svelte';
-	import { buildReactionEvidence } from '$lib/components/progress-next/reactionEvidence';
-	import { buildReactionContextEvidence } from '$lib/components/progress-next/reactionContextEvidence';
-	import { buildReactionDepthEvidence } from '$lib/components/progress-next/reactionDepthEvidence';
-	import { buildReactionRepeatabilityEvidence } from '$lib/components/progress-next/reactionRepeatabilityEvidence';
-	import { buildReactionSupportingSessions } from '$lib/components/progress-next/reactionSupportingSessions';
-	import { buildReactionSynthesisEvidence } from '$lib/components/progress-next/reactionSynthesisEvidence';
+	import ProgressPowerComparisonProof from '$lib/components/progress-next/ProgressPowerComparisonProof.svelte';
+	import ProgressPowerContextProof from '$lib/components/progress-next/ProgressPowerContextProof.svelte';
+	import ProgressPowerPeakHistory from '$lib/components/progress-next/ProgressPowerPeakHistory.svelte';
+	import ProgressPowerSupportingSessions from '$lib/components/progress-next/ProgressPowerSupportingSessions.svelte';
+	import ProgressPowerSynthesis from '$lib/components/progress-next/ProgressPowerSynthesis.svelte';
+	import { buildPowerEvidence } from '$lib/components/progress-next/powerEvidence';
+	import { buildPowerContextEvidence } from '$lib/components/progress-next/powerContextEvidence';
+	import { buildPowerDepthEvidence } from '$lib/components/progress-next/powerDepthEvidence';
+	import { buildPowerPeakEvidence } from '$lib/components/progress-next/powerPeakEvidence';
+	import { buildPowerSupportingSessions } from '$lib/components/progress-next/powerSupportingSessions';
+	import { buildPowerSynthesisEvidence } from '$lib/components/progress-next/powerSynthesisEvidence';
 
 	let { data }: { data: PageData } = $props();
 
-	const reactionEvidence = $derived(buildReactionEvidence(data.sessions));
-	const repeatabilityEvidence = $derived(buildReactionRepeatabilityEvidence(data.sessions));
+	const powerEvidence = $derived(buildPowerEvidence(data.sessionAnalyses));
+	const peakEvidence = $derived(buildPowerPeakEvidence(data.sessionAnalyses));
 	const contextEvidence = $derived(
-		buildReactionContextEvidence(
+		buildPowerContextEvidence(
 			data.correlationInsights ?? [],
-			reactionEvidence.supportedSessionCount,
+			powerEvidence.supportedSessionCount,
 			data.sessionCount
 		)
 	);
-	const synthesisEvidence = $derived(
-		buildReactionSynthesisEvidence(reactionEvidence, repeatabilityEvidence)
-	);
+	const synthesisEvidence = $derived(buildPowerSynthesisEvidence(powerEvidence, peakEvidence));
 	const depthEvidence = $derived(
-		buildReactionDepthEvidence(
-			reactionEvidence,
-			repeatabilityEvidence,
-			contextEvidence,
-			synthesisEvidence
-		)
+		buildPowerDepthEvidence(powerEvidence, peakEvidence, contextEvidence, synthesisEvidence)
 	);
-	const supportingSessions = $derived(
-		buildReactionSupportingSessions(reactionEvidence, repeatabilityEvidence)
-	);
+	const supportingSessions = $derived(buildPowerSupportingSessions(powerEvidence, peakEvidence));
 
 	const stages = ['building', 'emerging', 'developing', 'established'] as const;
 	const stageIndex = $derived(stages.indexOf(depthEvidence.stage));
-	const latestHistory = $derived(reactionEvidence.history.at(-1) ?? null);
-	const latestRepeatability = $derived(repeatabilityEvidence.history.at(-1) ?? null);
+	const latestHistory = $derived(powerEvidence.history.at(-1) ?? null);
+	const latestPeak = $derived(peakEvidence.history.at(-1) ?? null);
 
-	function reactionValue(value: number | null) {
-		return value === null ? '—' : `${(value / 1000).toFixed(3)}s`;
+	function wattsValue(value: number | null) {
+		return value === null ? '—' : `${Math.round(value)}W`;
 	}
 
 	function dateLabel(value: string) {
@@ -58,47 +49,43 @@
 </script>
 
 <svelte:head>
-	<title>Reaction Progress — AppGatePro</title>
+	<title>Power Progress — AppGatePro</title>
 </svelte:head>
 
-<div class="reaction-depth-shell" data-stage={depthEvidence.stage}>
+<div class="power-depth-shell" data-stage={depthEvidence.stage}>
 	<div class="workspace">
 		<header class="page-head">
 			<div>
 				<a class="back-link" href="/progress-next">← Back to Progress</a>
-				<p class="eyebrow">Progress · Reaction deep dive</p>
-				<h1>Reaction Progress</h1>
-				<span>Depth grows only as the underlying Reaction evidence earns it.</span>
+				<p class="eyebrow">Progress · Power deep dive</p>
+				<h1>Power Progress</h1>
+				<span>Depth grows only as the underlying Power evidence earns it.</span>
 			</div>
 
 			<div class="stage-summary">
 				<strong>{depthEvidence.presentation.label}</strong>
 				<span>
-					{depthEvidence.supportedSessionCount} Reaction-supported session{depthEvidence.supportedSessionCount ===
+					{depthEvidence.supportedSessionCount} Power-supported session{depthEvidence.supportedSessionCount ===
 					1
 						? ''
 						: 's'}
 				</span>
 				<small>
-					{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount ===
-					1
+					{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount === 1
 						? ''
 						: 's'}
 				</small>
 			</div>
 		</header>
 
-		<section class="maturity" aria-label="Reaction evidence maturity">
+		<section class="maturity" aria-label="Power evidence maturity">
 			<div class="maturity-copy">
 				<p>{depthEvidence.presentation.label} evidence</p>
 				<h2>{depthEvidence.presentation.headline}</h2>
 				<span>{depthEvidence.presentation.guidance}</span>
 			</div>
 
-			<div
-				class="maturity-track"
-				aria-label={`Current Reaction depth: ${depthEvidence.presentation.label}`}
-			>
+			<div class="maturity-track" aria-label={`Current Power depth: ${depthEvidence.presentation.label}`}>
 				{#each stages as stage, index}
 					<div class:reached={index <= stageIndex} class:current={index === stageIndex}>
 						<i></i>
@@ -108,75 +95,67 @@
 			</div>
 		</section>
 
-		<section class="snapshot" aria-label="Reaction evidence snapshot">
+		<section class="snapshot" aria-label="Power evidence snapshot">
 			<article>
-				<span>Best reaction</span>
-				<strong>{reactionValue(reactionEvidence.bestReactionMs)}</strong>
+				<span>Best peak power</span>
+				<strong>{wattsValue(powerEvidence.bestPeakPowerW)}</strong>
 				<small>Measured personal best</small>
 			</article>
 
 			<article>
 				<span>Latest average</span>
-				<strong>{reactionValue(reactionEvidence.latestAverageReactionMs)}</strong>
-				<small>
-					{latestHistory ? dateLabel(latestHistory.timestamp) : 'No supported average yet'}
-				</small>
+				<strong>{wattsValue(powerEvidence.latestAverageW)}</strong>
+				<small>{latestHistory ? dateLabel(latestHistory.timestamp) : 'No supported average yet'}</small>
 			</article>
 
 			<article>
-				<span>Latest repeatability</span>
-				<strong>{latestRepeatability ? `${latestRepeatability.cv.toFixed(1)}%` : '—'}</strong>
-				<small>
-					{latestRepeatability
-						? 'Reaction CV · lower means less variation'
-						: 'Repeatability evidence building'}
-				</small>
+				<span>Latest peak</span>
+				<strong>{wattsValue(latestPeak?.peakW ?? null)}</strong>
+				<small>{latestPeak ? 'Session-peak estimate' : 'Peak power evidence building'}</small>
 			</article>
 
 			<article>
 				<span>Direction evidence</span>
-				<strong>{reactionEvidence.presentation.label}</strong>
-				<small>Latest supported window: {reactionEvidence.windowSize}</small>
+				<strong>{powerEvidence.presentation.label}</strong>
+				<small>Latest supported window: {powerEvidence.windowSize}</small>
 			</article>
 		</section>
 
-		<section class="primary-evidence" aria-label="Reaction progression evidence">
+		<section class="primary-evidence" aria-label="Power progression evidence">
 			<ProgressPrimaryChart
 				sessions={data.sessions}
-				view="reaction"
-				goalTargets={data.goalTargets}
-				{reactionEvidence}
-				reactionContextEvidence={contextEvidence}
-				reactionRepeatabilityEvidence={repeatabilityEvidence}
+				view="power"
+				{powerEvidence}
+				powerContextEvidence={contextEvidence}
 			/>
 		</section>
 
-		<section class="evidence-grid" aria-label="Reaction evidence layers">
+		<section class="evidence-grid" aria-label="Power evidence layers">
 			<article class="evidence-card" data-earned={depthEvidence.unlocks.direction}>
 				<header>
 					<div>
 						<p>Direction</p>
-						<h2>Is Reaction changing?</h2>
+						<h2>Is average power changing?</h2>
 					</div>
-					<span>{reactionEvidence.presentation.label}</span>
+					<span>{powerEvidence.presentation.label}</span>
 				</header>
-				<p>{reactionEvidence.presentation.statement}</p>
+				<p>{powerEvidence.presentation.statement}</p>
 				<footer>
-					{reactionEvidence.supportedSessionCount} supported · window {reactionEvidence.windowSize}
+					{powerEvidence.supportedSessionCount} supported · window {powerEvidence.windowSize}
 				</footer>
 			</article>
 
-			<article class="evidence-card" data-earned={depthEvidence.unlocks.repeatabilityHistory}>
+			<article class="evidence-card" data-earned={depthEvidence.unlocks.peakHistory}>
 				<header>
 					<div>
-						<p>Repeatability</p>
-						<h2>Is it becoming repeatable?</h2>
+						<p>Peak power</p>
+						<h2>Is session-peak power changing?</h2>
 					</div>
-					<span>{repeatabilityEvidence.presentation.label}</span>
+					<span>{peakEvidence.presentation.label}</span>
 				</header>
-				<p>{repeatabilityEvidence.presentation.statement}</p>
+				<p>{peakEvidence.presentation.statement}</p>
 				<footer>
-					{repeatabilityEvidence.supportedSessionCount} CV-supported · window {repeatabilityEvidence.windowSize}
+					{peakEvidence.supportedSessionCount} peak-supported · window {peakEvidence.windowSize}
 				</footer>
 			</article>
 
@@ -200,54 +179,48 @@
 			</article>
 		</section>
 
-		{#if depthEvidence.unlocks.repeatabilityHistory}
-			<ProgressReactionRepeatabilityHistory
-				sessions={data.sessions}
-				evidence={repeatabilityEvidence}
-			/>
+		{#if depthEvidence.unlocks.peakHistory}
+			<ProgressPowerPeakHistory sessions={data.sessions} evidence={peakEvidence} />
 		{/if}
 
-		{#if depthEvidence.unlocks.direction || depthEvidence.unlocks.repeatabilityDirection}
-			<ProgressReactionComparisonProof
-				reaction={reactionEvidence}
-				repeatability={repeatabilityEvidence}
-			/>
+		{#if depthEvidence.unlocks.direction || depthEvidence.unlocks.peakDirection}
+			<ProgressPowerComparisonProof power={powerEvidence} peak={peakEvidence} />
 		{/if}
 
 		{#if depthEvidence.unlocks.context}
-			<ProgressReactionContextProof evidence={contextEvidence} />
+			<ProgressPowerContextProof evidence={contextEvidence} />
 		{/if}
 
 		{#if depthEvidence.unlocks.synthesis}
-			<ProgressReactionSynthesis evidence={synthesisEvidence} />
+			<ProgressPowerSynthesis evidence={synthesisEvidence} />
 		{:else}
-			<section class="story-building" aria-label="Reaction synthesis building">
-				<p>Reaction story</p>
-				<h2>Direction and repeatability are still being kept separate.</h2>
+			<section class="story-building" aria-label="Power synthesis building">
+				<p>Power story</p>
+				<h2>Average and peak power are still being kept separate.</h2>
 				<span>{synthesisEvidence.statement}</span>
 			</section>
 		{/if}
 
-		<ProgressReactionSupportingSessions evidence={supportingSessions} />
+		<ProgressPowerSupportingSessions evidence={supportingSessions} />
 
-		<section class="proof" aria-label="Reaction evidence provenance">
+		<section class="proof" aria-label="Power evidence provenance">
 			<div>
 				<p>Evidence provenance</p>
 				<h2>Why this page can say what it says</h2>
 				<span>
-					Every layer above consumes the frozen Reaction evidence boundaries. Overall depth never
+					Every layer above consumes the frozen Power evidence boundaries. Overall depth never
 					upgrades an individual statement by itself.
 				</span>
 			</div>
 
 			<dl>
 				<div>
-					<dt>Reaction support</dt>
-					<dd>{reactionEvidence.supportedSessionCount} sessions</dd>
+					<dt>Average power support</dt>
+					<dd>{powerEvidence.supportedSessionCount} sessions</dd>
 				</div>
 				<div>
-					<dt>Repeatability support</dt>
-					<dd>{repeatabilityEvidence.supportedSessionCount} sessions</dd>
+					<dt>Peak power support</dt>
+					<dd>{peakEvidence.supportedSessionCount} sessions</dd>
 				</div>
 				<div>
 					<dt>Context analysis</dt>
@@ -263,11 +236,11 @@
 </div>
 
 <style>
-	.reaction-depth-shell {
+	.power-depth-shell {
 		min-height: calc(100vh - 5rem);
 		margin: -2rem;
 		background:
-			radial-gradient(circle at 82% 7%, rgba(58, 112, 255, 0.14), transparent 28rem),
+			radial-gradient(circle at 82% 7%, rgba(255, 179, 26, 0.12), transparent 28rem),
 			linear-gradient(180deg, #07131f 0%, #05101a 100%);
 		color: #f7fbff;
 	}
@@ -339,7 +312,7 @@
 
 	.stage-summary strong {
 		font-size: 0.9rem;
-		color: #dfffb4;
+		color: #ffe3ac;
 	}
 
 	.stage-summary span,
@@ -412,7 +385,7 @@
 	}
 
 	.maturity-track .current i {
-		background: #8de51e;
+		background: #ffb31a;
 	}
 
 	.snapshot {

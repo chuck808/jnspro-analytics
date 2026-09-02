@@ -131,7 +131,7 @@
 	.metric.speed { --tone:#35d4df; }
 	.metric.force { --tone:#f0a719; }
 	.metric-head { display: flex; justify-content: space-between; gap: .5rem; color: #9db1c3; font-size: .62rem; font-weight: 700; }
-	.metric-head small { color: #5f778d; font-size: .54rem; font-weight: 500; }
+	.metric-head small { color: #5f778d; font-size: 0.55rem; font-weight: 500; }
 	.metric strong { display: block; margin-top: .55rem; color: #f7fbff; font-size: clamp(1.25rem, 2.5vw, 2rem); line-height: 1; letter-spacing: -.035em; }
 	.metric p { margin: .28rem 0 0; color: #70879b; font-size: .57rem; }
 	.micro-line { display: block; width: 100%; height: 2.25rem; margin-top: .5rem; overflow: visible; color: var(--tone); }

@@ -4,8 +4,12 @@
 	import type { ReactionContextEvidenceModel } from './reactionContextEvidence';
 	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
 	import type { PeakSpeedEvidenceModel } from './peakSpeedEvidence';
+	import type { PowerEvidenceModel } from './powerEvidence';
+	import type { PowerPeakEvidenceModel } from './powerPeakEvidence';
+	import type { PowerContextEvidenceModel } from './powerContextEvidence';
 
-	export type ProgressView = 'reaction' | 'speed' | 'consistency';
+	export type ProgressView = 'reaction' | 'speed' | 'consistency' | 'power';
+	type ChartView = ProgressView | 'power-peak';
 
 	interface SessionPoint {
 		timestamp: string;
@@ -17,12 +21,15 @@
 
 	interface Props {
 		sessions: SessionPoint[];
-		view: ProgressView;
+		view: ChartView;
 		goalTargets?: Record<string, any>;
 		reactionEvidence?: ReactionEvidenceModel;
 		reactionContextEvidence?: ReactionContextEvidenceModel;
 		reactionRepeatabilityEvidence?: ReactionRepeatabilityEvidenceModel;
 		peakSpeedEvidence?: PeakSpeedEvidenceModel;
+		powerEvidence?: PowerEvidenceModel;
+		powerPeakEvidence?: PowerPeakEvidenceModel;
+		powerContextEvidence?: PowerContextEvidenceModel;
 	}
 
 	let {
@@ -32,7 +39,10 @@
 		reactionEvidence,
 		reactionContextEvidence,
 		reactionRepeatabilityEvidence,
-		peakSpeedEvidence
+		peakSpeedEvidence,
+		powerEvidence,
+		powerPeakEvidence,
+		powerContextEvidence
 	}: Props = $props();
 	let canvas: HTMLCanvasElement | null = $state(null);
 	let chart: any = null;
@@ -40,6 +50,8 @@
 	const meta = $derived.by(() => {
 		if (view === 'speed') return { title: 'Peak speed progression', note: 'Validated IMU evidence · higher is better', accent: '#ff7555' };
 		if (view === 'consistency') return { title: 'Reaction consistency', note: 'Session CV · lower means less within-session variation', accent: '#38d9ca' };
+		if (view === 'power') return { title: 'Average power progression', note: 'Estimated physics · higher is better', accent: '#ffb31a' };
+		if (view === 'power-peak') return { title: 'Peak power', note: 'Estimated physics · session peak', accent: '#ffb31a' };
 		return { title: 'Reaction progression', note: 'Best + average reaction · lower is better', accent: '#96de27' };
 	});
 
@@ -48,7 +60,11 @@
 			? (reactionEvidence?.history.length ?? 0) >= 2
 			: view === 'consistency'
 				? (reactionRepeatabilityEvidence?.history.length ?? 0) >= 2
-				: (peakSpeedEvidence?.history.length ?? 0) >= 2
+				: view === 'power'
+					? (powerEvidence?.history.length ?? 0) >= 2
+					: view === 'power-peak'
+						? (powerPeakEvidence?.history.length ?? 0) >= 2
+						: (peakSpeedEvidence?.history.length ?? 0) >= 2
 	);
 
 	function labelDate(value: string) {
@@ -64,7 +80,18 @@
 		const reactionHistory = reactionEvidence?.history ?? [];
 		const repeatabilityHistory = reactionRepeatabilityEvidence?.history ?? [];
 		const speedHistory = peakSpeedEvidence?.history ?? [];
-		const chartSessions = view === 'reaction' ? reactionHistory : view === 'consistency' ? repeatabilityHistory : speedHistory;
+		const powerHistory = powerEvidence?.history ?? [];
+		const powerPeakHistory = powerPeakEvidence?.history ?? [];
+		const chartSessions =
+			view === 'reaction'
+				? reactionHistory
+				: view === 'consistency'
+					? repeatabilityHistory
+					: view === 'power'
+						? powerHistory
+						: view === 'power-peak'
+							? powerPeakHistory
+							: speedHistory;
 		const labels = chartSessions.map((session) => labelDate(session.timestamp));
 		const commonDataset = {
 			borderWidth: 2.4,
@@ -98,6 +125,25 @@
 				maxBarThickness: 30
 			}];
 			yLabel = 'CV %';
+		} else if (view === 'power') {
+			datasets = [{
+				...commonDataset,
+				label: 'Average power (W)',
+				data: powerHistory.map((session) => session.averageW),
+				borderColor: '#ffb31a',
+				backgroundColor: 'rgba(255,179,26,.10)',
+				pointBackgroundColor: '#ffb31a'
+			}];
+			yLabel = 'W';
+		} else if (view === 'power-peak') {
+			datasets = [{
+				label: 'Peak power (W)',
+				data: powerPeakHistory.map((session) => session.peakW),
+				backgroundColor: 'rgba(255,179,26,.72)',
+				borderRadius: 5,
+				maxBarThickness: 30
+			}];
+			yLabel = 'W';
 		} else {
 			reverse = true;
 			datasets = [
@@ -126,14 +172,14 @@
 		}
 
 		chart = new Chart(canvas, {
-			type: view === 'consistency' ? 'bar' : 'line',
+			type: view === 'consistency' || view === 'power-peak' ? 'bar' : 'line',
 			data: { labels, datasets },
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
 				interaction: { intersect: false, mode: 'index' },
 				plugins: {
-					legend: { display: view !== 'consistency', labels: { color: '#8fa4b7', boxWidth: 9, boxHeight: 9, usePointStyle: true, font: { size: 10 } } },
+					legend: { display: view !== 'consistency' && view !== 'power-peak', labels: { color: '#8fa4b7', boxWidth: 9, boxHeight: 9, usePointStyle: true, font: { size: 10 } } },
 					tooltip: { backgroundColor: '#091522', titleColor: '#fff', bodyColor: '#d8e4ef', borderColor: '#284159', borderWidth: 1 }
 				},
 				scales: {
@@ -144,7 +190,7 @@
 		});
 	}
 
-	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; reactionRepeatabilityEvidence; peakSpeedEvidence; canRender; draw(); });
+	$effect(() => { sessions.length; view; goalTargets; reactionEvidence; reactionRepeatabilityEvidence; peakSpeedEvidence; powerEvidence; powerPeakEvidence; canRender; draw(); });
 	onDestroy(() => chart?.destroy());
 </script>
 
@@ -208,6 +254,44 @@
 		</div>
 	{/if}
 
+	{#if view === 'power' && powerEvidence}
+		<div class="reaction-evidence-stack">
+			<div class="evidence-summary" data-state={powerEvidence.state}>
+				<div class="evidence-label">
+					<span>{powerEvidence.presentation.label}</span>
+					<small>{powerEvidence.supportedSessionCount} supported session{powerEvidence.supportedSessionCount === 1 ? '' : 's'}</small>
+				</div>
+				<p>{powerEvidence.presentation.statement}</p>
+			</div>
+
+			{#if powerContextEvidence}
+				<div class="context-summary" data-state={powerContextEvidence.state}>
+					<div class="context-label">
+						<span>{powerContextEvidence.presentation.label}</span>
+						{#if powerContextEvidence.selected}
+							<small>{powerContextEvidence.selected.strength} evidence · n={powerContextEvidence.selected.sampleSize}</small>
+						{:else}
+							<small>recorded context only</small>
+						{/if}
+					</div>
+					<p>{powerContextEvidence.presentation.statement}</p>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	{#if view === 'power-peak' && powerPeakEvidence}
+		<div class="reaction-evidence-stack">
+			<div class="repeatability-summary" data-state={powerPeakEvidence.state}>
+				<div class="evidence-label">
+					<span>{powerPeakEvidence.presentation.label}</span>
+					<small>{powerPeakEvidence.supportedSessionCount} peak-supported session{powerPeakEvidence.supportedSessionCount === 1 ? '' : 's'}</small>
+				</div>
+				<p>{powerPeakEvidence.presentation.statement}</p>
+			</div>
+		</div>
+	{/if}
+
 	<div class="chart-stage">
 		{#if !canRender}
 			<div class="empty">
@@ -217,6 +301,12 @@
 				{:else if view === 'consistency'}
 					<strong>Repeatability history needs another supported session.</strong>
 					<span>Two sessions with measurable reaction CV unlock observed repeatability history. A session needs at least two usable reaction observations before CV can be measured.</span>
+				{:else if view === 'power'}
+					<strong>Power history needs another supported observation.</strong>
+					<span>Two sessions with an analytics-valid measured average power unlock observed history. Direction is only described when enough supported evidence exists.</span>
+				{:else if view === 'power-peak'}
+					<strong>Peak power history needs another supported session.</strong>
+					<span>Two sessions with an analytics-valid measured peak power unlock observed history.</span>
 				{:else}
 					<strong>Peak Speed history needs another validated-speed session.</strong>
 					<span>Two sessions with validated IMU peak-speed evidence unlock the longitudinal view. Unsupported account sessions do not promote this evidence.</span>
@@ -295,7 +385,7 @@
 	.evidence-label span,
 	.context-label span { color: #dce9f4; font-size: .63rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 	.evidence-label small,
-	.context-label small { color: #7890a4; font-size: .54rem; text-transform:capitalize; }
+	.context-label small { color: #7890a4; font-size: 0.55rem; text-transform:capitalize; }
 	.evidence-summary p,
 	.context-summary p,
 	.repeatability-summary p { margin: 0; color: #9fb1c1; font-size: .65rem; line-height: 1.45; }

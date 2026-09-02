@@ -3,6 +3,7 @@
 	import type { ReactionEvidenceModel } from './reactionEvidence';
 	import type { ReactionRepeatabilityEvidenceModel } from './reactionRepeatabilityEvidence';
 	import type { PeakSpeedEvidenceModel } from './peakSpeedEvidence';
+	import type { PowerEvidenceModel } from './powerEvidence';
 
 	interface SessionPoint {
 		timestamp: string;
@@ -14,6 +15,7 @@
 		reactionEvidence: ReactionEvidenceModel;
 		peakSpeedEvidence: PeakSpeedEvidenceModel;
 		reactionRepeatabilityEvidence: ReactionRepeatabilityEvidenceModel;
+		powerEvidence: PowerEvidenceModel;
 		sessions?: SessionPoint[];
 		onSelect: (view: ProgressView) => void;
 	}
@@ -23,6 +25,7 @@
 		reactionEvidence,
 		peakSpeedEvidence,
 		reactionRepeatabilityEvidence,
+		powerEvidence,
 		sessions = [],
 		onSelect
 	}: Props = $props();
@@ -45,6 +48,19 @@
 	}
 
 	function peakSpeedMetric(model: PeakSpeedEvidenceModel) {
+		const finding = model.finding;
+		if (!finding)
+			return { value: '—', label: model.presentation.label.toLowerCase(), tone: 'neutral' };
+		if (finding.direction === 'stable')
+			return { value: 'Stable', label: 'supported', tone: 'neutral' };
+		return {
+			value: `${Math.abs(finding.changePercent).toFixed(1)}%`,
+			label: finding.direction,
+			tone: finding.direction === 'improving' ? 'good' : 'attention'
+		};
+	}
+
+	function powerMetric(model: PowerEvidenceModel) {
 		const finding = model.finding;
 		if (!finding)
 			return { value: '—', label: model.presentation.label.toLowerCase(), tone: 'neutral' };
@@ -85,6 +101,7 @@
 	const recentReaction = $derived(reactionEvidence.history.slice(-10));
 	const recentSpeed = $derived(peakSpeedEvidence.history.slice(-10));
 	const recentRepeatability = $derived(reactionRepeatabilityEvidence.history.slice(-10));
+	const recentPower = $derived(powerEvidence.history.slice(-10));
 	const historyLabel = $derived.by(() => {
 		if (sessions.length === 0) return 'No session history';
 		const first = dateLabel(sessions[0].timestamp);
@@ -132,6 +149,15 @@
 				true
 			),
 			evidenceCount: recentRepeatability.length
+		},
+		{
+			key: 'power' as const,
+			label: 'Power',
+			provenance: 'Estimated physics',
+			glyph: 'P',
+			metric: powerMetric(powerEvidence),
+			points: sparkPoints(recentPower.map((session) => session.averageW)),
+			evidenceCount: recentPower.length
 		}
 	]);
 </script>
@@ -284,7 +310,7 @@
 		color: #f2f7fb;
 	}
 	.name small {
-		font-size: 0.54rem;
+		font-size: 0.55rem;
 		color: #60788d;
 	}
 
@@ -314,7 +340,7 @@
 		background: #1d354a;
 	}
 	.spark small {
-		font-size: 0.5rem;
+		font-size: 0.55rem;
 		color: #597086;
 	}
 
@@ -328,7 +354,7 @@
 		color: #d9e5ef;
 	}
 	.metric small {
-		font-size: 0.5rem;
+		font-size: 0.55rem;
 		color: #71879a;
 	}
 	.metric[data-tone='good'] strong {
@@ -351,7 +377,7 @@
 	}
 	.footer p {
 		margin: 0;
-		font-size: 0.54rem;
+		font-size: 0.55rem;
 		line-height: 1.45;
 		color: #60778b;
 	}

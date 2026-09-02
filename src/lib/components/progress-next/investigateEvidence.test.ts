@@ -4,9 +4,26 @@ import { buildInvestigateEvidence } from './investigateEvidence';
 function session(
 	id: string,
 	timestamp: string,
-	diagnostics: Array<{ title: string; tone: 'positive' | 'warning' | 'neutral' }> = []
+	diagnostics: Array<{
+		title: string;
+		tone: 'positive' | 'warning' | 'neutral';
+		summary?: string;
+		evidence?: string[];
+		prescription?: string[];
+		audience?: 'grom' | 'rider' | 'elite' | 'coach';
+	}> = []
 ) {
-	return { sessionId: id, timestamp, diagnostics };
+	return {
+		sessionId: id,
+		timestamp,
+		diagnostics: diagnostics.map((d) => ({
+			summary: '',
+			evidence: [] as string[],
+			prescription: [] as string[],
+			audience: 'rider' as const,
+			...d
+		}))
+	};
 }
 
 describe('buildInvestigateEvidence', () => {
@@ -63,5 +80,83 @@ describe('buildInvestigateEvidence', () => {
 			latestSessionId: 's2',
 			latestTone: 'neutral'
 		});
+	});
+
+	it('carries summary, evidence, prescription, and audience from the latest occurrence instead of an older occurrence\'s', () => {
+		const evidence = buildInvestigateEvidence([
+			session('s1', '2026-01-01T00:00:00Z', [
+				{
+					title: 'Shared diagnostic',
+					tone: 'warning',
+					summary: 'Oldest summary',
+					evidence: ['Oldest evidence'],
+					prescription: ['Oldest prescription'],
+					audience: 'coach'
+				}
+			]),
+			session('s2', '2026-01-03T00:00:00Z', [
+				{
+					title: 'Shared diagnostic',
+					tone: 'neutral',
+					summary: 'Latest summary',
+					evidence: ['Latest evidence line 1', 'Latest evidence line 2'],
+					prescription: ['Latest prescription step'],
+					audience: 'rider'
+				}
+			]),
+			session('s3', '2026-01-02T00:00:00Z', [
+				{
+					title: 'Shared diagnostic',
+					tone: 'positive',
+					summary: 'Middle summary',
+					evidence: ['Middle evidence'],
+					prescription: ['Middle prescription'],
+					audience: 'elite'
+				}
+			])
+		]);
+
+		expect(evidence.signals[0]).toMatchObject({
+			latestSessionId: 's2',
+			latestSummary: 'Latest summary',
+			latestEvidence: ['Latest evidence line 1', 'Latest evidence line 2'],
+			latestPrescription: ['Latest prescription step'],
+			latestAudience: 'rider'
+		});
+	});
+
+	it('does not let a one-off diagnostic\'s rich text leak into signals', () => {
+		const evidence = buildInvestigateEvidence([
+			session('s1', '2026-01-01T00:00:00Z', [
+				{
+					title: 'Force application is choppy',
+					tone: 'warning',
+					summary: 'A rich, specific summary.',
+					evidence: ['Smoothness 41/100'],
+					prescription: ['Check device mounting first.']
+				}
+			])
+		]);
+
+		expect(evidence.state).toBe('observed');
+		expect(evidence.signals).toEqual([]);
+	});
+
+	it('keeps distinct latest audiences independent across two different repeated signals', () => {
+		const evidence = buildInvestigateEvidence([
+			session('s1', '2026-01-01T00:00:00Z', [
+				{ title: 'Coach signal', tone: 'warning', audience: 'coach' },
+				{ title: 'Rider signal', tone: 'neutral', audience: 'rider' }
+			]),
+			session('s2', '2026-01-02T00:00:00Z', [
+				{ title: 'Coach signal', tone: 'warning', audience: 'coach' },
+				{ title: 'Rider signal', tone: 'neutral', audience: 'rider' }
+			])
+		]);
+
+		const coachSignal = evidence.signals.find((signal) => signal.title === 'Coach signal');
+		const riderSignal = evidence.signals.find((signal) => signal.title === 'Rider signal');
+		expect(coachSignal?.latestAudience).toBe('coach');
+		expect(riderSignal?.latestAudience).toBe('rider');
 	});
 });

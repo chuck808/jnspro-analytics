@@ -13,7 +13,7 @@
 
 <section class="panel" aria-labelledby="reports-heading">
 	<div>
-		<p class="eyebrow">10 · Reports</p>
+		<p class="eyebrow">11 · Reports</p>
 		<h2 id="reports-heading">Turn your history into something shareable</h2>
 		<span class="intro">Reports remain on the previous analytics engine while the new Progress and Sessions evidence contracts are completed.</span>
 	</div>
@@ -85,7 +85,7 @@
 	.copy strong { display: block; font-size: 0.72rem; }
 	.copy span { display: block; margin-top: 0.2rem; color: #74899c; font-size: 0.55rem; line-height: 1.4; }
 	.capabilities { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem; }
-	.capabilities span { border: 1px solid #1d3b55; border-radius: 999px; padding: 0.24rem 0.48rem; color: #8ba0b3; font-size: 0.5rem; }
+	.capabilities span { border: 1px solid #1d3b55; border-radius: 999px; padding: 0.24rem 0.48rem; color: #8ba0b3; font-size: 0.55rem; }
 
 	.action {
 		display: flex;
@@ -104,5 +104,5 @@
 
 	.action:hover,
 	.action:focus-visible { border-color: #55abf4; background: rgba(75, 163, 255, 0.08); outline: none; }
-	.preview-note { margin: 0.62rem 0 0; color: #60768a; font-size: 0.5rem; line-height: 1.4; }
+	.preview-note { margin: 0.62rem 0 0; color: #60768a; font-size: 0.55rem; line-height: 1.4; }
 </style>

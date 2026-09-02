@@ -83,19 +83,19 @@
 	.pattern-card { min-width:0; border:1px solid #19344a; border-radius:.8rem; background:rgba(7,22,35,.86); padding:.8rem; }
 	.pattern-head { display:flex; justify-content:space-between; gap:.7rem; align-items:start; }
 	.pattern-head strong { display:block; color:#e8f2fb; font-size:.68rem; line-height:1.25; }
-	.pattern-head span { display:block; margin-top:.18rem; color:#70879b; font-size:.54rem; text-transform:capitalize; }
+	.pattern-head span { display:block; margin-top:.18rem; color:#70879b; font-size: 0.55rem; text-transform:capitalize; }
 	.pattern-head b { color:#37d5df; font-size:.78rem; font-variant-numeric:tabular-nums; }
-	.pattern-head b.categorical { max-width:6rem; color:#9bb1c3; font-size:.52rem; font-weight:700; line-height:1.2; text-align:right; text-transform:uppercase; }
+	.pattern-head b.categorical { max-width:6rem; color:#9bb1c3; font-size: 0.55rem; font-weight:700; line-height:1.2; text-align:right; text-transform:uppercase; }
 	.axis { position:relative; height:.42rem; margin-top:.8rem; border-radius:999px; overflow:visible; background:#122a3d; }
 	.axis > i { position:absolute; inset-block:0; width:50%; opacity:.35; }
 	.negative { left:0; background:linear-gradient(90deg,#ff7354,transparent); border-radius:999px 0 0 999px; }
 	.positive { right:0; background:linear-gradient(90deg,transparent,#8de51e); border-radius:0 999px 999px 0; }
 	.centre { position:absolute; left:50%; top:-.18rem; width:1px; height:.78rem; background:#4c6478; }
 	.marker { position:absolute; top:50%; width:.62rem; height:.62rem; border:2px solid #06111d; border-radius:50%; background:#f7fbff; transform:translate(-50%,-50%); box-shadow:0 0 0 1px #4ba3ff; }
-	.axis-labels { display:flex; justify-content:space-between; margin-top:.28rem; color:#4f687d; font-size:.48rem; text-transform:uppercase; letter-spacing:.06em; }
-	.categorical-note { margin-top:.72rem; border-radius:.45rem; background:#10293d; padding:.48rem .55rem; color:#71889d; font-size:.5rem; line-height:1.35; }
+	.axis-labels { display:flex; justify-content:space-between; margin-top:.28rem; color:#4f687d; font-size: 0.55rem; text-transform:uppercase; letter-spacing:.06em; }
+	.categorical-note { margin-top:.72rem; border-radius:.45rem; background:#10293d; padding:.48rem .55rem; color:#71889d; font-size: 0.55rem; line-height:1.35; }
 	.pattern-card p { min-height:3.1em; margin:.6rem 0 0; color:#93a8ba; font-size:.58rem; line-height:1.45; }
-	.pattern-card footer { display:flex; justify-content:space-between; gap:.5rem; margin-top:.55rem; padding-top:.5rem; border-top:1px solid #162f43; color:#5f778d; font-size:.52rem; text-transform:capitalize; }
+	.pattern-card footer { display:flex; justify-content:space-between; gap:.5rem; margin-top:.55rem; padding-top:.5rem; border-top:1px solid #162f43; color:#5f778d; font-size: 0.55rem; text-transform:capitalize; }
 	.empty { margin-top:.85rem; padding:1.1rem; border:1px dashed #244259; border-radius:.8rem; background:rgba(8,23,37,.55); }
 	.empty strong { display:block; color:#cbd9e5; font-size:.72rem; }
 	.empty span { display:block; margin-top:.25rem; color:#71889d; font-size:.6rem; }

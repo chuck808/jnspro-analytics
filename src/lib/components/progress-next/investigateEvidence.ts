@@ -1,12 +1,13 @@
-export type InvestigateTone = 'positive' | 'warning' | 'neutral';
+import type { CoachDiagnostic } from '$lib/performance-engine/coachDiagnostics';
+
+export type InvestigateTone = CoachDiagnostic['tone'];
 
 export interface InvestigateSessionAnalysisLike {
 	sessionId: string;
 	timestamp: string;
-	diagnostics?: Array<{
-		title: string;
-		tone: InvestigateTone;
-	}>;
+	diagnostics?: Array<
+		Pick<CoachDiagnostic, 'title' | 'tone' | 'summary' | 'evidence' | 'prescription' | 'audience'>
+	>;
 }
 
 export interface RepeatedDiagnosticEvidence {
@@ -16,6 +17,10 @@ export interface RepeatedDiagnosticEvidence {
 	latestTimestamp: string;
 	latestSessionId: string;
 	latestTone: InvestigateTone;
+	latestSummary: string;
+	latestEvidence: string[];
+	latestPrescription: string[];
+	latestAudience: CoachDiagnostic['audience'];
 }
 
 export interface InvestigateEvidenceModel {
@@ -43,31 +48,44 @@ export function buildInvestigateEvidence(
 		};
 	}
 
+	type LatestDiagnostic = Pick<
+		CoachDiagnostic,
+		'tone' | 'summary' | 'evidence' | 'prescription' | 'audience'
+	>;
+
 	const signals = new Map<
 		string,
 		{
 			count: number;
 			latestTimestamp: string;
 			latestSessionId: string;
-			latestTone: InvestigateTone;
+			latest: LatestDiagnostic;
 		}
 	>();
 
 	for (const session of sessionAnalyses) {
-		const byTitle = new Map<string, InvestigateTone>();
+		const byTitle = new Map<string, LatestDiagnostic>();
 		for (const diagnostic of session.diagnostics ?? []) {
 			const title = diagnostic.title.trim();
-			if (title) byTitle.set(title, diagnostic.tone);
+			if (title) {
+				byTitle.set(title, {
+					tone: diagnostic.tone,
+					summary: diagnostic.summary,
+					evidence: diagnostic.evidence,
+					prescription: diagnostic.prescription,
+					audience: diagnostic.audience
+				});
+			}
 		}
 
-		for (const [title, tone] of byTitle) {
+		for (const [title, latest] of byTitle) {
 			const existing = signals.get(title);
 			if (!existing) {
 				signals.set(title, {
 					count: 1,
 					latestTimestamp: session.timestamp,
 					latestSessionId: session.sessionId,
-					latestTone: tone
+					latest
 				});
 				continue;
 			}
@@ -76,7 +94,7 @@ export function buildInvestigateEvidence(
 			if (Date.parse(session.timestamp) >= Date.parse(existing.latestTimestamp)) {
 				existing.latestTimestamp = session.timestamp;
 				existing.latestSessionId = session.sessionId;
-				existing.latestTone = tone;
+				existing.latest = latest;
 			}
 		}
 	}
@@ -89,7 +107,11 @@ export function buildInvestigateEvidence(
 			supportedAnalysisCount: sessionAnalyses.length,
 			latestTimestamp: value.latestTimestamp,
 			latestSessionId: value.latestSessionId,
-			latestTone: value.latestTone
+			latestTone: value.latest.tone,
+			latestSummary: value.latest.summary,
+			latestEvidence: value.latest.evidence,
+			latestPrescription: value.latest.prescription,
+			latestAudience: value.latest.audience
 		}))
 		.sort((a, b) => {
 			if (b.occurrenceCount !== a.occurrenceCount) return b.occurrenceCount - a.occurrenceCount;
