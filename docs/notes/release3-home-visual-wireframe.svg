@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1320" viewBox="0 0 1440 1320">
+  <rect width="1440" height="1320" fill="#0b0c0f"/>
+  <rect x="80" y="55" width="1280" height="1210" rx="28" fill="#111318" stroke="#252a31"/>
+  <text x="125" y="120" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="42" font-weight="700">Home</text>
+  <text x="125" y="158" fill="#9ba3ad" font-family="Arial,sans-serif" font-size="19">Your gate-start training, right now.</text>
+
+  <rect x="125" y="205" width="1190" height="285" rx="20" fill="#171a20" stroke="#303640"/>
+  <text x="160" y="248" fill="#f5a623" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">LATEST TRAINING</text>
+  <text x="160" y="294" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="27" font-weight="700">3 September · 6 eligible starts</text>
+  <text x="160" y="338" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="18">Reaction stayed tightly grouped through the set.</text>
+  <text x="160" y="368" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="18">Strongest supported start: Run 4.</text>
+  <line x1="160" y1="397" x2="1280" y2="397" stroke="#2c3139"/>
+  <text x="160" y="438" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="25" font-weight="700">0.284 s</text>
+  <text x="160" y="463" fill="#8d96a1" font-family="Arial,sans-serif" font-size="13">BEST REACTION</text>
+  <text x="410" y="438" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="25" font-weight="700">18.7 km/h</text>
+  <text x="410" y="463" fill="#8d96a1" font-family="Arial,sans-serif" font-size="13">VALIDATED PEAK SPEED</text>
+  <text x="700" y="438" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="25" font-weight="700">6 / 6</text>
+  <text x="700" y="463" fill="#8d96a1" font-family="Arial,sans-serif" font-size="13">EVIDENCE COVERAGE</text>
+  <text x="1135" y="449" fill="#f5a623" font-family="Arial,sans-serif" font-size="16" font-weight="700">Open session →</text>
+
+  <rect x="125" y="525" width="765" height="390" rx="20" fill="#171a20" stroke="#303640"/>
+  <text x="160" y="570" fill="#9ba3ad" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">YOUR DEVELOPMENT</text>
+  <text x="160" y="620" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="24" font-weight="700">Reaction · Developing</text>
+  <text x="160" y="657" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="17">Recent supported sessions are trending faster while</text>
+  <text x="160" y="684" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="17">repeatability has remained stable.</text>
+  <text x="160" y="718" fill="#3de8c8" font-family="Arial,sans-serif" font-size="14">Moderate confidence · 8 supported sessions</text>
+  <text x="160" y="754" fill="#f5a623" font-family="Arial,sans-serif" font-size="15" font-weight="700">See reaction evidence →</text>
+  <line x1="160" y1="785" x2="855" y2="785" stroke="#2c3139"/>
+  <text x="160" y="828" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="22" font-weight="700">Speed carry · Emerging</text>
+  <text x="160" y="862" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="16">Validated speed evidence is beginning to form a recent baseline.</text>
+  <text x="160" y="894" fill="#f5a623" font-family="Arial,sans-serif" font-size="15" font-weight="700">Explore Progress →</text>
+
+  <rect x="925" y="525" width="390" height="185" rx="20" fill="#171a20" stroke="#303640"/>
+  <text x="960" y="568" fill="#9ba3ad" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">WORKING TOWARD</text>
+  <text x="960" y="610" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="21" font-weight="700">Reaction time</text>
+  <text x="960" y="648" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="18">0.302 s → 0.280 s target</text>
+  <rect x="960" y="670" width="245" height="8" rx="4" fill="#303640"/>
+  <rect x="960" y="670" width="155" height="8" rx="4" fill="#f5a623"/>
+  <text x="1220" y="683" fill="#f5a623" font-family="Arial,sans-serif" font-size="14" font-weight="700">View goal →</text>
+
+  <rect x="925" y="740" width="390" height="175" rx="20" fill="#141d1d" stroke="#28514b"/>
+  <text x="960" y="782" fill="#3de8c8" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1.5">FROM JNSPRO EVIDENCE</text>
+  <text x="960" y="818" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="20" font-weight="700">Worth checking</text>
+  <text x="960" y="850" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="14">Speed carry has been the weaker</text>
+  <text x="960" y="872" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="14">supported dimension across 4 of 5 sessions.</text>
+  <text x="960" y="900" fill="#3de8c8" font-family="Arial,sans-serif" font-size="14" font-weight="700">Review evidence →</text>
+
+  <rect x="125" y="950" width="1190" height="245" rx="20" fill="#171a20" stroke="#303640"/>
+  <text x="160" y="995" fill="#9ba3ad" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">RECENT TRAINING</text>
+  <text x="160" y="1042" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="17" font-weight="700">3 Sep</text><text x="330" y="1042" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="16">6 eligible starts</text><text x="610" y="1042" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="17">0.284 s</text>
+  <line x1="160" y1="1063" x2="1280" y2="1063" stroke="#2c3139"/>
+  <text x="160" y="1102" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="17" font-weight="700">29 Aug</text><text x="330" y="1102" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="16">5 eligible starts</text><text x="610" y="1102" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="17">0.291 s</text>
+  <line x1="160" y1="1123" x2="1280" y2="1123" stroke="#2c3139"/>
+  <text x="160" y="1162" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="17" font-weight="700">24 Aug</text><text x="330" y="1162" fill="#c8cdd4" font-family="Arial,sans-serif" font-size="16">7 eligible starts</text><text x="610" y="1162" fill="#f4f5f7" font-family="Arial,sans-serif" font-size="17">0.288 s</text>
+  <text x="1130" y="1162" fill="#f5a623" font-family="Arial,sans-serif" font-size="15" font-weight="700">Training record →</text>
+
+  <text x="125" y="1235" fill="#68717c" font-family="Arial,sans-serif" font-size="13">Illustrative values only · authority-grounded Release 3 Home mock-up</text>
+</svg>
