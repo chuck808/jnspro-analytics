@@ -23,6 +23,16 @@ function makeRun(overrides: Partial<RunLike> = {}): RunLike {
 	};
 }
 
+function makeRunAtSpeed(runNumber: number, speedKmh: number): RunLike {
+	return makeRun({
+		run_number: runNumber,
+		gate_runs: {
+			...makeRun().gate_runs,
+			peak_speed_ms: speedKmh / 3.6
+		}
+	});
+}
+
 describe('analyseRun — firmware speed anchoring', () => {
 	it('exposes measured peak/avg/end speed straight from gate_runs, independent of curve shape', () => {
 		const run = makeRun();
@@ -76,5 +86,100 @@ describe('analyseSession — summary peak speed prefers firmware truth', () => {
 		const analysis = analyseSession(session, {});
 
 		expect(analysis.summary.peakSpeedKmh).not.toBeNull();
+	});
+});
+
+describe('analyseSession — drop-off run provenance', () => {
+	it('reports the physical run number when an earlier run has no usable speed', () => {
+		const session: SessionLike = {
+			runs: [
+				makeRunAtSpeed(1, 30),
+				makeRun({ run_number: 2, chart_data: [] }),
+				makeRunAtSpeed(3, 31),
+				makeRunAtSpeed(4, 30),
+				makeRunAtSpeed(5, 32),
+				makeRunAtSpeed(6, 20)
+			]
+		};
+
+		const analysis = analyseSession(session, {});
+
+		expect(analysis.intelligence?.dropOff?.dropOffRun).toBe(6);
+		expect(analysis.intelligence?.setLength.optimal).toBe(5);
+	});
+
+	it('reports the physical run number when an earlier run is removed by the reaction filter', () => {
+		const missingReactionRun = makeRunAtSpeed(2, 31);
+		const session: SessionLike = {
+			runs: [
+				makeRunAtSpeed(1, 30),
+				{
+					...missingReactionRun,
+					gate_runs: {
+						...missingReactionRun.gate_runs,
+						reaction_time_ms: undefined
+					}
+				},
+				makeRunAtSpeed(3, 30),
+				makeRunAtSpeed(4, 30),
+				makeRunAtSpeed(5, 32),
+				makeRunAtSpeed(6, 20)
+			]
+		};
+
+		const analysis = analyseSession(session, {});
+
+		expect(analysis.intelligence?.dropOff?.dropOffRun).toBe(6);
+		expect(analysis.intelligence?.setLength.optimal).toBe(5);
+	});
+});
+
+describe('analyseSession — performance persistence evidence', () => {
+	it('keeps physical session length separate from a gapped supported sequence', () => {
+		const session: SessionLike = {
+			runs: [
+				makeRunAtSpeed(1, 30),
+				makeRun({ run_number: 2, chart_data: [] }),
+				makeRunAtSpeed(3, 31),
+				makeRunAtSpeed(4, 30),
+				makeRunAtSpeed(5, 31),
+				makeRunAtSpeed(6, 30)
+			]
+		};
+
+		const persistence = analyseSession(session, {}).intelligence?.performancePersistence;
+
+		expect(persistence).toEqual({
+			physicalRunCount: 6,
+			supportedRunCount: 5,
+			supportedRunNumbers: [1, 3, 4, 5, 6],
+			coverage: 'incomplete-non-contiguous',
+			dropOffRun: null,
+			demonstratedThroughRun: null
+		});
+	});
+
+	it('can state demonstrated persistence only through a contiguous supported prefix', () => {
+		const session: SessionLike = {
+			runs: [
+				makeRunAtSpeed(1, 30),
+				makeRunAtSpeed(2, 31),
+				makeRunAtSpeed(3, 30),
+				makeRunAtSpeed(4, 31),
+				makeRunAtSpeed(5, 30),
+				makeRun({ run_number: 6, chart_data: [] })
+			]
+		};
+
+		const persistence = analyseSession(session, {}).intelligence?.performancePersistence;
+
+		expect(persistence).toEqual({
+			physicalRunCount: 6,
+			supportedRunCount: 5,
+			supportedRunNumbers: [1, 2, 3, 4, 5],
+			coverage: 'incomplete-contiguous',
+			dropOffRun: null,
+			demonstratedThroughRun: 5
+		});
 	});
 });

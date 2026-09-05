@@ -87,6 +87,7 @@ export function analyseSession(
 		// repeatability scoring (the .filter Boolean pass left an empty array).
 		const runData = analysedRuns
 			.map((r) => ({
+				runNumber: r.runNumber ?? undefined,
 				reactionTime: r.reactionMs,
 				peakSpeed:
 					r.physics?.measuredPeakSpeedKmh ??
@@ -96,8 +97,12 @@ export function analyseSession(
 			.filter((r) => r.reactionTime !== null);
 
 		if (runData.length > 0) {
-			// Store the full SessionIntelligenceReport directly
-			intelligence = analyseSessionIntelligence(runData);
+			// Physical session length is deliberately passed separately from the
+			// reaction-filtered evidence array so downstream persistence semantics
+			// cannot mistake evidence coverage for session length.
+			intelligence = analyseSessionIntelligence(runData, {
+				physicalRunCount: analysedRuns.length
+			});
 		}
 	}
 

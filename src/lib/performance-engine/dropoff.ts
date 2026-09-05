@@ -10,7 +10,7 @@ export interface DropOffAnalysis {
 	dropPercent: number;
 }
 
-export function detectDropOff(values: number[]): DropOffAnalysis | null {
+export function detectDropOff(values: number[], runNumbers?: number[]): DropOffAnalysis | null {
 	if (values.length < 4) return null;
 
 	let bestSoFar = -Infinity;
@@ -21,7 +21,7 @@ export function detectDropOff(values: number[]): DropOffAnalysis | null {
 		// Detect if current value drops >6% below best-so-far
 		if (i > 1 && values[i] < bestSoFar * 0.94) {
 			return {
-				dropOffRun: i + 1, // 1-indexed for user display
+				dropOffRun: runNumbers?.[i] ?? i + 1,
 				dropPercent: ((bestSoFar - values[i]) / bestSoFar) * 100
 			};
 		}

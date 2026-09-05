@@ -89,17 +89,19 @@ export function applyCrossSessionTruthRules(report: CrossSessionReport): TruthRu
 		};
 	}
 
-	// Priority 3: Any major decline
+	// Priority 3: Any major decline. Reaction time is lower-is-better, so an
+	// upward reaction trend is the worsening direction; the other metrics here
+	// are higher-is-better.
 	const hasDecline =
 		report.performance.speedTrend.direction === 'down' ||
-		report.performance.reactionTrend.direction === 'down' ||
+		report.performance.reactionTrend.direction === 'up' ||
 		report.performance.peakGTrend.direction === 'down' ||
 		repeatabilityDeclining;
 
 	if (hasDecline) {
 		const decliningMetrics: string[] = [];
 		if (report.performance.speedTrend.direction === 'down') decliningMetrics.push('speed');
-		if (report.performance.reactionTrend.direction === 'down')
+		if (report.performance.reactionTrend.direction === 'up')
 			decliningMetrics.push('reaction time');
 		if (report.performance.peakGTrend.direction === 'down') decliningMetrics.push('power');
 		if (repeatabilityDeclining) decliningMetrics.push('consistency');

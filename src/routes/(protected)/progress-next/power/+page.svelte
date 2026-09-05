@@ -1,0 +1,562 @@
+<script lang="ts">
+	import type { PageData } from './$types';
+	import ProgressPrimaryChart from '$lib/components/progress-next/ProgressPrimaryChart.svelte';
+	import ProgressPowerComparisonProof from '$lib/components/progress-next/ProgressPowerComparisonProof.svelte';
+	import ProgressPowerContextProof from '$lib/components/progress-next/ProgressPowerContextProof.svelte';
+	import ProgressPowerPeakHistory from '$lib/components/progress-next/ProgressPowerPeakHistory.svelte';
+	import ProgressPowerSupportingSessions from '$lib/components/progress-next/ProgressPowerSupportingSessions.svelte';
+	import ProgressPowerSynthesis from '$lib/components/progress-next/ProgressPowerSynthesis.svelte';
+	import { buildPowerEvidence } from '$lib/components/progress-next/powerEvidence';
+	import { buildPowerContextEvidence } from '$lib/components/progress-next/powerContextEvidence';
+	import { buildPowerDepthEvidence } from '$lib/components/progress-next/powerDepthEvidence';
+	import { buildPowerPeakEvidence } from '$lib/components/progress-next/powerPeakEvidence';
+	import { buildPowerSupportingSessions } from '$lib/components/progress-next/powerSupportingSessions';
+	import { buildPowerSynthesisEvidence } from '$lib/components/progress-next/powerSynthesisEvidence';
+
+	let { data }: { data: PageData } = $props();
+
+	const powerEvidence = $derived(buildPowerEvidence(data.sessionAnalyses));
+	const peakEvidence = $derived(buildPowerPeakEvidence(data.sessionAnalyses));
+	const contextEvidence = $derived(
+		buildPowerContextEvidence(
+			data.correlationInsights ?? [],
+			powerEvidence.supportedSessionCount,
+			data.sessionCount
+		)
+	);
+	const synthesisEvidence = $derived(buildPowerSynthesisEvidence(powerEvidence, peakEvidence));
+	const depthEvidence = $derived(
+		buildPowerDepthEvidence(powerEvidence, peakEvidence, contextEvidence, synthesisEvidence)
+	);
+	const supportingSessions = $derived(buildPowerSupportingSessions(powerEvidence, peakEvidence));
+
+	const stages = ['building', 'emerging', 'developing', 'established'] as const;
+	const stageIndex = $derived(stages.indexOf(depthEvidence.stage));
+	const latestHistory = $derived(powerEvidence.history.at(-1) ?? null);
+	const latestPeak = $derived(peakEvidence.history.at(-1) ?? null);
+
+	function wattsValue(value: number | null) {
+		return value === null ? '—' : `${Math.round(value)}W`;
+	}
+
+	function dateLabel(value: string) {
+		return new Date(value).toLocaleDateString('en-GB', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		});
+	}
+</script>
+
+<svelte:head>
+	<title>Power Progress — AppGatePro</title>
+</svelte:head>
+
+<div class="power-depth-shell" data-stage={depthEvidence.stage}>
+	<div class="workspace">
+		<header class="page-head">
+			<div>
+				<a class="back-link" href="/progress-next">← Back to Progress</a>
+				<p class="eyebrow">Progress · Power deep dive</p>
+				<h1>Power Progress</h1>
+				<span>Depth grows only as the underlying Power evidence earns it.</span>
+			</div>
+
+			<div class="stage-summary">
+				<strong>{depthEvidence.presentation.label}</strong>
+				<span>
+					{depthEvidence.supportedSessionCount} Power-supported session{depthEvidence.supportedSessionCount ===
+					1
+						? ''
+						: 's'}
+				</span>
+				<small>
+					{depthEvidence.totalSessionCount} total eligible session{depthEvidence.totalSessionCount === 1
+						? ''
+						: 's'}
+				</small>
+			</div>
+		</header>
+
+		<section class="maturity" aria-label="Power evidence maturity">
+			<div class="maturity-copy">
+				<p>{depthEvidence.presentation.label} evidence</p>
+				<h2>{depthEvidence.presentation.headline}</h2>
+				<span>{depthEvidence.presentation.guidance}</span>
+			</div>
+
+			<div class="maturity-track" aria-label={`Current Power depth: ${depthEvidence.presentation.label}`}>
+				{#each stages as stage, index}
+					<div class:reached={index <= stageIndex} class:current={index === stageIndex}>
+						<i></i>
+						<span>{stage}</span>
+					</div>
+				{/each}
+			</div>
+		</section>
+
+		<section class="snapshot" aria-label="Power evidence snapshot">
+			<article>
+				<span>Best peak power</span>
+				<strong>{wattsValue(powerEvidence.bestPeakPowerW)}</strong>
+				<small>Measured personal best</small>
+			</article>
+
+			<article>
+				<span>Latest average</span>
+				<strong>{wattsValue(powerEvidence.latestAverageW)}</strong>
+				<small>{latestHistory ? dateLabel(latestHistory.timestamp) : 'No supported average yet'}</small>
+			</article>
+
+			<article>
+				<span>Latest peak</span>
+				<strong>{wattsValue(latestPeak?.peakW ?? null)}</strong>
+				<small>{latestPeak ? 'Session-peak estimate' : 'Peak power evidence building'}</small>
+			</article>
+
+			<article>
+				<span>Direction evidence</span>
+				<strong>{powerEvidence.presentation.label}</strong>
+				<small>Latest supported window: {powerEvidence.windowSize}</small>
+			</article>
+		</section>
+
+		<section class="primary-evidence" aria-label="Power progression evidence">
+			<ProgressPrimaryChart
+				sessions={data.sessions}
+				view="power"
+				{powerEvidence}
+				powerContextEvidence={contextEvidence}
+			/>
+		</section>
+
+		<section class="evidence-grid" aria-label="Power evidence layers">
+			<article class="evidence-card" data-earned={depthEvidence.unlocks.direction}>
+				<header>
+					<div>
+						<p>Direction</p>
+						<h2>Is average power changing?</h2>
+					</div>
+					<span>{powerEvidence.presentation.label}</span>
+				</header>
+				<p>{powerEvidence.presentation.statement}</p>
+				<footer>
+					{powerEvidence.supportedSessionCount} supported · window {powerEvidence.windowSize}
+				</footer>
+			</article>
+
+			<article class="evidence-card" data-earned={depthEvidence.unlocks.peakHistory}>
+				<header>
+					<div>
+						<p>Peak power</p>
+						<h2>Is session-peak power changing?</h2>
+					</div>
+					<span>{peakEvidence.presentation.label}</span>
+				</header>
+				<p>{peakEvidence.presentation.statement}</p>
+				<footer>
+					{peakEvidence.supportedSessionCount} peak-supported · window {peakEvidence.windowSize}
+				</footer>
+			</article>
+
+			<article class="evidence-card" data-earned={depthEvidence.unlocks.context}>
+				<header>
+					<div>
+						<p>Context</p>
+						<h2>What has appeared alongside it?</h2>
+					</div>
+					<span>{contextEvidence.presentation.label}</span>
+				</header>
+				<p>{contextEvidence.presentation.statement}</p>
+				{#if contextEvidence.selected}
+					<footer>
+						{contextEvidence.selected.variable} · {contextEvidence.selected.strength} evidence · n={contextEvidence
+							.selected.sampleSize}
+					</footer>
+				{:else}
+					<footer>No contextual cause is inferred.</footer>
+				{/if}
+			</article>
+		</section>
+
+		{#if depthEvidence.unlocks.peakHistory}
+			<ProgressPowerPeakHistory sessions={data.sessions} evidence={peakEvidence} />
+		{/if}
+
+		{#if depthEvidence.unlocks.direction || depthEvidence.unlocks.peakDirection}
+			<ProgressPowerComparisonProof power={powerEvidence} peak={peakEvidence} />
+		{/if}
+
+		{#if depthEvidence.unlocks.context}
+			<ProgressPowerContextProof evidence={contextEvidence} />
+		{/if}
+
+		{#if depthEvidence.unlocks.synthesis}
+			<ProgressPowerSynthesis evidence={synthesisEvidence} />
+		{:else}
+			<section class="story-building" aria-label="Power synthesis building">
+				<p>Power story</p>
+				<h2>Average and peak power are still being kept separate.</h2>
+				<span>{synthesisEvidence.statement}</span>
+			</section>
+		{/if}
+
+		<ProgressPowerSupportingSessions evidence={supportingSessions} />
+
+		<section class="proof" aria-label="Power evidence provenance">
+			<div>
+				<p>Evidence provenance</p>
+				<h2>Why this page can say what it says</h2>
+				<span>
+					Every layer above consumes the frozen Power evidence boundaries. Overall depth never
+					upgrades an individual statement by itself.
+				</span>
+			</div>
+
+			<dl>
+				<div>
+					<dt>Average power support</dt>
+					<dd>{powerEvidence.supportedSessionCount} sessions</dd>
+				</div>
+				<div>
+					<dt>Peak power support</dt>
+					<dd>{peakEvidence.supportedSessionCount} sessions</dd>
+				</div>
+				<div>
+					<dt>Context analysis</dt>
+					<dd>{contextEvidence.state === 'absent' ? 'Building' : 'Run'}</dd>
+				</div>
+				<div>
+					<dt>Synthesis</dt>
+					<dd>{synthesisEvidence.state}</dd>
+				</div>
+			</dl>
+		</section>
+	</div>
+</div>
+
+<style>
+	.power-depth-shell {
+		min-height: calc(100vh - 5rem);
+		margin: -2rem;
+		background:
+			radial-gradient(circle at 82% 7%, rgba(255, 179, 26, 0.12), transparent 28rem),
+			linear-gradient(180deg, #07131f 0%, #05101a 100%);
+		color: #f7fbff;
+	}
+
+	.workspace {
+		width: 100%;
+		max-width: 96rem;
+		margin: 0 auto;
+		padding: clamp(1.1rem, 1.8vw, 1.8rem);
+	}
+
+	.page-head {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.back-link {
+		display: inline-flex;
+		margin-bottom: 0.75rem;
+		color: #9db3c6;
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-decoration: none;
+	}
+
+	.back-link:hover {
+		color: #fff;
+	}
+
+	.eyebrow,
+	.maturity-copy p,
+	.evidence-card header p,
+	.story-building p,
+	.proof p {
+		margin: 0;
+		font-size: 0.58rem;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: #4ba3ff;
+	}
+
+	h1 {
+		margin: 0.22rem 0 0;
+		font-size: clamp(1.6rem, 2.5vw, 2.35rem);
+		letter-spacing: -0.04em;
+	}
+
+	.page-head > div > span {
+		display: block;
+		margin-top: 0.38rem;
+		font-size: 0.72rem;
+		color: #8298aa;
+	}
+
+	.stage-summary {
+		display: grid;
+		justify-items: end;
+		gap: 0.2rem;
+		min-width: 13rem;
+		padding: 0.8rem 1rem;
+		border: 1px solid #233d54;
+		border-radius: 0.8rem;
+		background: rgba(8, 25, 39, 0.88);
+	}
+
+	.stage-summary strong {
+		font-size: 0.9rem;
+		color: #ffe3ac;
+	}
+
+	.stage-summary span,
+	.stage-summary small {
+		font-size: 0.58rem;
+		color: #8298aa;
+	}
+
+	.maturity {
+		display: grid;
+		grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
+		gap: 1.25rem;
+		align-items: center;
+		padding: 1rem 1.1rem;
+		border: 1px solid #24435d;
+		border-radius: 1rem;
+		background: linear-gradient(135deg, rgba(15, 39, 58, 0.96), rgba(8, 25, 39, 0.96));
+	}
+
+	.maturity-copy h2,
+	.evidence-card h2,
+	.story-building h2,
+	.proof h2 {
+		margin: 0.25rem 0 0;
+		font-size: 1rem;
+		letter-spacing: -0.02em;
+	}
+
+	.maturity-copy span,
+	.story-building span,
+	.proof span {
+		display: block;
+		margin-top: 0.35rem;
+		font-size: 0.68rem;
+		line-height: 1.5;
+		color: #93a8b9;
+	}
+
+	.maturity-track {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0.55rem;
+	}
+
+	.maturity-track > div {
+		display: grid;
+		gap: 0.28rem;
+		font-size: 0.55rem;
+		font-weight: 700;
+		text-transform: capitalize;
+		color: #60788c;
+	}
+
+	.maturity-track i {
+		height: 0.35rem;
+		border-radius: 999px;
+		background: #1c3448;
+	}
+
+	.maturity-track .reached {
+		color: #a9bfd1;
+	}
+
+	.maturity-track .reached i {
+		background: #4ba3ff;
+	}
+
+	.maturity-track .current {
+		color: #f1f8fd;
+	}
+
+	.maturity-track .current i {
+		background: #ffb31a;
+	}
+
+	.snapshot {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.7rem;
+		margin-top: 0.75rem;
+	}
+
+	.snapshot article,
+	.evidence-card,
+	.story-building,
+	.proof {
+		border: 1px solid #1d3449;
+		border-radius: 0.9rem;
+		background: linear-gradient(180deg, rgba(10, 27, 43, 0.98), rgba(6, 18, 30, 0.98));
+	}
+
+	.snapshot article {
+		padding: 0.9rem 1rem;
+	}
+
+	.snapshot article > span,
+	.snapshot article > small {
+		display: block;
+		font-size: 0.56rem;
+		color: #7f95a7;
+	}
+
+	.snapshot article > span {
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.snapshot article strong {
+		display: block;
+		margin: 0.55rem 0 0.22rem;
+		font-size: 1.2rem;
+	}
+
+	.primary-evidence {
+		margin-top: 0.75rem;
+	}
+
+	.evidence-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.75rem;
+		margin-top: 0.75rem;
+	}
+
+	.evidence-card {
+		display: flex;
+		min-height: 10rem;
+		flex-direction: column;
+		padding: 1rem;
+	}
+
+	.evidence-card[data-earned='false'] {
+		border-style: dashed;
+		background: rgba(8, 22, 35, 0.8);
+	}
+
+	.evidence-card header {
+		display: flex;
+		align-items: start;
+		justify-content: space-between;
+		gap: 0.8rem;
+	}
+
+	.evidence-card header > span {
+		border-radius: 999px;
+		background: rgba(75, 163, 255, 0.12);
+		padding: 0.3rem 0.5rem;
+		font-size: 0.55rem;
+		font-weight: 750;
+		color: #a9d1ff;
+		white-space: nowrap;
+	}
+
+	.evidence-card > p {
+		margin: 0.75rem 0 0;
+		font-size: 0.68rem;
+		line-height: 1.55;
+		color: #a6b7c5;
+	}
+
+	.evidence-card footer {
+		margin-top: auto;
+		padding-top: 0.75rem;
+		font-size: 0.55rem;
+		color: #61798c;
+	}
+
+	.story-building,
+	.proof {
+		margin-top: 0.75rem;
+		padding: 1rem 1.1rem;
+	}
+
+	.story-building {
+		border-style: dashed;
+	}
+
+	.proof {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(24rem, 0.9fr);
+		gap: 1.2rem;
+		align-items: center;
+	}
+
+	dl {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.45rem;
+		margin: 0;
+	}
+
+	dl > div {
+		padding: 0.65rem 0.75rem;
+		border: 1px solid #1b3449;
+		border-radius: 0.65rem;
+		background: rgba(7, 20, 32, 0.7);
+	}
+
+	dt {
+		font-size: 0.55rem;
+		color: #6f8799;
+	}
+
+	dd {
+		margin: 0.2rem 0 0;
+		font-size: 0.65rem;
+		font-weight: 750;
+		color: #dce8f2;
+		text-transform: capitalize;
+	}
+
+	@media (max-width: 980px) {
+		.maturity,
+		.proof {
+			grid-template-columns: 1fr;
+		}
+
+		.snapshot {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.evidence-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.page-head {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.stage-summary {
+			justify-items: start;
+		}
+
+		.snapshot,
+		dl {
+			grid-template-columns: 1fr;
+		}
+
+		.maturity-track {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+</style>

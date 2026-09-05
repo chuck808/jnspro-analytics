@@ -77,6 +77,64 @@ describe('analyseCrossSessionIntelligence', () => {
 		expect(report.overallTrend).toBe('declining');
 	});
 
+	it('does not count unknown trends as declines in overallTrend', () => {
+		const sessions = [
+			makeSession(0, {
+				bestSpeedKmh: 35,
+				bestReactionTimeSec: 0.2,
+				optimalSetLength: 6
+			}),
+			makeSession(1, {
+				bestSpeedKmh: 35,
+				bestReactionTimeSec: null,
+				optimalSetLength: null
+			}),
+			makeSession(2, {
+				bestSpeedKmh: 25,
+				bestReactionTimeSec: null,
+				optimalSetLength: null
+			}),
+			makeSession(3, {
+				bestSpeedKmh: 25,
+				bestReactionTimeSec: null,
+				optimalSetLength: null
+			}),
+			makeSession(4, {
+				bestSpeedKmh: 25,
+				bestReactionTimeSec: null,
+				optimalSetLength: null
+			})
+		];
+
+		const report = analyseCrossSessionIntelligence(sessions);
+
+		expect(report.status).toBe('ready');
+		expect(report.performance.speedTrend.direction).toBe('down');
+		expect(report.performance.speedTrend.improving).toBe(false);
+		expect(report.performance.reactionTrend.direction).toBe('unknown');
+		expect(report.consistency.repeatabilityTrend.direction).toBe('stable');
+		expect(report.fatigue.optimalSetLengthTrend.direction).toBe('unknown');
+		expect(report.overallTrend).toBe('stable');
+	});
+
+	it('keeps default confidence tied to the five-session recent window, not total history', () => {
+		const sessions = Array.from({ length: 12 }, (_, i) => makeSession(i));
+		const report = analyseCrossSessionIntelligence(sessions);
+
+		expect(report.sessionCount).toBe(12);
+		expect(report.lookbackSessions).toBe(5);
+		expect(report.confidence).toBe('moderate');
+	});
+
+	it('can report high confidence when an explicit ten-session lookback supplies that evidence window', () => {
+		const sessions = Array.from({ length: 12 }, (_, i) => makeSession(i));
+		const report = analyseCrossSessionIntelligence(sessions, { lookbackSessions: 10 });
+
+		expect(report.sessionCount).toBe(12);
+		expect(report.lookbackSessions).toBe(10);
+		expect(report.confidence).toBe('high');
+	});
+
 	it('respects the lookbackSessions option when computing trends', () => {
 		const sessions = Array.from({ length: 8 }, (_, i) => makeSession(i));
 		const report = analyseCrossSessionIntelligence(sessions, { lookbackSessions: 4 });
